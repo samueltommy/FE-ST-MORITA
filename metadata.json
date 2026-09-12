@@ -1,0 +1,6 @@
+{
+  "name": "ST. Morita Industries",
+  "description": "Enterprise-grade integrated ERP portal for ST. Morita Industries with high-density financial analytics, granular RBAC, QC lockout, EXIM customs, and audit compliance.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
