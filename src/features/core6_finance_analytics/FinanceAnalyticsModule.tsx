@@ -18,6 +18,7 @@ import {
   Sparkles,
   AlertCircle,
   HelpCircle,
+  Plus,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import {
@@ -30,6 +31,7 @@ import {
 import { InvoiceFormulaId, DeliveryOrder } from '../../types';
 import { checkPermission } from '../../utils/rbac';
 import { Can } from '../../components/rbac/Can';
+import { FinanceFormsModal } from '../../components/forms/FinanceFormsModal';
 
 export const FinanceAnalyticsModule: React.FC = () => {
   const deliveryOrders = useAppStore((state) => state.deliveryOrders);
@@ -40,6 +42,8 @@ export const FinanceAnalyticsModule: React.FC = () => {
   const [selectedFormulaId, setSelectedFormulaId] = useState<InvoiceFormulaId>(
     'FORMULA_1_STANDARD_NET'
   );
+  const [financeModalOpen, setFinanceModalOpen] = useState(false);
+  const [financeModalTab, setFinanceModalTab] = useState<'complaint' | 'ap' | 'ar' | 'rma'>('complaint');
 
   // Custom adjustable parameters for real-time recalculation
   const [customParams, setCustomParams] = useState<FormulaCustomParameters>({
@@ -94,8 +98,28 @@ export const FinanceAnalyticsModule: React.FC = () => {
           </p>
         </div>
 
-        {/* Action button */}
+        {/* Action buttons */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setFinanceModalTab('complaint');
+              setFinanceModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all shadow-xs cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>E-Complaint</span>
+          </button>
+          <button
+            onClick={() => {
+              setFinanceModalTab('ap');
+              setFinanceModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Faktur AP / AR</span>
+          </button>
           <button
             onClick={() => setShowPrintInvoiceModal(true)}
             disabled={selectedDos.length === 0}
@@ -106,7 +130,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
             }`}
           >
             <Printer className="w-4 h-4" />
-            <span>Cetak / Pratinjau Faktur</span>
+            <span>Cetak Faktur</span>
           </button>
         </div>
       </div>
@@ -680,6 +704,13 @@ export const FinanceAnalyticsModule: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Finance & Complaints Forms Modal */}
+      <FinanceFormsModal
+        isOpen={financeModalOpen}
+        onClose={() => setFinanceModalOpen(false)}
+        defaultTab={financeModalTab}
+      />
     </div>
   );
 };

@@ -7,14 +7,17 @@ import {
   ChevronDown,
   UserPlus,
   LogOut,
+  PlusCircle,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { ROLE_DEFINITIONS, getTierBadge, canManageUsers } from '../../utils/rbac';
 import { UserRole } from '../../types';
+import { UniversalDataEntryModal } from '../forms/UniversalDataEntryModal';
 
 export const Navbar: React.FC = () => {
   const currentUser = useAppStore((state) => state.currentUser);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const [dataEntryModalOpen, setDataEntryModalOpen] = useState(false);
 
   const tierMeta = getTierBadge(currentUser.tier);
   const isUserAdmin = canManageUsers(currentUser);
@@ -40,7 +43,7 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Middle Section: Clean, Spacious Search Bar */}
-        <div className="hidden md:flex items-center max-w-md w-full mx-8">
+        <div className="hidden md:flex items-center max-w-md w-full mx-6">
           <button
             id="open-command-palette-btn"
             onClick={() => appStore.setCommandPaletteOpen(true)}
@@ -56,14 +59,26 @@ export const Navbar: React.FC = () => {
           </button>
         </div>
 
-        {/* Right Section: Clean Profile & Role Switcher */}
-        <div className="flex items-center gap-3">
+        {/* Right Section: Universal + Input Data Baru, Profile & Role Switcher */}
+        <div className="flex items-center gap-2.5">
+          {/* Universal Data Entry Button */}
+          <button
+            id="navbar-universal-data-entry-btn"
+            onClick={() => setDataEntryModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold shadow-sm shadow-blue-600/20 transition-all cursor-pointer"
+            title="Buka Formulir Input Data Transaksi untuk Semua Modul"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">Input Data Baru</span>
+            <span className="sm:hidden">Input</span>
+          </button>
+
           {/* Quick link to User Management for Admin */}
           {isUserAdmin && (
             <button
               id="navbar-admin-users-btn"
               onClick={() => appStore.setActiveModule('users')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold transition-colors cursor-pointer"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold transition-colors cursor-pointer"
               title="Kelola Akun Pegawai & RBAC"
             >
               <UserPlus className="w-3.5 h-3.5 text-purple-600" />
@@ -192,6 +207,12 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Universal Data Entry Modal */}
+      <UniversalDataEntryModal
+        isOpen={dataEntryModalOpen}
+        onClose={() => setDataEntryModalOpen(false)}
+      />
     </header>
   );
 };

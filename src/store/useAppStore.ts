@@ -13,7 +13,29 @@ import {
   UserProfile,
   UserRole,
   VehicleBooking,
+  CustomerMaster,
+  SupplierMaster,
+  PurchaseRequest,
+  GoodsReceiptLog,
+  WorkOrderSpk,
+  LeaveRequest,
+  WasteRecord,
+  EComplaintTicket,
+  VendorInvoiceAp,
+  ArPaymentRecord,
 } from '../types';
+import {
+  INITIAL_CUSTOMERS,
+  INITIAL_SUPPLIERS,
+  INITIAL_PRS,
+  INITIAL_GOODS_RECEIPTS,
+  INITIAL_SPKS,
+  INITIAL_LEAVES,
+  INITIAL_WASTES,
+  INITIAL_COMPLAINTS,
+  INITIAL_VENDOR_INVOICES,
+  INITIAL_AR_PAYMENTS,
+} from './initialEnterpriseData';
 import { ROLE_DEFINITIONS } from '../utils/rbac';
 import { createAuditLog } from '../utils/cryptoAudit';
 
@@ -830,6 +852,16 @@ export interface AppState {
   vehicleBookings: VehicleBooking[];
   salesVisits: SalesOutdoorVisit[];
   auditLogs: AuditLog[];
+  customers: CustomerMaster[];
+  suppliers: SupplierMaster[];
+  purchaseRequests: PurchaseRequest[];
+  goodsReceipts: GoodsReceiptLog[];
+  workOrders: WorkOrderSpk[];
+  leaveRequests: LeaveRequest[];
+  wasteRecords: WasteRecord[];
+  eComplaints: EComplaintTicket[];
+  vendorInvoices: VendorInvoiceAp[];
+  arPayments: ArPaymentRecord[];
 }
 
 // Global mutable store singleton
@@ -855,6 +887,16 @@ let globalState: AppState = {
   vehicleBookings: INITIAL_VEHICLES,
   salesVisits: INITIAL_SALES_VISITS,
   auditLogs: INITIAL_AUDIT_LOGS,
+  customers: INITIAL_CUSTOMERS,
+  suppliers: INITIAL_SUPPLIERS,
+  purchaseRequests: INITIAL_PRS,
+  goodsReceipts: INITIAL_GOODS_RECEIPTS,
+  workOrders: INITIAL_SPKS,
+  leaveRequests: INITIAL_LEAVES,
+  wasteRecords: INITIAL_WASTES,
+  eComplaints: INITIAL_COMPLAINTS,
+  vendorInvoices: INITIAL_VENDOR_INVOICES,
+  arPayments: INITIAL_AR_PAYMENTS,
 };
 
 const listeners = new Set<() => void>();
@@ -1279,6 +1321,389 @@ export const appStore = {
         `Upload dokumen kepabeanan pabean ${doc.docType} No: ${doc.referenceNumber}`
       );
       return { ...prev, eximDocs: [doc, ...prev.eximDocs], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  // -------------------------------------------------------------
+  // Enterprise Module Actions (Core 1 - Core 6)
+  // -------------------------------------------------------------
+
+  // Core 1: HRD
+  addLeaveRequest: (req: LeaveRequest) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        req.id,
+        `Pengajuan ${req.leaveType} (${req.durationDays} hari) untuk ${req.employeeName} (${req.employeeNik})`
+      );
+      return { ...prev, leaveRequests: [req, ...prev.leaveRequests], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  approveLeaveRequest: (reqId: string) => {
+    updateGlobalState((prev) => {
+      const updated = prev.leaveRequests.map((r) =>
+        r.id === reqId
+          ? { ...r, status: 'APPROVED' as const, approvedBy: prev.currentUser.name }
+          : r
+      );
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'APPROVE',
+        'SYSTEM',
+        reqId,
+        `Persetujuan pengajuan cuti/izin karyawan ID: ${reqId}`
+      );
+      return { ...prev, leaveRequests: updated, auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  addVehicleBooking: (booking: VehicleBooking) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        booking.id,
+        `Reservasi armada kendaraan operasional: ${booking.vehicleName} (${booking.licensePlate}) tujuan ${booking.destination}`
+      );
+      return { ...prev, vehicleBookings: [booking, ...prev.vehicleBookings], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  addSalesVisit: (visit: SalesOutdoorVisit) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        visit.id,
+        `Pencatatan kunjungan sales outdoor: ${visit.salesName} ke ${visit.clientName}`
+      );
+      return { ...prev, salesVisits: [visit, ...prev.salesVisits], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  // Core 2: Master Data
+  addCustomer: (cust: CustomerMaster) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        cust.customerCode,
+        `Registrasi Master Pelanggan: ${cust.companyName} (${cust.customerCode}) NPWP: ${cust.npwp} Kode Pajak: ${cust.taxTransactionCode}`
+      );
+      return { ...prev, customers: [cust, ...prev.customers], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  addSupplier: (supp: SupplierMaster) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        supp.supplierCode,
+        `Registrasi Master Vendor/Supplier: ${supp.supplierName} (${supp.supplierCode}) Term: ${supp.paymentTerm}`
+      );
+      return { ...prev, suppliers: [supp, ...prev.suppliers], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  addWasteRecord: (waste: WasteRecord) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        waste.ticketNumber,
+        `Pelaporan Limbah Pabrik (${waste.wasteType}): ${waste.quantity} ${waste.unit} Lot ${waste.lotNumber} - Severity: ${waste.severity}`
+      );
+      return { ...prev, wasteRecords: [waste, ...prev.wasteRecords], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  // Core 3: Procurement & Supply Chain
+  addPurchaseRequest: (pr: PurchaseRequest) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        pr.prNumber,
+        `Penerbitan Purchase Request (PR) PPIC: ${pr.prNumber} untuk ${pr.itemName} (${pr.quantity} ${pr.unit})`
+      );
+      return { ...prev, purchaseRequests: [pr, ...prev.purchaseRequests], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  approvePurchaseRequest: (prId: string) => {
+    updateGlobalState((prev) => {
+      const updated = prev.purchaseRequests.map((p) =>
+        p.id === prId ? { ...p, status: 'APPROVED' as const } : p
+      );
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'APPROVE',
+        'SYSTEM',
+        prId,
+        `Persetujuan Purchase Request (PR) ID: ${prId} oleh Manager Purchasing`
+      );
+      return { ...prev, purchaseRequests: updated, auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  addProcurementOrder: (order: ProcurementOrder) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        order.poNumber,
+        `Penerbitan PO Supplier: ${order.poNumber} kepada ${order.vendorName} senilai IDR ${order.totalAmount.toLocaleString()}`
+      );
+      return { ...prev, procurementOrders: [order, ...prev.procurementOrders], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  addGoodsReceiptLog: (log: GoodsReceiptLog) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        log.logNumber,
+        `Penerimaan Fisik Barang Gudang (LOG): ${log.logNumber} Surat Jalan: ${log.deliveryNoteNumber} Qty: ${log.qtyDelivered} ${log.unit}`
+      );
+
+      // Auto-trigger IQC inspection record if flagged
+      let newQcRecords = [...prev.qcRecords];
+      if (log.isIqcTriggered) {
+        const newQc: QcInspectionRecord = {
+          id: `QC-${Date.now()}`,
+          lotNumber: log.lotNumber,
+          itemCode: log.itemCode,
+          itemName: log.itemName,
+          batchSize: log.qtyDelivered,
+          unit: log.unit,
+          status: 'HOLD', // Placed on Hold until QC inspects
+          inspectionDate: new Date().toISOString().slice(0, 10),
+          inspectorName: 'Antrean IQC Auto-Trigger',
+          inspectorRole: 'QC_INSPECTOR',
+          defectReason: `Menunggu pengujian IQC dari penerimaan gudang Ref: ${log.logNumber} (SJ: ${log.deliveryNoteNumber})`,
+          testedParameters: [
+            { name: 'Ketebalan Tape (Micron)', standard: '50 ± 2 µm', actual: 'Belum Diuji', result: 'OK' },
+            { name: 'Adhesion Force (N/25mm)', standard: '≥ 14.0 N', actual: 'Belum Diuji', result: 'OK' },
+          ],
+          businessUnit: log.businessUnit,
+        };
+        newQcRecords = [newQc, ...newQcRecords];
+      }
+
+      return {
+        ...prev,
+        goodsReceipts: [log, ...prev.goodsReceipts],
+        qcRecords: newQcRecords,
+        auditLogs: [audit, ...prev.auditLogs],
+      };
+    });
+  },
+
+  // Core 4: Production & QC
+  addWorkOrder: (spk: WorkOrderSpk) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        spk.spkNumber,
+        `Penerbitan SPK Produksi: ${spk.spkNumber} untuk ${spk.itemName} (${spk.targetQuantity} ${spk.unit}) di ${spk.productionLine}`
+      );
+      return { ...prev, workOrders: [spk, ...prev.workOrders], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  addQcInspection: (record: QcInspectionRecord) => {
+    updateGlobalState((prev) => {
+      const actionType = record.status === 'HOLD' ? 'CREATE' : 'APPROVE';
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        actionType,
+        'QC_INSPECTION',
+        record.lotNumber,
+        `Hasil Inspeksi QC [${record.status}] untuk Lot: ${record.lotNumber} (${record.itemName}). Alasan: ${record.defectReason || 'Memenuhi spesifikasi teknis'}`
+      );
+
+      return {
+        ...prev,
+        qcRecords: [record, ...prev.qcRecords],
+        auditLogs: [audit, ...prev.auditLogs],
+      };
+    });
+  },
+
+  // Core 5: Sales & Tracking
+  addQuotation: (quote: Quotation) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'QUOTATION',
+        quote.quotationNumber,
+        `Pengajuan Quotation Baru: ${quote.quotationNumber} (${quote.customerName}) Margin: ${quote.grossMarginPercent}% Status: ${quote.status}`
+      );
+      return { ...prev, quotations: [quote, ...prev.quotations], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  addDeliveryOrder: (order: DeliveryOrder) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        order.doNumber,
+        `Penerbitan Surat Jalan DO Baru: ${order.doNumber} kepada ${order.customerName} (${order.truckArmada})`
+      );
+      return { ...prev, deliveryOrders: [order, ...prev.deliveryOrders], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  addSalesTrackingOrder: (order: SalesTrackingOrder) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        order.ioNumber,
+        `Pendaftaran Barcode Tracking IO: ${order.ioNumber} kepada ${order.customerName}`
+      );
+      return { ...prev, salesTrackingOrders: [order, ...prev.salesTrackingOrders], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  updateTrackingStage: (
+    ioNumber: string,
+    stage: 'PRODUCTION' | 'STAGING' | 'QC_OUT' | 'IN_TRANSIT' | 'DELIVERED',
+    location: string,
+    operator: string
+  ) => {
+    updateGlobalState((prev) => {
+      const updated = prev.salesTrackingOrders.map((ord) => {
+        if (ord.ioNumber === ioNumber) {
+          const newTimelinePoint = {
+            stage,
+            timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
+            location,
+            operator,
+            completed: true,
+          };
+          return {
+            ...ord,
+            currentStage: stage,
+            timeline: [...ord.timeline, newTimelinePoint],
+          };
+        }
+        return ord;
+      });
+
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'UPDATE',
+        'SYSTEM',
+        ioNumber,
+        `Update checkpoint barcode tracking IO: ${ioNumber} -> Tahap ${stage} (${location})`
+      );
+
+      return { ...prev, salesTrackingOrders: updated, auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  // Core 6: Finance, Claims & RMA
+  addEComplaint: (complaint: EComplaintTicket) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        complaint.ticketNumber,
+        `Registrasi E-Complaint Pelanggan: ${complaint.ticketNumber} (${complaint.customerName}) - Jenis: ${complaint.complaintType}`
+      );
+      return { ...prev, eComplaints: [complaint, ...prev.eComplaints], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  resolveEComplaint: (ticketId: string, rmaNumber?: string, debitNoteNumber?: string) => {
+    updateGlobalState((prev) => {
+      const updated = prev.eComplaints.map((c) =>
+        c.id === ticketId
+          ? {
+              ...c,
+              status: 'RESOLVED' as const,
+              qcReinspectionStatus: 'INSPECTED_NG_CONFIRMED' as const,
+              rmaNumber: rmaNumber || c.rmaNumber,
+              debitNoteNumber: debitNoteNumber || c.debitNoteNumber,
+            }
+          : c
+      );
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'UPDATE',
+        'SYSTEM',
+        ticketId,
+        `Penyelesaian Klaim E-Complaint ID: ${ticketId}. RMA: ${rmaNumber || '-'} Debit Note: ${debitNoteNumber || '-'}`
+      );
+      return { ...prev, eComplaints: updated, auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  addVendorInvoice: (invoice: VendorInvoiceAp) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        invoice.invoiceNumber,
+        `Pencatatan Faktur Hutang Usaha (AP): ${invoice.invoiceNumber} dari ${invoice.supplierName} Nilai: IDR ${invoice.totalAmount.toLocaleString()}`
+      );
+      return { ...prev, vendorInvoices: [invoice, ...prev.vendorInvoices], auditLogs: [audit, ...prev.auditLogs] };
+    });
+  },
+
+  addArPayment: (payment: ArPaymentRecord) => {
+    updateGlobalState((prev) => {
+      const audit = createAuditLog(
+        prev.currentUser.name,
+        prev.currentUser.role,
+        'CREATE',
+        'SYSTEM',
+        payment.receiptNumber,
+        `Penerimaan Pembayaran Piutang (AR): ${payment.receiptNumber} (${payment.customerName}) Nilai: IDR ${payment.amountPaid.toLocaleString()}`
+      );
+      return { ...prev, arPayments: [payment, ...prev.arPayments], auditLogs: [audit, ...prev.auditLogs] };
     });
   },
 };

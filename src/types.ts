@@ -112,6 +112,7 @@ export interface UserProfile {
   status: 'ACTIVE' | 'SUSPENDED';
   joinedDate?: string;
   phoneNumber?: string;
+  businessUnit?: BusinessUnit;
 }
 
 export type ItemCategory =
@@ -186,6 +187,10 @@ export interface ProcurementOrder {
   status?: string;
   bcDocumentType?: string;
   bcDocStatus?: string;
+  itemName?: string;
+  quantity?: number;
+  unit?: string;
+  unitPrice?: number;
 }
 
 export type EximDocType = 'BC 2.3' | 'BC 2.7' | 'BC 4.0' | 'SPPB Gate-Pass';
@@ -381,4 +386,196 @@ export interface InvoiceCalculationResult {
   insuranceCost?: number;
   grandTotal?: number;
   breakdownNote?: string;
+}
+
+// -------------------------------------------------------------
+// Extended Domain Interfaces based on SRS & ERD Database Schemas
+// -------------------------------------------------------------
+
+export interface CustomerMaster {
+  id: string;
+  customerCode: string;
+  companyName: string;
+  customerStatus: 'NEW' | 'OLD';
+  businessType: string;
+  taxTransactionCode: '01' | '02' | '03' | '04' | '07' | '08' | '09'; // PPh/PPN tax codes
+  npwp: string;
+  nik?: string;
+  billingAddress: string;
+  shippingAddress: string;
+  paymentTerm: string;
+  creditLimit: number;
+  contactPerson: string;
+  phone: string;
+  email: string;
+  businessUnit: BusinessUnit;
+  createdAt: string;
+}
+
+export interface SupplierMaster {
+  id: string;
+  supplierCode: string;
+  supplierName: string;
+  npwp: string;
+  address: string;
+  phone: string;
+  email: string;
+  contactPerson: string;
+  paymentTerm: string;
+  bankName: string;
+  bankAccountNumber: string;
+  businessUnit: BusinessUnit;
+  status: 'ACTIVE' | 'INACTIVE';
+}
+
+export interface PurchaseRequest {
+  id: string;
+  prNumber: string;
+  requestedBy: string;
+  department: string;
+  itemCode: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  requiredDate: string;
+  priority: 'NORMAL' | 'URGENT' | 'HIGH';
+  status: 'DRAFT' | 'REQUESTED' | 'APPROVED' | 'PO_CREATED';
+  purpose: string;
+  businessUnit: BusinessUnit;
+  createdAt: string;
+}
+
+export interface GoodsReceiptLog {
+  id: string;
+  logNumber: string;
+  poNumber: string;
+  supplierName: string;
+  deliveryNoteNumber: string; // No Surat Jalan Vendor
+  vendorTruckPlate: string;
+  driverName: string;
+  receiptDate: string;
+  receivedBy: string;
+  itemCode: string;
+  itemName: string;
+  lotNumber: string;
+  qtyDelivered: number;
+  unit: string;
+  isIqcTriggered: boolean;
+  iqcStatus: 'PENDING' | 'PASS' | 'HOLD';
+  businessUnit: BusinessUnit;
+}
+
+export interface WorkOrderSpk {
+  id: string;
+  spkNumber: string;
+  customerIoRef?: string;
+  itemCode: string;
+  itemName: string;
+  targetQuantity: number;
+  producedGoodQty: number;
+  producedNgQty: number;
+  unit: string;
+  targetWidthMm: number;
+  targetLengthM: number;
+  targetMicron?: number;
+  productionLine: string;
+  operatorName: string;
+  spkStatus: 'QUEUED' | 'ON_PROCESS' | 'COMPLETED' | 'HOLD_BLOCKED';
+  startDate: string;
+  dueDate: string;
+  rawMaterialLotChecked: boolean;
+  businessUnit: BusinessUnit;
+}
+
+export interface LeaveRequest {
+  id: string;
+  employeeName: string;
+  employeeNik: string;
+  department: string;
+  leaveType: 'CUTI_TAHUNAN' | 'SAKIT_SURAT_DOKTER' | 'IZIN_KEPERLUAN_KHUSUS' | 'CUTI_MELAHIRKAN';
+  startDate: string;
+  endDate: string;
+  durationDays: number;
+  reason: string;
+  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  approvedBy?: string;
+  attachmentName?: string;
+  createdAt: string;
+}
+
+export interface WasteRecord {
+  id: string;
+  ticketNumber: string;
+  wasteType: 'RAW_MATERIAL_WASTE' | 'FINISHED_PRODUCT_WASTE';
+  itemCode: string;
+  itemName: string;
+  lotNumber: string;
+  quantity: number;
+  unit: string;
+  severity: 'MINOR' | 'MAJOR' | 'CRITICAL';
+  rootCause: string;
+  correctiveAction: string;
+  preventiveAction: string;
+  reportedBy: string;
+  dateReported: string;
+  businessUnit: BusinessUnit;
+}
+
+export interface EComplaintTicket {
+  id: string;
+  ticketNumber: string;
+  customerName: string;
+  deliveryOrderNumber: string;
+  invoiceNumber: string;
+  complaintType:
+    | 'UNSUITABLE_DOCUMENT'
+    | 'UNSUITABLE_ITEM'
+    | 'UNSUITABLE_QUANTITY'
+    | 'UNSUITABLE_COLOR'
+    | 'UNSUITABLE_PRODUCT_SIZE'
+    | 'DELIVERY_DELAY'
+    | 'UNSUITABLE_QUALITY_NG'
+    | 'OTHER';
+  correctiveActionRequested:
+    | 'REPLACEMENT_OF_GOODS'
+    | 'REPLACEMENT_OF_DOCUMENTS'
+    | 'DEBIT_NOTE_CLAIM'
+    | 'SCHEDULE_MEETING';
+  description: string;
+  targetDepartment: 'QC' | 'MARKETING' | 'R&D' | 'LOGISTICS';
+  photoEvidenceUrl?: string;
+  qcReinspectionStatus: 'PENDING_INSPECTION' | 'INSPECTED_NG_CONFIRMED' | 'INSPECTED_REJECTED';
+  rmaNumber?: string;
+  debitNoteNumber?: string;
+  status: 'OPEN' | 'INVESTIGATING' | 'RESOLVED';
+  createdAt: string;
+  businessUnit: BusinessUnit;
+}
+
+export interface VendorInvoiceAp {
+  id: string;
+  invoiceNumber: string;
+  poNumber: string;
+  supplierName: string;
+  invoiceDate: string;
+  dueDate: string;
+  totalAmount: number;
+  taxAmount: number;
+  status: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
+  paymentTerm: string;
+  businessUnit: BusinessUnit;
+}
+
+export interface ArPaymentRecord {
+  id: string;
+  receiptNumber: string;
+  invoiceNumber: string;
+  customerName: string;
+  paymentDate: string;
+  amountPaid: number;
+  paymentMethod: 'BCA_VIRTUAL_ACCOUNT' | 'MANDIRI_GIRO' | 'BANK_TRANSFER_PERMATA';
+  bankRef: string;
+  reconciled: boolean;
+  notes: string;
+  businessUnit: BusinessUnit;
 }

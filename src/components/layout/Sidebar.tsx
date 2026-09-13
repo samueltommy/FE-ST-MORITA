@@ -101,19 +101,6 @@ export const Sidebar: React.FC = () => {
     <aside className="w-64 shrink-0 border-r border-slate-200 bg-white hidden md:flex flex-col justify-between py-4 shadow-xs">
       {/* Top Section: Navigation Links */}
       <div className="space-y-4 px-3 overflow-y-auto">
-        {/* Active Business Unit indicator pill */}
-        <div className="p-3 rounded-xl border flex items-center justify-between bg-blue-50/60 border-blue-200/80">
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-blue-900">
-              ST. Morita Industries
-            </div>
-            <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mt-0.5">
-              <span>Manufaktur Adhesive Tapes</span>
-            </div>
-          </div>
-          <span className="w-2 h-2 rounded-full bg-blue-600" />
-        </div>
-
         {/* Modules List */}
         <div>
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">

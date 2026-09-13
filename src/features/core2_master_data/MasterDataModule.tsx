@@ -19,6 +19,7 @@ import { ItemCategory, MasterItem } from '../../types';
 import { formatIDR } from '../../utils/invoiceCalculator';
 import { checkPermission } from '../../utils/rbac';
 import { Can } from '../../components/rbac/Can';
+import { MasterDataFormsModal } from '../../components/forms/MasterDataFormsModal';
 
 export const MasterDataModule: React.FC = () => {
   const items = useAppStore((state) => state.items);
@@ -30,6 +31,8 @@ export const MasterDataModule: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [zebraModalItem, setZebraModalItem] = useState<MasterItem | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [masterFormsOpen, setMasterFormsOpen] = useState(false);
+  const [masterFormsTab, setMasterFormsTab] = useState<'customer' | 'supplier' | 'item' | 'waste'>('item');
 
   // New item form state
   const [newCode, setNewCode] = useState('');
@@ -115,13 +118,28 @@ export const MasterDataModule: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setCreateModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Item Master Baru</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setMasterFormsTab('customer');
+              setMasterFormsOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs shadow-xs transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Pelanggan / Vendor</span>
+          </button>
+          <button
+            onClick={() => {
+              setMasterFormsTab('item');
+              setMasterFormsOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Form Master Data</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -464,6 +482,13 @@ export const MasterDataModule: React.FC = () => {
           </form>
         </div>
       )}
+
+      {/* Master Data Forms Modal */}
+      <MasterDataFormsModal
+        isOpen={masterFormsOpen}
+        onClose={() => setMasterFormsOpen(false)}
+        defaultTab={masterFormsTab}
+      />
     </div>
   );
 };

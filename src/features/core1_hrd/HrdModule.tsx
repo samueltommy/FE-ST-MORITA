@@ -15,6 +15,7 @@ import {
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { VehicleBooking, SalesOutdoorVisit } from '../../types';
 import { Can } from '../../components/rbac/Can';
+import { HrdFormsModal } from '../../components/forms/HrdFormsModal';
 
 export const HrdModule: React.FC = () => {
   const vehicleBookings = useAppStore((state) => state.vehicleBookings);
@@ -22,9 +23,16 @@ export const HrdModule: React.FC = () => {
   const currentUser = useAppStore((state) => state.currentUser);
 
   const [activeTab, setActiveTab] = useState<'attendance_fleet' | 'sales_gps'>('attendance_fleet');
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [formModalTab, setFormModalTab] = useState<'leave' | 'vehicle' | 'visit' | 'employee'>('leave');
 
   const handleApproveVehicle = (bookingId: string) => {
     appStore.approveVehicleBooking(bookingId);
+  };
+
+  const openFormWithTab = (tab: 'leave' | 'vehicle' | 'visit' | 'employee') => {
+    setFormModalTab(tab);
+    setFormModalOpen(true);
   };
 
   return (
@@ -33,41 +41,51 @@ export const HrdModule: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">
+            <h1 className="text-xl font-extrabold text-slate-900">
               HRD, Armada Pabrik & GPS Visit Sales
             </h1>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300 border border-violet-300 dark:border-violet-800">
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-300">
               Core 1 Portal
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Presensi staf shift kerja, jadwal pemesanan kendaraan dinas/truk armada, dan geo-tracking log visit sales outdoor
           </p>
         </div>
 
-        {/* Tab switchers */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+        {/* Action button & Tab switchers */}
+        <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setActiveTab('attendance_fleet')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              activeTab === 'attendance_fleet'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
+            onClick={() => openFormWithTab('leave')}
+            className="px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            Presensi & Armada Pabrik
+            <Plus className="w-3.5 h-3.5" />
+            <span>Form Input HRD</span>
           </button>
-          <button
-            onClick={() => setActiveTab('sales_gps')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
-              activeTab === 'sales_gps'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-          >
-            <Navigation className="w-3.5 h-3.5 text-violet-500" />
-            <span>Log GPS Kunjungan Sales</span>
-          </button>
+
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+            <button
+              onClick={() => setActiveTab('attendance_fleet')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                activeTab === 'attendance_fleet'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Presensi & Armada Pabrik
+            </button>
+            <button
+              onClick={() => setActiveTab('sales_gps')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
+                activeTab === 'sales_gps'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Navigation className="w-3.5 h-3.5 text-violet-500" />
+              <span>Log GPS Sales</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -230,6 +248,13 @@ export const HrdModule: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* HRD Forms Modal */}
+      <HrdFormsModal
+        isOpen={formModalOpen}
+        onClose={() => setFormModalOpen(false)}
+        defaultTab={formModalTab}
+      />
     </div>
   );
 };

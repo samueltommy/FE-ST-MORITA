@@ -17,6 +17,7 @@ import { useAppStore, appStore } from '../../store/useAppStore';
 import { EximDocument, ProcurementOrder, ProcurementStage } from '../../types';
 import { formatIDR } from '../../utils/invoiceCalculator';
 import { Can } from '../../components/rbac/Can';
+import { ProcurementFormsModal } from '../../components/forms/ProcurementFormsModal';
 
 export const ProcurementEximModule: React.FC = () => {
   const currentUnit = useAppStore((state) => state.currentBusinessUnit);
@@ -26,6 +27,8 @@ export const ProcurementEximModule: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'kanban' | 'exim_dropzone'>('kanban');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [procurementFormsOpen, setProcurementFormsOpen] = useState(false);
+  const [procurementFormsTab, setProcurementFormsTab] = useState<'pr' | 'po' | 'log' | 'exim'>('pr');
   const [newDocType, setNewDocType] = useState<EximDocument['docType']>('BC 2.3');
   const [newRefNo, setNewRefNo] = useState('');
   const [newNotes, setNewNotes] = useState('');
@@ -83,29 +86,42 @@ export const ProcurementEximModule: React.FC = () => {
           </p>
         </div>
 
-        {/* Tab switchers */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+        {/* Action button & Tab switchers */}
+        <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setActiveTab('kanban')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              activeTab === 'kanban'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
+            onClick={() => {
+              setProcurementFormsTab('pr');
+              setProcurementFormsOpen(true);
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            Kanban Alur Pengadaan
+            <Plus className="w-3.5 h-3.5" />
+            <span>Form Pengadaan / PO</span>
           </button>
-          <button
-            onClick={() => setActiveTab('exim_dropzone')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
-              activeTab === 'exim_dropzone'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Dokumen Kepabeanan EXIM</span>
-          </button>
+
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+            <button
+              onClick={() => setActiveTab('kanban')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                activeTab === 'kanban'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Kanban Alur Pengadaan
+            </button>
+            <button
+              onClick={() => setActiveTab('exim_dropzone')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
+                activeTab === 'exim_dropzone'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Dokumen Kepabeanan EXIM</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -370,6 +386,13 @@ export const ProcurementEximModule: React.FC = () => {
           </form>
         </div>
       )}
+
+      {/* Procurement Forms Modal */}
+      <ProcurementFormsModal
+        isOpen={procurementFormsOpen}
+        onClose={() => setProcurementFormsOpen(false)}
+        defaultTab={procurementFormsTab}
+      />
     </div>
   );
 };

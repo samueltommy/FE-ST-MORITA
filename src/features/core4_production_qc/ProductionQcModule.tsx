@@ -16,6 +16,7 @@ import {
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { QcInspectionRecord, QcStatus } from '../../types';
 import { Can } from '../../components/rbac/Can';
+import { ProductionQcFormsModal } from '../../components/forms/ProductionQcFormsModal';
 
 export const ProductionQcModule: React.FC = () => {
   const qcRecords = useAppStore((state) => state.qcRecords);
@@ -27,6 +28,8 @@ export const ProductionQcModule: React.FC = () => {
   const [supervisorReason, setSupervisorReason] = useState('');
   const [coaModalRecord, setCoaModalRecord] = useState<QcInspectionRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [qcFormsOpen, setQcFormsOpen] = useState(false);
+  const [qcFormsTab, setQcFormsTab] = useState<'spk' | 'qc_test' | 'hold_override'>('spk');
 
   // Filter records by unit
   const filteredRecords = qcRecords.filter(
@@ -70,10 +73,30 @@ export const ProductionQcModule: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => appStore.setBarcodeModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition-colors shadow-xs"
+            onClick={() => {
+              setQcFormsTab('spk');
+              setQcFormsOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors shadow-xs cursor-pointer"
           >
-            <span>Scan Barcode Lot Lapangan</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Buat SPK Produksi</span>
+          </button>
+          <button
+            onClick={() => {
+              setQcFormsTab('qc_test');
+              setQcFormsOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors shadow-xs cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Input Uji Lab QC</span>
+          </button>
+          <button
+            onClick={() => appStore.setBarcodeModalOpen(true)}
+            className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition-colors shadow-xs cursor-pointer"
+          >
+            <span>Scan Lot</span>
           </button>
         </div>
       </div>
@@ -472,6 +495,13 @@ export const ProductionQcModule: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Production & QC Forms Modal */}
+      <ProductionQcFormsModal
+        isOpen={qcFormsOpen}
+        onClose={() => setQcFormsOpen(false)}
+        defaultTab={qcFormsTab}
+      />
     </div>
   );
 };

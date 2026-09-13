@@ -16,6 +16,7 @@ import { useAppStore, appStore } from '../../store/useAppStore';
 import { Quotation, SalesTrackingOrder } from '../../types';
 import { formatIDR } from '../../utils/invoiceCalculator';
 import { Can } from '../../components/rbac/Can';
+import { SalesFormsModal } from '../../components/forms/SalesFormsModal';
 
 export const SalesTrackingModule: React.FC = () => {
   const currentUnit = useAppStore((state) => state.currentBusinessUnit);
@@ -25,6 +26,8 @@ export const SalesTrackingModule: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'quotation_gating' | 'e_tracking'>('quotation_gating');
   const [selectedTracking, setSelectedTracking] = useState<SalesTrackingOrder>(trackingOrders[0]);
+  const [salesFormsOpen, setSalesFormsOpen] = useState(false);
+  const [salesFormsTab, setSalesFormsTab] = useState<'quotation' | 'do' | 'tracking'>('quotation');
 
   const filteredQuotes = quotations.filter((q) => q.businessUnit === currentUnit);
 
@@ -50,29 +53,52 @@ export const SalesTrackingModule: React.FC = () => {
           </p>
         </div>
 
-        {/* Tab switcher */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+        {/* Action buttons & Tab switcher */}
+        <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setActiveTab('quotation_gating')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              activeTab === 'quotation_gating'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
+            onClick={() => {
+              setSalesFormsTab('quotation');
+              setSalesFormsOpen(true);
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            Quotation Gating Cost Control
+            <Plus className="w-3.5 h-3.5" />
+            <span>Buat Penawaran</span>
           </button>
           <button
-            onClick={() => setActiveTab('e_tracking')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
-              activeTab === 'e_tracking'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
+            onClick={() => {
+              setSalesFormsTab('do');
+              setSalesFormsOpen(true);
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            <Barcode className="w-3.5 h-3.5 text-amber-500" />
-            <span>Timeline E-Tracking Barcode</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Terbitkan DO</span>
           </button>
+
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+            <button
+              onClick={() => setActiveTab('quotation_gating')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                activeTab === 'quotation_gating'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Quotation Gating Cost Control
+            </button>
+            <button
+              onClick={() => setActiveTab('e_tracking')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
+                activeTab === 'e_tracking'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Barcode className="w-3.5 h-3.5 text-amber-500" />
+              <span>Timeline E-Tracking Barcode</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -272,6 +298,13 @@ export const SalesTrackingModule: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Sales & Delivery Forms Modal */}
+      <SalesFormsModal
+        isOpen={salesFormsOpen}
+        onClose={() => setSalesFormsOpen(false)}
+        defaultTab={salesFormsTab}
+      />
     </div>
   );
 };
