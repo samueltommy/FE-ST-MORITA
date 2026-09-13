@@ -111,7 +111,7 @@ export const MasterDataModule: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Katalog SKU bahan baku & produk jadi, rak penyimpanan Cikarang, dan cetak label thermal printer Zebra
+            Katalog SKU bahan baku & produk jadi, rak penyimpanan gudang, dan cetak label thermal printer Zebra
           </p>
         </div>
 
@@ -281,7 +281,7 @@ export const MasterDataModule: React.FC = () => {
                   <div className="text-[10px] font-black uppercase tracking-wider">
                     ST. MORITA INDUSTRIES
                   </div>
-                  <div className="text-[8px] uppercase">PABRIK CIKARANG - JAWA BARAT</div>
+                  <div className="text-[8px] uppercase">PLANT MANUFAKTUR - INDONESIA</div>
                 </div>
                 <span className="text-[9px] font-black border border-black px-1">QC APPROVED</span>
               </div>
@@ -414,7 +414,7 @@ export const MasterDataModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold block mb-1">Lokasi Rak Cikarang:</label>
+                <label className="text-xs font-bold block mb-1">Lokasi Rak Penyimpanan:</label>
                 <input
                   type="text"
                   value={newRack}

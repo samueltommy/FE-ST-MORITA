@@ -75,7 +75,7 @@ export const BarcodeScannerModal: React.FC = () => {
                 </span>
               </h2>
               <p className="text-[11px] text-slate-500">
-                Pabrik Cikarang - Staging, Handheld Zebra & QC Gate
+                Area Manufaktur - Staging, Handheld Zebra & QC Gate
               </p>
             </div>
           </div>
@@ -237,7 +237,7 @@ export const BarcodeScannerModal: React.FC = () => {
                     </div>
                   </div>
                   <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold">Lokasi Rak Cikarang</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Lokasi Rak Gudang</span>
                     <div className="font-mono font-semibold text-slate-800 dark:text-slate-200 mt-0.5 flex items-center gap-1">
                       <MapPin className="w-3 h-3 text-blue-500" />
                       {matchedItem.locationRack}

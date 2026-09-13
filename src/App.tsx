@@ -21,15 +21,10 @@ export default function App() {
   const themeMode = useAppStore((state) => state.themeMode);
   const isHighDensity = useAppStore((state) => state.isHighDensity);
 
-  // Sync themeMode with HTML root class
+  // Ensure light mode is consistently applied across the app
   useEffect(() => {
-    const root = document.documentElement;
-    if (themeMode === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  }, [themeMode]);
+    document.documentElement.classList.remove('dark');
+  }, []);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
@@ -61,18 +56,6 @@ export default function App() {
         appStore.setAuditLogsOpen(true);
       }
 
-      // Ctrl/Cmd + D: Density Toggle
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
-        e.preventDefault();
-        appStore.setHighDensity(!isHighDensity);
-      }
-
-      // Ctrl/Cmd + M or Alt + T: Theme Toggle
-      if (((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') || (e.altKey && e.key.toLowerCase() === 't')) {
-        e.preventDefault();
-        appStore.toggleThemeMode();
-      }
-
       // ?: Help / Shortcuts modal
       if (e.key === '?' || (e.shiftKey && e.key === '/')) {
         e.preventDefault();
@@ -97,7 +80,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isHighDensity]);
+  }, []);
 
   // If user is not authenticated, present the enterprise LoginPage directly
   if (!isAuthenticated) {

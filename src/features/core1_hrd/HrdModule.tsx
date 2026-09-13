@@ -34,14 +34,14 @@ export const HrdModule: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">
-              HRD, Armada Pabrik Cikarang & GPS Visit Sales
+              HRD, Armada Pabrik & GPS Visit Sales
             </h1>
             <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300 border border-violet-300 dark:border-violet-800">
               Core 1 Portal
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Presensi staf shift Cikarang, jadwal pemesanan kendaraan dinas/truk pabrik, dan geo-tracking log visit sales outdoor
+            Presensi staf shift kerja, jadwal pemesanan kendaraan dinas/truk armada, dan geo-tracking log visit sales outdoor
           </p>
         </div>
 
@@ -78,7 +78,7 @@ export const HrdModule: React.FC = () => {
             <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
               <span className="text-[11px] font-bold text-slate-400 uppercase">Total Karyawan Aktif</span>
               <div className="text-xl font-black text-slate-900 dark:text-white mt-1">428 Orang</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Pabrik Cikarang 1 & 2</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Fasilitas Plant 1 & 2</div>
             </div>
 
             <div className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-xs">
@@ -96,7 +96,7 @@ export const HrdModule: React.FC = () => {
             <div className="p-4 rounded-2xl border border-blue-200 dark:border-blue-800/60 bg-blue-50/50 dark:bg-blue-950/20 shadow-xs">
               <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase">Tugas Luar Kota / Sales</span>
               <div className="text-xl font-black text-blue-800 dark:text-blue-200 mt-1">5 Orang</div>
-              <div className="text-[10px] text-blue-600 mt-0.5">Karawang, MM2100 & Jakarta</div>
+              <div className="text-[10px] text-blue-600 mt-0.5">Kunjungan Kawasan Industri Mitra</div>
             </div>
           </div>
 
@@ -106,7 +106,7 @@ export const HrdModule: React.FC = () => {
               <div>
                 <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <Car className="w-4 h-4 text-violet-600" />
-                  <span>Jadwal Penggunaan Kendaraan Operasional & Truk Cikarang</span>
+                  <span>Jadwal Penggunaan Kendaraan Operasional & Truk Armada</span>
                 </h3>
                 <p className="text-[11px] text-slate-500">
                   Persetujuan izin armada pabrik untuk pengiriman Delivery Order atau dinas luar

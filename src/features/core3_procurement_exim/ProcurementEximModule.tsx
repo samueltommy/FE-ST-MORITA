@@ -36,7 +36,7 @@ export const ProcurementEximModule: React.FC = () => {
   const stages: { key: ProcurementStage; label: string; dept: string }[] = [
     { key: 'PR', label: '1. Purchase Request', dept: 'PPIC Planner' },
     { key: 'PO', label: '2. Purchase Order', dept: 'Purchasing' },
-    { key: 'LOG', label: '3. In-Transit / Port', dept: 'Logistik Cikarang' },
+    { key: 'LOG', label: '3. In-Transit / Port', dept: 'Logistik Pergudangan' },
     { key: 'IQC', label: '4. IQC Incoming Test', dept: 'QC Lab' },
     { key: 'AP', label: '5. AP Reconciliation', dept: 'Finance / AP' },
   ];

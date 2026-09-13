@@ -23,7 +23,7 @@ export const INVOICE_FORMULAS: FormulaOption[] = [
     code: 'R-02',
     name: 'Freight Surcharge Added (+ Ongkir Kena Pajak)',
     category: 'Logistik Tambahan',
-    description: 'Ongkos angkut truk ekspedisi Cikarang ditambahkan terpisah ke DPP, dikenakan PPN 11% penuh.',
+    description: 'Ongkos angkut truk ekspedisi armada pabrik ditambahkan terpisah ke DPP, dikenakan PPN 11% penuh.',
     badge: 'Freight Extra',
   },
   {

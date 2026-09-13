@@ -36,7 +36,7 @@ export function createAuditLog(
     timestamp,
     actorName,
     actorRole,
-    ipAddress: '192.168.10.42 (Cikarang Gateway)',
+    ipAddress: '192.168.10.42 (Factory Gateway)',
     action,
     entity,
     entityId,

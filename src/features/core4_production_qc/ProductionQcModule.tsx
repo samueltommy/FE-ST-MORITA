@@ -64,7 +64,7 @@ export const ProductionQcModule: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Inspeksi lot bahan baku & hasil slitting Cikarang, mekanisme cekal transfer otomatis (QC Hold), dan penerbitan COA
+            Inspeksi lot bahan baku & hasil slitting roll pita perekat, mekanisme cekal transfer otomatis (QC Hold), dan penerbitan COA
           </p>
         </div>
 
@@ -398,7 +398,7 @@ export const ProductionQcModule: React.FC = () => {
                   ST. Morita Industries
                 </h3>
                 <div className="text-xs text-slate-500">
-                  Laboratorium Quality Control & Jaminan Mutu Pabrik Cikarang
+                  Laboratorium Quality Control & Jaminan Mutu Terpadu
                 </div>
               </div>
               <div className="text-right font-mono text-xs">

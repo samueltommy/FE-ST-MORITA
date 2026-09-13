@@ -89,8 +89,8 @@ export const Sidebar: React.FC = () => {
     {
       id: 'hrd',
       code: 'Core 1',
-      label: 'HRD & Cikarang Plant',
-      sublabel: 'Armada Pabrik & GPS Visit Sales',
+      label: 'HRD & Fasilitas Operasional',
+      sublabel: 'Kendaraan Dinas & GPS Visit Sales',
       icon: Users,
       shortcut: 'Alt+1',
       color: 'text-violet-500',
@@ -98,25 +98,25 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md hidden md:flex flex-col justify-between py-3">
+    <aside className="w-64 shrink-0 border-r border-slate-200 bg-white hidden md:flex flex-col justify-between py-4 shadow-xs">
       {/* Top Section: Navigation Links */}
       <div className="space-y-4 px-3 overflow-y-auto">
         {/* Active Business Unit indicator pill */}
-        <div className="p-2.5 rounded-xl border flex items-center justify-between transition-all bg-blue-50/70 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800">
+        <div className="p-3 rounded-xl border flex items-center justify-between bg-blue-50/60 border-blue-200/80">
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-blue-900 dark:text-blue-300">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-blue-900">
               ST. Morita Industries
             </div>
-            <div className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5 mt-0.5">
-              <span>Pabrik Cikarang (Adhesive Tapes)</span>
+            <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mt-0.5">
+              <span>Manufaktur Adhesive Tapes</span>
             </div>
           </div>
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+          <span className="w-2 h-2 rounded-full bg-blue-600" />
         </div>
 
         {/* Modules List */}
         <div>
-          <div className="text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider px-2 mb-2">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
             Modul Operasional ERP
           </div>
           <nav className="space-y-1">
@@ -128,10 +128,10 @@ export const Sidebar: React.FC = () => {
                   key={m.id}
                   id={`nav-module-${m.id}`}
                   onClick={() => appStore.setActiveModule(m.id as any)}
-                  className={`w-full text-left p-2 rounded-xl flex items-center justify-between group transition-all text-xs ${
+                  className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between group transition-all text-xs cursor-pointer ${
                     isActive
-                      ? 'bg-blue-900 text-white font-bold shadow-md shadow-blue-900/20'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'
+                      ? 'bg-blue-600 text-white font-bold shadow-sm shadow-blue-600/20'
+                      : 'text-slate-700 hover:bg-slate-100 font-medium'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -139,7 +139,7 @@ export const Sidebar: React.FC = () => {
                       className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                         isActive
                           ? 'bg-white/20 text-white'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-teal-400'
+                          : 'bg-slate-100 text-slate-600 group-hover:text-blue-600'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -157,9 +157,7 @@ export const Sidebar: React.FC = () => {
                       </div>
                       <div
                         className={`text-[10px] truncate ${
-                          isActive
-                            ? 'text-white/80'
-                            : 'text-slate-400 dark:text-slate-400'
+                          isActive ? 'text-white/80' : 'text-slate-400'
                         }`}
                       >
                         {m.sublabel}
@@ -169,9 +167,7 @@ export const Sidebar: React.FC = () => {
 
                   <span
                     className={`text-[9px] font-mono px-1 py-0.5 rounded opacity-70 ${
-                      isActive
-                        ? 'bg-black/20 text-white'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                      isActive ? 'bg-black/20 text-white' : 'bg-slate-100 text-slate-400'
                     }`}
                   >
                     {m.shortcut}
@@ -183,21 +179,20 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Administration & RBAC Section */}
-        <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
-          <div className="text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider px-2 mb-2 flex items-center justify-between">
+        <div className="pt-2 border-t border-slate-200">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2 flex items-center justify-between">
             <span>Administrasi & Akses</span>
-            <span className="text-[9px] text-blue-500 font-bold">RBAC v2.0</span>
+            <span className="text-[9px] text-blue-600 font-bold">RBAC</span>
           </div>
 
           <div className="space-y-1">
-            {/* User Account Management (Admin & HRD) */}
             <button
               id="sidebar-nav-users-btn"
               onClick={() => appStore.setActiveModule('users')}
-              className={`w-full text-left p-2 rounded-xl flex items-center justify-between group transition-all text-xs ${
+              className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between group transition-all text-xs cursor-pointer ${
                 activeModule === 'users'
-                  ? 'bg-purple-900 text-white font-bold shadow-md shadow-purple-900/20'
-                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'
+                  ? 'bg-purple-700 text-white font-bold shadow-sm shadow-purple-700/20'
+                  : 'text-slate-700 hover:bg-slate-100 font-medium'
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -205,7 +200,7 @@ export const Sidebar: React.FC = () => {
                   className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                     activeModule === 'users'
                       ? 'bg-white/20 text-white'
-                      : 'bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400'
+                      : 'bg-purple-50 text-purple-600'
                   }`}
                 >
                   <UserPlus className="w-4 h-4" />
@@ -228,7 +223,7 @@ export const Sidebar: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <span className="text-[9px] font-mono px-1 py-0.5 rounded opacity-70 bg-slate-100 dark:bg-slate-800 text-slate-400">
+              <span className="text-[9px] font-mono px-1 py-0.5 rounded opacity-70 bg-slate-100 text-slate-400">
                 Alt+7
               </span>
             </button>
@@ -236,39 +231,37 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Operational Utilities */}
-        <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
-          <div className="text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider px-2 mb-2">
+        <div className="pt-2 border-t border-slate-200">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
             Alat Lapangan & Audit
           </div>
           <div className="space-y-1">
-            {/* Handheld PWA Scanner */}
             <button
               id="sidebar-pwa-scanner-btn"
               onClick={() => appStore.setBarcodeModalOpen(true)}
-              className="w-full text-left p-2 rounded-xl flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="w-full text-left p-2 rounded-xl flex items-center justify-between text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
                   <ScanLine className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="font-semibold">Scanner Barcode PWA</div>
-                  <div className="text-[10px] text-slate-400">Pabrik & Gudang Cikarang</div>
+                  <div className="text-[10px] text-slate-400">Pabrik & Gudang Manufaktur</div>
                 </div>
               </div>
-              <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400">
+              <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-slate-100 text-slate-400">
                 Alt+B
               </span>
             </button>
 
-            {/* Audit Logs Trail */}
             <button
               id="sidebar-audit-trail-btn"
               onClick={() => appStore.setAuditLogsOpen(true)}
-              className="w-full text-left p-2 rounded-xl flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="w-full text-left p-2 rounded-xl flex items-center justify-between text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                   <History className="w-4 h-4" />
                 </div>
                 <div>
@@ -276,7 +269,7 @@ export const Sidebar: React.FC = () => {
                   <div className="text-[10px] text-slate-400">Enkripsi Log SHA-256</div>
                 </div>
               </div>
-              <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 font-bold">
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
                 SEC
               </span>
             </button>
@@ -285,23 +278,23 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Bottom Section: Active User Context & Logout */}
-      <div className="px-3 pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
-        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs">
+      <div className="px-3 pt-3 border-t border-slate-200 space-y-2">
+        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
           <div className="flex items-center justify-between">
             <span
               className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border ${tierMeta.badgeClass}`}
             >
               {tierMeta.pillText} &bull; L{currentUser.tier}
             </span>
-            <span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+            <span className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
               Aktif
             </span>
           </div>
-          <div className="mt-1 font-bold text-slate-900 dark:text-white truncate">
+          <div className="mt-1 font-bold text-slate-900 truncate">
             {currentUser.name}
           </div>
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate">
+          <div className="text-[10px] text-slate-500 font-mono truncate">
             {currentUser.nik} &bull; {currentUser.role}
           </div>
         </div>
@@ -310,7 +303,7 @@ export const Sidebar: React.FC = () => {
         <button
           id="sidebar-logout-btn"
           onClick={() => appStore.logout()}
-          className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-rose-300 dark:hover:border-rose-800 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+          className="w-full py-2 px-3 rounded-xl border border-slate-200 hover:border-rose-300 text-slate-600 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Keluar dari Portal ERP</span>

@@ -78,19 +78,19 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner & KPI Summary Cards */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      {/* Top Banner & Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">
-              Finance & Sales Invoice Multi-DO Calculator
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+              Finance & Sales Invoice Multi-DO
             </h1>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
               Core 6 Engine
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Konsolidasi multi-surat jalan (DO), 13 formula perpajakan (PPN 11%, PPh 23), biaya freight & audit batas margin
+          <p className="text-xs text-slate-500 mt-1">
+            Konsolidasi multi-surat jalan (DO), 13 formula perpajakan (PPN 11%, PPh 23), biaya freight & audit profitabilitas
           </p>
         </div>
 
@@ -99,90 +99,96 @@ export const FinanceAnalyticsModule: React.FC = () => {
           <button
             onClick={() => setShowPrintInvoiceModal(true)}
             disabled={selectedDos.length === 0}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
               selectedDos.length > 0
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
             }`}
           >
             <Printer className="w-4 h-4" />
-            <span>Cetak / Pratinjau Faktur Penjualan</span>
+            <span>Cetak / Pratinjau Faktur</span>
           </button>
         </div>
       </div>
 
-      {/* KPI High-Density Metric Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+      {/* KPI Metric Row - Clean, Spacious Light Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Subtotal Nilai Barang</span>
-            <Receipt className="w-4 h-4 text-blue-500" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Subtotal Nilai Barang</span>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Receipt className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-lg font-black text-slate-900 dark:text-white mt-1">
+          <div className="text-xl font-black text-slate-900 mt-2">
             {formatIDR(calculationResult.subtotalGoods)}
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
+          <div className="text-xs text-slate-500 mt-1">
             {selectedDos.length} Surat Jalan (DO) terpilih
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Dasar Pengenaan Pajak (DPP)</span>
-            <Coins className="w-4 h-4 text-emerald-500" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Dasar Pengenaan Pajak (DPP)</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Coins className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-lg font-black text-slate-900 dark:text-white mt-1">
+          <div className="text-xl font-black text-slate-900 mt-2">
             {formatIDR(calculationResult.taxableBaseDpp)}
           </div>
-          <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 font-bold">
+          <div className="text-xs text-emerald-600 mt-1 font-semibold">
             PPN 11%: {formatIDR(calculationResult.ppnAmount)}
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Tagihan Bersih (Payable)</span>
-            <TrendingUp className="w-4 h-4 text-violet-500" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Tagihan Bersih</span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-lg font-black text-violet-600 dark:text-violet-400 mt-1">
+          <div className="text-xl font-black text-indigo-600 mt-2">
             {formatIDR(calculationResult.finalPayableAmount)}
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5 font-mono">
-            Rumus: {calculationResult.formulaName.slice(0, 24)}...
+          <div className="text-xs text-slate-500 mt-1 truncate">
+            {calculationResult.formulaName}
           </div>
         </div>
 
-        {/* Gross Margin Safeguard Metric - Protected by RBAC! */}
-        <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        {/* Gross Margin Safeguard Metric - Protected by RBAC */}
+        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Safeguard Gross Margin</span>
-            <Percent className="w-4 h-4 text-amber-500" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Safeguard Gross Margin</span>
+            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+              <Percent className="w-4 h-4" />
+            </div>
           </div>
 
           <Can
             perform="finance:cost:read"
             fallback={
-              <div className="mt-2 text-xs text-slate-400 flex items-center gap-1.5 italic">
+              <div className="mt-3 text-xs text-slate-400 flex items-center gap-1.5 italic">
                 <Lock className="w-3.5 h-3.5 text-slate-400" />
-                <span>Terproteksi RBAC (Khusus Finance & Cost Control)</span>
+                <span>Terproteksi RBAC (Finance Level)</span>
               </div>
             }
           >
-            <div className="flex items-baseline gap-2 mt-1">
+            <div className="flex items-baseline gap-2 mt-2">
               <span
-                className={`text-lg font-black ${
-                  calculationResult.marginCheckPassed
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
+                className={`text-xl font-black ${
+                  calculationResult.marginCheckPassed ? 'text-emerald-600' : 'text-rose-600'
                 }`}
               >
                 {calculationResult.estimatedMarginPercent}%
               </span>
-              <span className="text-[10px] text-slate-400">
-                (Target Min: {customParams.minimumMarginPercent}%)
+              <span className="text-xs text-slate-400">
+                (Min: {customParams.minimumMarginPercent}%)
               </span>
             </div>
-            <div className="text-[10px] mt-0.5">
+            <div className="text-xs mt-1">
               {calculationResult.marginCheckPassed ? (
                 <span className="text-emerald-600 font-bold">✓ Lolos Standar Profitabilitas</span>
               ) : (
@@ -193,40 +199,40 @@ export const FinanceAnalyticsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Split Screen: Multi-DO Table on Left, 13-Formula Calculator Widget on Right */}
+      {/* Main Content: Multi-DO Table & Formula Calculator */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* Left Column: Multi-DO Selection Table (7 Cols) */}
         <div className="xl:col-span-7 space-y-4">
-          <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
+          <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
-                <h2 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
                   <span>Pilih Surat Jalan (Delivery Order Multi-DO)</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">
                     {selectedDos.length} / {deliveryOrders.length} Dipilih
                   </span>
                 </h2>
-                <p className="text-[11px] text-slate-500">
-                  Centang DO untuk dikonsolidasi menjadi satu faktur komersial terpadu
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Centang DO untuk dikonsolidasi menjadi satu faktur komersial
                 </p>
               </div>
 
               <button
                 onClick={toggleAll}
-                className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 cursor-pointer self-start sm:self-auto"
               >
                 {allSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                 <span>{allSelected ? 'Batal Pilih Semua' : 'Pilih Semua DO'}</span>
               </button>
             </div>
 
-            {/* High Density Table */}
-            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            {/* Clean Table */}
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800">
-                    <th className="py-2.5 px-3 w-10 text-center">
-                      <button onClick={toggleAll}>
+                  <tr className="bg-slate-50 text-slate-600 border-b border-slate-200">
+                    <th className="py-3 px-3 w-10 text-center">
+                      <button onClick={toggleAll} className="cursor-pointer">
                         {allSelected ? (
                           <CheckSquare className="w-4 h-4 text-blue-600" />
                         ) : (
@@ -234,57 +240,57 @@ export const FinanceAnalyticsModule: React.FC = () => {
                         )}
                       </button>
                     </th>
-                    <th className="py-2.5 px-3 font-bold">No. Surat Jalan (DO)</th>
-                    <th className="py-2.5 px-3 font-bold">Customer & Item</th>
-                    <th className="py-2.5 px-3 font-bold text-right">Kuantitas</th>
-                    <th className="py-2.5 px-3 font-bold text-right">Harga Satuan</th>
-                    <th className="py-2.5 px-3 font-bold text-right">Total Bruto</th>
-                    <th className="py-2.5 px-3 font-bold text-center">Armada Truk</th>
+                    <th className="py-3 px-3 font-bold">No. Surat Jalan (DO)</th>
+                    <th className="py-3 px-3 font-bold">Customer & Item</th>
+                    <th className="py-3 px-3 font-bold text-right">Kuantitas</th>
+                    <th className="py-3 px-3 font-bold text-right">Harga Satuan</th>
+                    <th className="py-3 px-3 font-bold text-right">Total Bruto</th>
+                    <th className="py-3 px-3 font-bold text-center">Armada</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {deliveryOrders.map((d) => (
                     <tr
                       key={d.id}
                       onClick={() => appStore.toggleDoSelection(d.id)}
                       className={`cursor-pointer transition-colors ${
                         d.selectedForInvoice
-                          ? 'bg-blue-50/50 dark:bg-blue-950/30'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                      } ${isHighDensity ? 'py-1' : 'py-2.5'}`}
+                          ? 'bg-blue-50/60'
+                          : 'hover:bg-slate-50'
+                      }`}
                     >
-                      <td className="py-2.5 px-3 text-center">
+                      <td className="py-3 px-3 text-center">
                         {d.selectedForInvoice ? (
                           <CheckSquare className="w-4 h-4 text-blue-600" />
                         ) : (
-                          <Square className="w-4 h-4 text-slate-400" />
+                          <Square className="w-4 h-4 text-slate-300" />
                         )}
                       </td>
-                      <td className="py-2.5 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">
+                      <td className="py-3 px-3 font-mono font-bold text-slate-800">
                         {d.doNumber}
                         <div className="text-[10px] text-slate-400 font-normal">
                           Tgl: {d.deliveryDate || d.dispatchDate}
                         </div>
                       </td>
-                      <td className="py-2.5 px-3">
-                        <div className="font-bold text-slate-900 dark:text-white">
+                      <td className="py-3 px-3">
+                        <div className="font-bold text-slate-900">
                           {d.customerName}
                         </div>
-                        <div className="text-[11px] text-slate-500 truncate max-w-[200px]">
+                        <div className="text-xs text-slate-500 truncate max-w-[180px]">
                           {d.itemName || (d.items && d.items[0]?.itemName) || 'Multi-Item Order'}
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-bold font-mono">
+                      <td className="py-3 px-3 text-right font-bold font-mono">
                         {d.qtyDelivered || (d.items && d.items.reduce((s, it) => s + it.quantity, 0)) || 0}{' '}
                         {d.unit || (d.items && d.items[0]?.unit) || 'Carton'}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-600 dark:text-slate-300">
+                      <td className="py-3 px-3 text-right font-mono text-slate-600">
                         {formatIDR(d.unitPrice || (d.items && d.items[0]?.unitPrice) || 0)}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-bold font-mono text-slate-900 dark:text-white">
+                      <td className="py-3 px-3 text-right font-bold font-mono text-slate-900">
                         {formatIDR(d.totalBeforeTax || d.totalGrossValue || 0)}
                       </td>
-                      <td className="py-2.5 px-3 text-center text-[10px] text-slate-500 font-mono">
+                      <td className="py-3 px-3 text-center text-[11px] text-slate-500 font-mono">
                         {d.truckPlate || d.truckArmada}
                       </td>
                     </tr>
@@ -293,15 +299,15 @@ export const FinanceAnalyticsModule: React.FC = () => {
               </table>
             </div>
 
-            {/* Multi-DO Selection Insight */}
-            <div className="mt-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+            {/* Multi-DO Selection Summary Bar */}
+            <div className="mt-4 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs text-slate-600">
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4 text-blue-600" />
                 <span>
-                  Logistik Cikarang: <strong>{selectedDos.length} DO</strong> dikonsolidasikan dalam 1 pengiriman faktur.
+                  Logistik: <strong>{selectedDos.length} DO</strong> dikonsolidasi dalam satu penagihan.
                 </span>
               </div>
-              <span className="font-mono font-bold text-slate-900 dark:text-white">
+              <span className="font-mono font-bold text-slate-900 text-sm">
                 Subtotal: {formatIDR(calculationResult.subtotalGoods)}
               </span>
             </div>
@@ -310,55 +316,55 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
         {/* Right Column: 13-Formula Calculator Widget (5 Cols) */}
         <div className="xl:col-span-5 space-y-4">
-          <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
+          <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
                   <Calculator className="w-4 h-4 text-emerald-600" />
-                  <span>Interactive 13-Formula Calculator</span>
+                  <span>Kalkulator Faktur Multi-Formula</span>
                 </h2>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Pilih skema kalkulasi penagihan resmi ST. Morita Industries
                 </p>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold">
-                13 Formulas
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                13 Formula
               </span>
             </div>
 
             {/* Formula Selector Dropdown */}
             <div>
-              <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block mb-1.5">
-                Pilih Rumus Faktur Penjualan (13 Pilihan)
+              <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                Pilih Rumus Faktur Penjualan
               </label>
               <select
                 id="invoice-formula-selector"
                 value={selectedFormulaId}
                 onChange={(e) => setSelectedFormulaId(e.target.value as InvoiceFormulaId)}
-                className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
               >
                 {INVOICE_FORMULAS.map((f) => (
                   <option key={f.id} value={f.id}>
-                    [{f.code}] {f.name} — {f.category}
+                    [{f.code}] {f.name} &bull; {f.category}
                   </option>
                 ))}
               </select>
             </div>
 
             {/* Formula Explanation Card */}
-            <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs space-y-1">
-              <div className="font-bold text-blue-950 dark:text-blue-200 flex items-center gap-1.5">
+            <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 text-xs space-y-1">
+              <div className="font-bold text-blue-900 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-blue-600" />
                 <span>{calculationResult.formulaName}</span>
               </div>
-              <p className="text-[11px] text-blue-900/80 dark:text-blue-300 leading-relaxed">
+              <p className="text-xs text-blue-800/80 leading-relaxed">
                 {calculationResult.formulaDescription}
               </p>
             </div>
 
             {/* Dynamic Formula Parameter Adjuster */}
-            <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-3">
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
+              <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                 Parameter Variabel Rumus Aktif
               </div>
 
@@ -366,7 +372,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               {selectedFormulaId === 'FORMULA_2_FREIGHT_ADDED' && (
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-600 dark:text-slate-300">Biaya Ongkos Angkut Truk (Freight):</span>
+                    <span className="text-slate-600">Biaya Ongkos Angkut Truk (Freight):</span>
                     <span className="font-mono font-bold">{formatIDR(customParams.freightCost || 0)}</span>
                   </div>
                   <input
@@ -386,7 +392,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               {selectedFormulaId === 'FORMULA_5_DP_DEDUCTION' && (
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-600 dark:text-slate-300">Nilai Uang Muka (Down Payment):</span>
+                    <span className="text-slate-600">Nilai Uang Muka (Down Payment):</span>
                     <span className="font-mono font-bold">{formatIDR(customParams.downPaymentAmount || 0)}</span>
                   </div>
                   <input
@@ -406,7 +412,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               {selectedFormulaId === 'FORMULA_6_RETENTION_GUARANTEE' && (
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-600 dark:text-slate-300">Persentase Retensi Mutu:</span>
+                    <span className="text-slate-600">Persentase Retensi Mutu:</span>
                     <span className="font-mono font-bold">{customParams.retentionPercent}%</span>
                   </div>
                   <input
@@ -426,7 +432,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               {selectedFormulaId === 'FORMULA_11_COST_CONTROL_SAFEGUARD' && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-600 dark:text-slate-300">Batas Bawah Margin Minimum:</span>
+                    <span className="text-slate-600">Batas Bawah Margin Minimum:</span>
                     <span className="font-mono font-bold">{customParams.minimumMarginPercent}%</span>
                   </div>
                   <input
@@ -446,7 +452,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               {selectedFormulaId === 'FORMULA_13_RETURN_NOTE_OFFSET' && (
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-600 dark:text-slate-300">Potongan Nota Retur Cacat:</span>
+                    <span className="text-slate-600">Potongan Nota Retur Cacat:</span>
                     <span className="font-mono font-bold">{formatIDR(customParams.returnNoteAmount || 0)}</span>
                   </div>
                   <input
@@ -465,11 +471,11 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
               {selectedFormulaId === 'FORMULA_12_FOREX_CURRENCY' && (
                 <div className="text-xs space-y-1 font-mono">
-                  <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                  <div className="flex justify-between text-slate-600">
                     <span>Kurs KMK / JISDOR:</span>
                     <span className="font-bold">1 USD = Rp {customParams.exchangeRate?.toLocaleString()}</span>
                   </div>
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-xs text-slate-500">
                     Nilai USD: {formatUSD(calculationResult.finalPayableAmount / (customParams.exchangeRate || 16250))}
                   </div>
                 </div>
@@ -477,16 +483,16 @@ export const FinanceAnalyticsModule: React.FC = () => {
             </div>
 
             {/* Calculated Breakdown Line-Items */}
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+            <div className="divide-y divide-slate-100 text-xs">
               <div className="py-2 flex justify-between">
-                <span className="text-slate-500">Subtotal Nilai Barang:</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">
+                <span className="text-slate-600">Subtotal Nilai Barang:</span>
+                <span className="font-mono font-bold text-slate-900">
                   {formatIDR(calculationResult.subtotalGoods)}
                 </span>
               </div>
 
               {calculationResult.discountOrRebate > 0 && (
-                <div className="py-2 flex justify-between text-emerald-600 dark:text-emerald-400">
+                <div className="py-2 flex justify-between text-emerald-600">
                   <span>Potongan Diskon / Rebat:</span>
                   <span className="font-mono font-bold">
                     - {formatIDR(calculationResult.discountOrRebate)}
@@ -495,7 +501,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               )}
 
               {calculationResult.freightAmount > 0 && (
-                <div className="py-2 flex justify-between text-blue-600 dark:text-blue-400">
+                <div className="py-2 flex justify-between text-blue-600">
                   <span>Ongkos Angkut Ekspedisi:</span>
                   <span className="font-mono font-bold">
                     + {formatIDR(calculationResult.freightAmount)}
@@ -504,7 +510,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               )}
 
               {calculationResult.downPaymentDeduction > 0 && (
-                <div className="py-2 flex justify-between text-amber-600 dark:text-amber-400">
+                <div className="py-2 flex justify-between text-amber-600">
                   <span>Potongan Uang Muka (DP):</span>
                   <span className="font-mono font-bold">
                     - {formatIDR(calculationResult.downPaymentDeduction)}
@@ -513,7 +519,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               )}
 
               {calculationResult.returnCreditOffset > 0 && (
-                <div className="py-2 flex justify-between text-rose-600 dark:text-rose-400">
+                <div className="py-2 flex justify-between text-rose-600">
                   <span>Kredit Nota Retur Cacat:</span>
                   <span className="font-mono font-bold">
                     - {formatIDR(calculationResult.returnCreditOffset)}
@@ -521,20 +527,20 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 </div>
               )}
 
-              <div className="py-2 flex justify-between bg-slate-50 dark:bg-slate-800/50 px-2 rounded-lg font-semibold">
+              <div className="py-2.5 flex justify-between bg-slate-50 px-2.5 rounded-lg font-semibold text-slate-800">
                 <span>Dasar Pengenaan Pajak (DPP):</span>
                 <span className="font-mono">{formatIDR(calculationResult.taxableBaseDpp)}</span>
               </div>
 
-              <div className="py-2 flex justify-between text-slate-700 dark:text-slate-300">
+              <div className="py-2 flex justify-between text-slate-700">
                 <span>PPN 11% (Faktur Pajak):</span>
-                <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
+                <span className="font-mono font-bold text-blue-600">
                   + {formatIDR(calculationResult.ppnAmount)}
                 </span>
               </div>
 
               {calculationResult.pph23Amount > 0 && (
-                <div className="py-2 flex justify-between text-amber-600 dark:text-amber-400">
+                <div className="py-2 flex justify-between text-amber-600">
                   <span>Potongan PPh 23 (2% Jasa Slit):</span>
                   <span className="font-mono font-bold">
                     - {formatIDR(calculationResult.pph23Amount)}
@@ -543,7 +549,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               )}
 
               {calculationResult.retentionWithheld > 0 && (
-                <div className="py-2 flex justify-between text-amber-600 dark:text-amber-400">
+                <div className="py-2 flex justify-between text-amber-600">
                   <span>Retensi Mutu Ditahan (5%):</span>
                   <span className="font-mono font-bold">
                     - {formatIDR(calculationResult.retentionWithheld)}
@@ -552,9 +558,9 @@ export const FinanceAnalyticsModule: React.FC = () => {
               )}
 
               {/* Total Payable */}
-              <div className="py-3 flex justify-between items-center text-sm font-black pt-3 border-t-2 border-slate-300 dark:border-slate-700">
-                <span className="text-slate-900 dark:text-white">TOTAL FAKTUR BERSIH:</span>
-                <span className="text-base font-mono text-emerald-600 dark:text-emerald-400">
+              <div className="py-3.5 flex justify-between items-center text-sm font-black pt-3 border-t-2 border-slate-200">
+                <span className="text-slate-900">TOTAL FAKTUR BERSIH:</span>
+                <span className="text-lg font-mono text-emerald-600">
                   {formatIDR(calculationResult.finalPayableAmount)}
                 </span>
               </div>
@@ -563,7 +569,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
             {/* Quick Action */}
             <button
               onClick={() => setShowPrintInvoiceModal(true)}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm"
+              className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
             >
               <FileCheck2 className="w-4 h-4" />
               <span>Generate Faktur & Faktur Pajak Resmi</span>
@@ -574,61 +580,61 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
       {/* Invoice Print Modal */}
       {showPrintInvoiceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-          <div className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 max-h-[90vh] overflow-y-auto space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="w-full max-w-3xl bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 max-h-[90vh] overflow-y-auto space-y-5">
             {/* Invoice Header */}
-            <div className="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-4">
+            <div className="flex justify-between items-start border-b border-slate-200 pb-4">
               <div>
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   FAKTUR PENJUALAN KOMERSIAL
                 </div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                <h3 className="text-lg font-black text-slate-900">
                   ST. Morita Industries
                 </h3>
                 <div className="text-xs text-slate-500">
-                  Kawasan Industri Jababeka / Hyundai Cikarang, Jawa Barat 17530
+                  Divisi Manufaktur Adhesive Tapes & Industrial Converting
                 </div>
               </div>
               <div className="text-right font-mono text-xs">
-                <div className="font-bold text-slate-900 dark:text-white">
+                <div className="font-bold text-slate-900">
                   INV/SM/{new Date().getFullYear()}/09/0819
                 </div>
                 <div className="text-slate-500">Tgl: {new Date().toLocaleDateString('id-ID')}</div>
-                <div className="text-emerald-600 font-bold">STATUS: OFFICIAL APPROVED</div>
+                <div className="text-emerald-600 font-bold">STATUS: RESMI DISETUJUI</div>
               </div>
             </div>
 
             {/* Formula Meta */}
-            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-xs flex justify-between items-center">
+            <div className="p-3.5 rounded-xl bg-slate-50 text-xs flex justify-between items-center border border-slate-200">
               <div>
-                <span className="text-slate-400">Skema Formula Terpilih: </span>
-                <strong className="text-slate-800 dark:text-slate-200">{calculationResult.formulaName}</strong>
+                <span className="text-slate-500">Skema Formula Terpilih: </span>
+                <strong className="text-slate-900">{calculationResult.formulaName}</strong>
               </div>
-              <div className="font-mono text-slate-500">
+              <div className="font-mono text-slate-600 font-semibold">
                 Metode: {calculationResult.formulaId}
               </div>
             </div>
 
             {/* Selected Items summary */}
-            <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden text-xs">
+            <div className="border border-slate-200 rounded-xl overflow-hidden text-xs">
               <table className="w-full text-left">
-                <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                <thead className="bg-slate-50 text-slate-700 border-b border-slate-200">
                   <tr>
-                    <th className="p-2.5">No. DO</th>
-                    <th className="p-2.5">Deskripsi Produk</th>
-                    <th className="p-2.5 text-right">Qty</th>
-                    <th className="p-2.5 text-right">Harga Satuan</th>
-                    <th className="p-2.5 text-right">Total</th>
+                    <th className="p-2.5 font-bold">No. DO</th>
+                    <th className="p-2.5 font-bold">Deskripsi Produk</th>
+                    <th className="p-2.5 text-right font-bold">Qty</th>
+                    <th className="p-2.5 text-right font-bold">Harga Satuan</th>
+                    <th className="p-2.5 text-right font-bold">Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {selectedDos.map((d) => (
                     <tr key={d.id}>
-                      <td className="p-2.5 font-mono">{d.doNumber}</td>
-                      <td className="p-2.5">{d.itemName}</td>
+                      <td className="p-2.5 font-mono text-slate-800">{d.doNumber}</td>
+                      <td className="p-2.5 text-slate-800">{d.itemName}</td>
                       <td className="p-2.5 text-right font-mono">{d.qtyDelivered} {d.unit}</td>
-                      <td className="p-2.5 text-right font-mono">{formatIDR(d.unitPrice)}</td>
-                      <td className="p-2.5 text-right font-mono font-bold">{formatIDR(d.totalBeforeTax)}</td>
+                      <td className="p-2.5 text-right font-mono text-slate-600">{formatIDR(d.unitPrice)}</td>
+                      <td className="p-2.5 text-right font-mono font-bold text-slate-900">{formatIDR(d.totalBeforeTax)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -636,18 +642,18 @@ export const FinanceAnalyticsModule: React.FC = () => {
             </div>
 
             {/* Total summary breakdown */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/70 space-y-2 text-xs">
-              <div className="flex justify-between text-slate-600 dark:text-slate-300">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+              <div className="flex justify-between text-slate-600">
                 <span>Dasar Pengenaan Pajak (DPP):</span>
-                <span className="font-mono font-bold">{formatIDR(calculationResult.taxableBaseDpp)}</span>
+                <span className="font-mono font-bold text-slate-800">{formatIDR(calculationResult.taxableBaseDpp)}</span>
               </div>
-              <div className="flex justify-between text-slate-600 dark:text-slate-300">
+              <div className="flex justify-between text-slate-600">
                 <span>PPN 11%:</span>
-                <span className="font-mono font-bold">{formatIDR(calculationResult.ppnAmount)}</span>
+                <span className="font-mono font-bold text-blue-600">{formatIDR(calculationResult.ppnAmount)}</span>
               </div>
-              <div className="flex justify-between text-sm font-black text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-200">
                 <span>TOTAL HARUS DIBAYAR:</span>
-                <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                <span className="font-mono text-emerald-600">
                   {formatIDR(calculationResult.finalPayableAmount)}
                 </span>
               </div>
@@ -657,7 +663,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowPrintInvoiceModal(false)}
-                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300"
+                className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
               >
                 Tutup
               </button>
@@ -665,7 +671,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 onClick={() => {
                   window.print();
                 }}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <Printer className="w-4 h-4" />
                 <span>Cetak Faktur (Print / PDF)</span>

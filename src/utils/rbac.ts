@@ -121,7 +121,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleMeta> = {
     tier: 2,
     tierName: 'Level 2: Admin Bidang / Manager',
     department: 'Logistics & Inventory',
-    description: 'Otorisasi Delivery Order (DO), pengawasan receiving dock (LOG), dan pengaturan rute pengiriman armada Cikarang.',
+    description: 'Otorisasi Delivery Order (DO), pengawasan receiving dock (LOG), dan pengaturan rute pengiriman armada operasional.',
     permissions: [
       'warehouse:log:receive',
       'warehouse:log:approve',
@@ -210,7 +210,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleMeta> = {
     label: 'Warehouse Operator (Staff)',
     tier: 3,
     tierName: 'Level 3: Operator Lapangan',
-    department: 'Warehouse Cikarang',
+    department: 'Warehouse & Finished Goods',
     description: 'Scan barcode lot barang masuk (LOG), scan staging, dan cetak barcode label thermal Zebra.',
     permissions: [
       'warehouse:log:receive',

@@ -42,7 +42,7 @@ export const UserManagementModule: React.FC = () => {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newDepartment, setNewDepartment] = useState('Produksi Slitting & Coating Line 2');
-  const [newPlantLocation, setNewPlantLocation] = useState('Cikarang Plant 1 - Production Floor');
+  const [newPlantLocation, setNewPlantLocation] = useState('Plant 1 - Production Floor');
   const [newPhone, setNewPhone] = useState('+62 812-');
   const [newRole, setNewRole] = useState<UserRole>('OPERATOR_PROD');
   const [newPassword, setNewPassword] = useState('MoritaPass2026!');
@@ -302,7 +302,7 @@ export const UserManagementModule: React.FC = () => {
                   onChange={(e) => setNewDepartment(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 >
-                  <option value="Produksi Slitting & Coating Line 2">Produksi Slitting & Coating (Pabrik Cikarang)</option>
+                  <option value="Produksi Slitting & Coating Line 2">Produksi Slitting & Coating (Plant Utama)</option>
                   <option value="Quality Assurance & QC Lab">Quality Assurance & QC Testing Lab</option>
                   <option value="Procurement & Bea Cukai (EXIM)">Procurement & Bea Cukai (Kawasan Berikat)</option>
                   <option value="PPIC & Production Control">PPIC & Production Control</option>
@@ -315,7 +315,7 @@ export const UserManagementModule: React.FC = () => {
                 </select>
               </div>
 
-              {/* Lokasi Pabrik Cikarang */}
+              {/* Lokasi Fasilitas Kerja */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Lokasi Kerja Spesifik Pabrik
@@ -324,7 +324,7 @@ export const UserManagementModule: React.FC = () => {
                   type="text"
                   value={newPlantLocation}
                   onChange={(e) => setNewPlantLocation(e.target.value)}
-                  placeholder="Cikarang Plant 1 / Plant 2 / Gate 2"
+                  placeholder="Plant 1 / Plant 2 / Gate 2 / Kantor Direksi"
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>

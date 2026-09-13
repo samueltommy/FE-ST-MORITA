@@ -1,22 +1,18 @@
 import React, { useState } from 'react';
 import {
-  Building2,
-  Shield,
   Lock,
   Eye,
   EyeOff,
-  CheckCircle2,
   ArrowRight,
+  Target,
+  Compass,
+  Award,
   Sparkles,
-  Users,
-  Factory,
-  FileKey,
-  BadgeAlert,
-  Fingerprint,
+  ChevronDown,
+  UserCheck,
 } from 'lucide-react';
 import { appStore, DEMO_USERS } from '../../store/useAppStore';
-import { UserProfile, UserRole } from '../../types';
-import { ROLE_DEFINITIONS, getTierBadge } from '../../utils/rbac';
+import { UserRole } from '../../types';
 
 export const LoginPage: React.FC = () => {
   const [identifier, setIdentifier] = useState('hendra.morita@stmorita.co.id');
@@ -25,7 +21,8 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedRolePreset, setSelectedRolePreset] = useState<UserRole>('DIREKSI');
+  const [showQuickSelect, setShowQuickSelect] = useState(false);
+  const [activePreset, setActivePreset] = useState<UserRole>('DIREKSI');
 
   // Handle standard credential login
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -34,7 +31,6 @@ export const LoginPage: React.FC = () => {
     setIsSubmitting(true);
 
     setTimeout(() => {
-      // Find matching user from DEMO_USERS or match by email/nik
       const allUsers = Object.values(DEMO_USERS);
       const matched = allUsers.find(
         (u) =>
@@ -45,19 +41,18 @@ export const LoginPage: React.FC = () => {
       if (matched) {
         appStore.login(matched);
       } else {
-        // Default to selected preset or Super Admin if not exact
-        const fallback = DEMO_USERS[selectedRolePreset] || DEMO_USERS.DIREKSI;
+        const fallback = DEMO_USERS[activePreset] || DEMO_USERS.DIREKSI;
         appStore.login(fallback);
       }
       setIsSubmitting(false);
-    }, 450);
+    }, 400);
   };
 
   // Quick 1-click preset login
   const handleQuickLogin = (role: UserRole) => {
     const user = DEMO_USERS[role];
     if (!user) return;
-    setSelectedRolePreset(role);
+    setActivePreset(role);
     setIdentifier(user.email);
     setPassword('MoritaSecure2026!');
     setIsSubmitting(true);
@@ -68,165 +63,176 @@ export const LoginPage: React.FC = () => {
     }, 350);
   };
 
-  const currentPresetUser = DEMO_USERS[selectedRolePreset];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950 text-white flex flex-col justify-between p-4 sm:p-6 lg:p-8 relative overflow-hidden">
-      {/* Decorative ambient background rings */}
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between p-4 sm:p-6 lg:p-10 relative selection:bg-blue-600 selection:text-white">
+      {/* Subtle Corporate Ambient Background for Light Mode */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(37,99,235,0.08),rgba(255,255,255,0))] pointer-events-none" />
+      <div className="absolute top-1/3 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header Bar */}
-      <header className="w-full max-w-7xl mx-auto flex items-center justify-between py-2 border-b border-white/10 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/30">
-            <Building2 className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-lg font-black tracking-tight text-white flex items-center gap-2">
-              <span>ST. Morita Industries</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 font-mono font-bold uppercase">
-                Pabrik Cikarang
-              </span>
+      {/* Top Header with Authentic ST. Morita Logo */}
+      <header className="w-full max-w-7xl mx-auto flex items-center justify-between py-3 border-b border-slate-200 z-10">
+        <div className="flex items-center gap-3.5">
+          {/* Authentic ST. Morita Brand Mark */}
+          <div className="flex items-center gap-3">
+            <div className="relative w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-sky-500 p-0.5 shadow-md shadow-blue-600/20 flex items-center justify-center">
+              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8">
+                {/* Outer adhesive tape ring */}
+                <circle cx="24" cy="24" r="19" stroke="white" strokeWidth="2.5" strokeOpacity="0.4" strokeDasharray="3 3" />
+                <path
+                  d="M12 28C12 21.3726 17.3726 16 24 16C28.5 16 32.5 18.5 34.5 22C36.5 25.5 35 30 31.5 32C28 34 23 33 20 30"
+                  stroke="white"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                />
+                {/* Core ribbon roll */}
+                <circle cx="24" cy="24" r="4.5" fill="white" />
+                <path
+                  d="M27 24C27 27 24 30 20 30C16 30 14 26 14 22"
+                  stroke="#BAE6FD"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                />
+              </svg>
             </div>
-            <div className="text-xs text-slate-400 font-medium">
-              Enterprise ERP & Production System &bull; Adhesive Tapes Division
+            <div>
+              <div className="text-xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+                <span>ST. MORITA</span>
+                <span className="text-xs font-semibold tracking-widest text-blue-600 uppercase">
+                  INDUSTRIES
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-500 font-medium tracking-wide">
+                Adhesives & Industrial Tapes Manufacturing
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Security Compliance Badges */}
-        <div className="hidden sm:flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-300">
-            <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            <span>ISO 9001 / IATF 16949</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-300">
-            <Fingerprint className="w-3.5 h-3.5 text-blue-400" />
-            <span>SHA-256 Audit Trail</span>
-          </div>
+        <div className="text-xs text-slate-500 hidden sm:block font-medium">
+          Portal Sistem Enterprise Terpadu
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="w-full max-w-7xl mx-auto py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center my-auto">
-        {/* Left Column: Industrial Plant & RBAC Architecture Brief */}
-        <div className="lg:col-span-6 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-            <span>Arsitektur Keamanan RBAC 4 Lapis (SRS v2.0)</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight text-white">
-            Portal Terpadu Operasional, Keuangan & Mutu Pabrik Cikarang
-          </h1>
-
-          <p className="text-sm text-slate-300 leading-relaxed">
-            Sistem ERP mutakhir dengan otorisasi berbasis peran granular (RBAC) 4 tingkatan:
-            Direksi (L1), Admin Bidang & Manager (L2), Staff & Operator (L3), dan Super Admin (L0).
-            Dilengkapi proteksi data masking HPP, otorisasi dua lapis Cost Control, dan penguncian fisik QC Hold.
-          </p>
-
-          {/* 4-Tier RBAC Architecture Card */}
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm space-y-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-              <span>Struktur Tingkatan Akses Pengguna (Role Matrix)</span>
-              <span className="text-[10px] text-blue-400">Strict Enforcement</span>
+      {/* Main Body */}
+      <main className="w-full max-w-7xl mx-auto py-8 lg:py-12 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center my-auto z-10">
+        {/* Left Column: Authentic Company Profile, Vision & Mission */}
+        <div className="lg:col-span-7 space-y-7">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <span>PT ST. Morita Industries &bull; Est. 2009</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <div className="font-bold text-amber-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  Level 1: Direksi (Executive)
-                </div>
-                <div className="text-[11px] text-slate-300 mt-1">
-                  Full Read-All, P&L Finansial, Otorisasi Transaksi Nilai Tinggi & Final Override QC Hold.
-                </div>
-              </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight text-slate-900 leading-tight">
+              Solusi Terdepan Rekayasa Perekat & Manufaktur Industri
+            </h1>
 
-              <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                <div className="font-bold text-purple-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-purple-400" />
-                  Level 0: Super Admin
-                </div>
-                <div className="text-[11px] text-slate-300 mt-1">
-                  Pengelolaan Akun Pegawai, Reset Password, Konfigurasi Sistem, dan Log Audit SHA-256.
-                </div>
-              </div>
+            <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl font-normal">
+              PT ST. Morita Industries berdedikasi menghadirkan produk perekat, pita perekat industri,
+              dan solusi pelapisan berstandar tinggi yang mendukung efisiensi serta inovasi di berbagai sektor manufaktur.
+            </p>
+          </div>
 
-              <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                <div className="font-bold text-blue-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-400" />
-                  Level 2: Admin Bidang / Manager
+          {/* Visi & Misi Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Visi */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all">
+              <div className="flex items-center gap-2.5 mb-2.5">
+                <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center">
+                  <Target className="w-4 h-4" />
                 </div>
-                <div className="text-[11px] text-slate-300 mt-1">
-                  Approval PO, Gating Margin Cost Control, Rilis SPK PPIC, Release QC Hold & Post Invoicing.
-                </div>
+                <h2 className="text-sm font-bold text-slate-900 tracking-wide uppercase">Visi Perusahaan</h2>
               </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Menjadi industri manufaktur perekat dan pita perekat yang kompetitif, inovatif,
+                serta berwawasan lingkungan yang terdepan di pasar nasional maupun global.
+              </p>
+            </div>
 
-              <div className="p-2.5 rounded-xl bg-slate-500/10 border border-slate-500/20">
-                <div className="font-bold text-slate-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-slate-400" />
-                  Level 3: Staff & Operator
+            {/* Misi */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all">
+              <div className="flex items-center gap-2.5 mb-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center">
+                  <Compass className="w-4 h-4" />
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  Entry Data, Scan Barcode, Lab Testing. Data Sensitif HPP & Margin Terkunci (Masked).
-                </div>
+                <h2 className="text-sm font-bold text-slate-900 tracking-wide uppercase">Misi Perusahaan</h2>
               </div>
+              <ul className="text-xs text-slate-600 space-y-1.5 leading-relaxed">
+                <li className="flex items-start gap-1.5">
+                  <span className="text-blue-600 mt-0.5">•</span>
+                  <span>Menyediakan produk bermutu tinggi melalui riset dan pengembangan (R&D) berkelanjutan.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-blue-600 mt-0.5">•</span>
+                  <span>Memberikan layanan terbaik dengan profesionalisme, integritas, dan solusi bernilai tambah.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-blue-600 mt-0.5">•</span>
+                  <span>Turut aktif dalam pembangunan karakter bangsa serta kepedulian lingkungan hidup.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Nilai Utama Perusahaan */}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 pt-1">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+              <Award className="w-3.5 h-3.5 text-blue-600" />
+              <span className="font-semibold text-slate-800">Kualitas & Keandalan</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+              <span className="font-semibold text-slate-800">Riset & Inovasi (R&D)</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+              <Award className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="font-semibold text-slate-800">Kemitraan Berkelanjutan</span>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Interactive Login Form & Preset Role Switcher */}
-        <div className="lg:col-span-6 space-y-4">
-          <div className="p-6 sm:p-7 rounded-3xl bg-slate-900/90 border border-white/10 shadow-2xl backdrop-blur-xl">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-xl font-bold text-white">Masuk ke Portal ERP</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Gunakan email resmi atau NIK pegawai ST. Morita Industries
-                </p>
-              </div>
-              <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                <Lock className="w-4 h-4" />
-              </div>
+        {/* Right Column: Clean & Sederhana Login Form in Light Mode */}
+        <div className="lg:col-span-5 w-full max-w-md mx-auto lg:max-w-none">
+          <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-xl shadow-slate-200/60 space-y-5">
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 tracking-tight">Masuk ke Akun Anda</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Silakan masukkan kredensial resmi PT ST. Morita Industries
+              </p>
             </div>
 
-            {/* Error feedback if any */}
+            {/* Error Message */}
             {errorMessage && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                <BadgeAlert className="w-4 h-4 text-rose-400 shrink-0" />
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
                 <span>{errorMessage}</span>
               </div>
             )}
 
-            {/* Credential Form */}
+            {/* Form */}
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Email Perusahaan / NIK Pegawai
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Email Perusahaan atau NIK
                 </label>
-                <div className="relative">
-                  <input
-                    id="login-identifier-input"
-                    type="text"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="nama.pegawai@stmorita.co.id atau NIK-2026-..."
-                    required
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
+                <input
+                  id="login-identifier-input"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="contoh: nama.pegawai@stmorita.com"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-300">
-                    Kata Sandi Keamanan
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Kata Sandi
                   </label>
-                  <span className="text-[11px] text-blue-400 hover:underline cursor-pointer">
-                    Lupa sandi? Hubungi Admin
+                  <span className="text-[11px] text-blue-600 hover:text-blue-700 transition-colors cursor-pointer">
+                    Bantuan Akun?
                   </span>
                 </div>
                 <div className="relative">
@@ -236,181 +242,121 @@ export const LoginPage: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all pr-10 font-mono"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all pr-10 font-mono"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+              <div className="flex items-center justify-between text-xs pt-0.5">
+                <label className="flex items-center gap-2 cursor-pointer text-slate-600">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span>Ingat sesi browser di perangkat ini</span>
+                  <span>Ingat saya di perangkat ini</span>
                 </label>
-                <span className="text-[11px] text-slate-500">Koneksi Terenkripsi SSL</span>
               </div>
 
               <button
                 id="login-submit-btn"
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>Masuk ke Sistem ERP</span>
+                    <span>Masuk ke Sistem</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
 
-            {/* Divider */}
-            <div className="relative my-5">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-800" />
-              </div>
-              <div className="relative flex justify-center text-[11px] uppercase tracking-wider font-bold">
-                <span className="bg-slate-900 px-3 text-slate-400">
-                  Pilih Preset Akun Uji Coba (1-Klik Masuk)
+            {/* Sederhana: Akses Cepat Mode Demonstrasi / Pengujian */}
+            <div className="pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowQuickSelect(!showQuickSelect)}
+                className="w-full flex items-center justify-between text-xs text-slate-500 hover:text-slate-800 transition-colors py-1 cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5 font-medium">
+                  <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Pilihan Akses Uji Coba Cepat</span>
                 </span>
-              </div>
-            </div>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    showQuickSelect ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
 
-            {/* Quick Demo Accounts Selector (Grouped by Tier) */}
-            <div className="space-y-2">
-              <div className="text-[11px] font-bold text-slate-400">
-                Pilih profil peran untuk langsung menguji perilaku RBAC:
-              </div>
+              {showQuickSelect && (
+                <div className="mt-3 grid grid-cols-2 gap-2 pt-1 animate-fadeIn">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin('DIREKSI')}
+                    className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50/70 border border-slate-200 hover:border-blue-200 text-left transition-all cursor-pointer"
+                  >
+                    <div className="text-[10px] text-amber-700 font-bold uppercase">Direksi</div>
+                    <div className="text-xs font-semibold text-slate-800 truncate">Ir. Hendra M.</div>
+                  </button>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {/* Level 1: Direksi */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('DIREKSI')}
-                  className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-left transition-all group"
-                  title="Level 1: Direksi (Executive Full View)"
-                >
-                  <div className="text-[10px] font-mono font-bold text-amber-400 uppercase">L1 &bull; Direksi</div>
-                  <div className="text-xs font-bold text-white truncate mt-0.5">Ir. Hendra M.</div>
-                  <div className="text-[10px] text-slate-400 truncate">President Director</div>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin('SUPER_ADMIN')}
+                    className="p-2.5 rounded-xl bg-slate-50 hover:bg-purple-50/70 border border-slate-200 hover:border-purple-200 text-left transition-all cursor-pointer"
+                  >
+                    <div className="text-[10px] text-purple-700 font-bold uppercase">Super Admin</div>
+                    <div className="text-xs font-semibold text-slate-800 truncate">Ir. Budi H.</div>
+                  </button>
 
-                {/* Level 0: Super Admin */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('SUPER_ADMIN')}
-                  className="p-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-left transition-all group"
-                  title="Level 0: Super Admin (Manage Users & Config)"
-                >
-                  <div className="text-[10px] font-mono font-bold text-purple-400 uppercase">L0 &bull; Admin</div>
-                  <div className="text-xs font-bold text-white truncate mt-0.5">Ir. Budi H.</div>
-                  <div className="text-[10px] text-slate-400 truncate">Executive IT</div>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin('COST_CONTROL')}
+                    className="p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-200 text-left transition-all cursor-pointer"
+                  >
+                    <div className="text-[10px] text-emerald-700 font-bold uppercase">Manajemen</div>
+                    <div className="text-xs font-semibold text-slate-800 truncate">Lestari W., Ak.</div>
+                  </button>
 
-                {/* Level 2: QC Manager */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('QC_MANAGER')}
-                  className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-left transition-all group"
-                  title="Level 2: QC Manager (Override & Release Hold)"
-                >
-                  <div className="text-[10px] font-mono font-bold text-blue-400 uppercase">L2 &bull; QC Mgr</div>
-                  <div className="text-xs font-bold text-white truncate mt-0.5">Dr. Hendra W.</div>
-                  <div className="text-[10px] text-slate-400 truncate">Release QC Hold</div>
-                </button>
-
-                {/* Level 2: Cost Control */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('COST_CONTROL')}
-                  className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-left transition-all group"
-                  title="Level 2: Cost Control (Gating Margin Approval)"
-                >
-                  <div className="text-[10px] font-mono font-bold text-emerald-400 uppercase">L2 &bull; Cost Ctrl</div>
-                  <div className="text-xs font-bold text-white truncate mt-0.5">Lestari W., Ak.</div>
-                  <div className="text-[10px] text-slate-400 truncate">Margin Gating</div>
-                </button>
-
-                {/* Level 2: Finance Manager */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('FINANCE_MANAGER')}
-                  className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-left transition-all group"
-                  title="Level 2: Finance Manager (13 Rumus Invoice & AR)"
-                >
-                  <div className="text-[10px] font-mono font-bold text-blue-400 uppercase">L2 &bull; Finance</div>
-                  <div className="text-xs font-bold text-white truncate mt-0.5">Melinda K.</div>
-                  <div className="text-[10px] text-slate-400 truncate">13-Formula Inv</div>
-                </button>
-
-                {/* Level 3: Operator Produksi */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('OPERATOR_PROD')}
-                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left transition-all group"
-                  title="Level 3: Operator (Data HPP Masked)"
-                >
-                  <div className="text-[10px] font-mono font-bold text-slate-400 uppercase">L3 &bull; Operator</div>
-                  <div className="text-xs font-bold text-white truncate mt-0.5">Wahyu H.</div>
-                  <div className="text-[10px] text-slate-400 truncate">HPP Masked</div>
-                </button>
-
-                {/* Level 3: QC Inspector */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('QC_INSPECTOR')}
-                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left transition-all group"
-                  title="Level 3: QC Inspector (Blocked from Hold Override)"
-                >
-                  <div className="text-[10px] font-mono font-bold text-slate-400 uppercase">L3 &bull; QC Insp</div>
-                  <div className="text-xs font-bold text-white truncate mt-0.5">Rian Pratama</div>
-                  <div className="text-[10px] text-slate-400 truncate">No Override</div>
-                </button>
-
-                {/* Level 3: Sales Staff */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('SALES_EXEC')}
-                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left transition-all group"
-                  title="Level 3: Sales Staff (Draft Quotation)"
-                >
-                  <div className="text-[10px] font-mono font-bold text-slate-400 uppercase">L3 &bull; Sales</div>
-                  <div className="text-xs font-bold text-white truncate mt-0.5">Dimas Aditya</div>
-                  <div className="text-[10px] text-slate-400 truncate">Draft Quote</div>
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin('OPERATOR_PROD')}
+                    className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50/70 border border-slate-200 hover:border-blue-200 text-left transition-all cursor-pointer"
+                  >
+                    <div className="text-[10px] text-blue-700 font-bold uppercase">Staff Lapangan</div>
+                    <div className="text-xs font-semibold text-slate-800 truncate">Wahyu H.</div>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full max-w-7xl mx-auto pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
+      {/* Simple, Clean Corporate Footer */}
+      <footer className="w-full max-w-7xl mx-auto pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2 z-10">
         <div>
-          &copy; {new Date().getFullYear()} PT ST. Morita Industries. Kawasan Industri Cikarang, Jawa Barat, Indonesia.
+          &copy; {new Date().getFullYear()} PT ST. Morita Industries. Seluruh hak cipta dilindungi.
         </div>
         <div className="flex items-center gap-4 text-slate-500">
-          <span>Enterprise ERP v2.0</span>
+          <span>Sistem Informasi Terpadu</span>
           <span>&bull;</span>
-          <span>Kebijakan Keamanan RBAC</span>
-          <span>&bull;</span>
-          <span>Server Status: Online (Asia-SE1)</span>
+          <span>Privasi & Keamanan Data</span>
         </div>
       </footer>
     </div>
   );
 };
+

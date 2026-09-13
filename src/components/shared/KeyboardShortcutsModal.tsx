@@ -47,7 +47,7 @@ export const KeyboardShortcutsModal: React.FC = () => {
                 Pintasan Keyboard Power User
               </h2>
               <p className="text-xs text-slate-500">
-                Akses cepat modul, scanner pabrik Cikarang, dan fungsi portal
+                Akses cepat modul, scanner barcode operasional, dan fungsi portal
               </p>
             </div>
           </div>
