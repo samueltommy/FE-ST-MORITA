@@ -71,80 +71,77 @@ export const ProcurementEximModule: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               Supply Chain & Kepabeanan EXIM Kawasan Berikat
             </h1>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800">
-              Core 3 Pipeline
-            </span>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
+              Alur pengadaan 5-tahap (PR → PO → LOG → IQC → AP) dan kepatuhan berkas pabean BC 2.3, BC 2.7, BC 4.0 & SPPB
+            </p>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Alur pengadaan 5-tahap (PR → PO → LOG → IQC → AP) dan kepatuhan berkas pabean BC 2.3, BC 2.7, BC 4.0 & SPPB
-          </p>
+          
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                setProcurementFormsTab('pr');
+                setProcurementFormsOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Form Pengadaan / PO</span>
+            </button>
+          </div>
         </div>
 
-        {/* Action button & Tab switchers */}
-        <div className="flex items-center gap-2.5">
+        {/* Tab switchers */}
+        <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 self-start overflow-x-auto max-w-full">
           <button
-            onClick={() => {
-              setProcurementFormsTab('pr');
-              setProcurementFormsOpen(true);
-            }}
-            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            onClick={() => setActiveTab('kanban')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${
+              activeTab === 'kanban'
+                ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-700'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+            }`}
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Form Pengadaan / PO</span>
+            Kanban Alur Pengadaan
           </button>
-
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
-            <button
-              onClick={() => setActiveTab('kanban')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                activeTab === 'kanban'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Kanban Alur Pengadaan
-            </button>
-            <button
-              onClick={() => setActiveTab('exim_dropzone')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
-                activeTab === 'exim_dropzone'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Dokumen Kepabeanan EXIM</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setActiveTab('exim_dropzone')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'exim_dropzone'
+                ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-700'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Dokumen Kepabeanan EXIM</span>
+          </button>
         </div>
       </div>
 
       {/* Main Tab View */}
       {activeTab === 'kanban' ? (
         <div className="space-y-4">
-          {/* Stepper / Kanban columns */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {/* Stepper / Kanban columns - Horizontal scrolling on mobile/tablet to avoid squishing */}
+          <div className="flex md:grid md:grid-cols-5 gap-3.5 overflow-x-auto pb-4 md:pb-0 scrollbar-thin">
             {stages.map((stg) => {
               const ordersInStage = filteredOrders.filter((o) => o.stage === stg.key);
               return (
                 <div
                   key={stg.key}
-                  className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-3 space-y-3"
+                  className="min-w-[240px] md:min-w-0 flex-1 shrink-0 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-3 space-y-3"
                 >
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-                    <div>
-                      <h3 className="text-xs font-black text-slate-800 dark:text-slate-200">
+                    <div className="min-w-0">
+                      <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">
                         {stg.label}
                       </h3>
-                      <div className="text-[10px] text-slate-400">{stg.dept}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{stg.dept}</div>
                     </div>
-                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-mono font-bold flex items-center justify-center text-slate-700 dark:text-slate-300">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-mono font-bold flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0 ml-1.5">
                       {ordersInStage.length}
                     </span>
                   </div>
@@ -159,14 +156,17 @@ export const ProcurementEximModule: React.FC = () => {
                       ordersInStage.map((ord) => (
                         <div
                           key={ord.id}
-                          className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-2"
+                          className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-2 overflow-hidden"
                         >
-                          <div className="flex items-start justify-between gap-1">
-                            <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">
+                          <div className="flex items-center justify-between gap-1.5 min-w-0">
+                            <span
+                              className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400 truncate min-w-0"
+                              title={ord.poNumber}
+                            >
                               {ord.poNumber}
                             </span>
                             <span
-                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                              className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
                                 (ord.status || (ord.stageProgress === 100 ? 'COMPLETED' : 'IN_PROGRESS')) === 'COMPLETED'
                                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                                   : (ord.status || '') === 'INSPECTING'
@@ -178,25 +178,31 @@ export const ProcurementEximModule: React.FC = () => {
                             </span>
                           </div>
 
-                          <div className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
+                          <div
+                            className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate"
+                            title={ord.vendorName}
+                          >
                             {ord.vendorName}
                           </div>
 
-                          <div className="flex items-center justify-between text-[11px] text-slate-500">
-                            <span>{ord.itemsCount} Item SKU</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                            <span className="shrink-0">{ord.itemsCount} SKU</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs truncate ml-1 text-right">
                               {formatIDR(ord.totalAmount)}
                             </span>
                           </div>
 
                           {/* Customs doc indicator */}
                           {(ord.bcDocumentType || ord.stage === 'LOG' || ord.stage === 'IQC') && (
-                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
-                              <span className="font-mono font-bold text-slate-600 dark:text-slate-400">
-                                Berkas: {ord.bcDocumentType || 'BC 2.3 Pabean'}
+                            <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] gap-1">
+                              <span
+                                className="font-mono font-bold text-slate-600 dark:text-slate-400 truncate"
+                                title={ord.bcDocumentType || 'BC 2.3 Pabean'}
+                              >
+                                {ord.bcDocumentType || 'BC 2.3'}
                               </span>
                               <span
-                                className={`flex items-center gap-1 font-bold ${
+                                className={`shrink-0 flex items-center gap-1 font-bold ${
                                   (ord.bcDocStatus || 'COMPLETE') === 'COMPLETE'
                                     ? 'text-emerald-600'
                                     : 'text-amber-500'
@@ -212,7 +218,7 @@ export const ProcurementEximModule: React.FC = () => {
                             </div>
                           )}
 
-                          <div className="text-[10px] text-slate-400 font-mono">
+                          <div className="text-[10px] text-slate-400 font-mono truncate">
                             ETA: {ord.etaDate || ord.estimatedArrival || ord.lastUpdate}
                           </div>
                         </div>

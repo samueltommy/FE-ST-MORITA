@@ -38,54 +38,51 @@ export const HrdModule: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-900">
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
               HRD, Armada Pabrik & GPS Visit Sales
             </h1>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-300">
-              Core 1 Portal
-            </span>
+            <p className="text-sm text-slate-500 mt-1.5">
+              Presensi staf shift kerja, jadwal pemesanan kendaraan dinas/truk armada, dan geo-tracking log visit sales outdoor
+            </p>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Presensi staf shift kerja, jadwal pemesanan kendaraan dinas/truk armada, dan geo-tracking log visit sales outdoor
-          </p>
+          
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              onClick={() => openFormWithTab('leave')}
+              className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Form Input HRD</span>
+            </button>
+          </div>
         </div>
 
-        {/* Action button & Tab switchers */}
-        <div className="flex items-center gap-2.5">
+        {/* Tab switchers */}
+        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 self-start overflow-x-auto max-w-full">
           <button
-            onClick={() => openFormWithTab('leave')}
-            className="px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            onClick={() => setActiveTab('attendance_fleet')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${
+              activeTab === 'attendance_fleet'
+                ? 'bg-white text-violet-700 shadow-xs border border-slate-200'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+            }`}
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Form Input HRD</span>
+            Presensi & Armada Pabrik
           </button>
-
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
-            <button
-              onClick={() => setActiveTab('attendance_fleet')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                activeTab === 'attendance_fleet'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Presensi & Armada Pabrik
-            </button>
-            <button
-              onClick={() => setActiveTab('sales_gps')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
-                activeTab === 'sales_gps'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Navigation className="w-3.5 h-3.5 text-violet-500" />
-              <span>Log GPS Sales</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setActiveTab('sales_gps')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'sales_gps'
+                ? 'bg-white text-violet-700 shadow-xs border border-slate-200'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+            }`}
+          >
+            <Navigation className="w-4 h-4" />
+            <span>Log GPS Sales</span>
+          </button>
         </div>
       </div>
 

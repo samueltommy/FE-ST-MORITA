@@ -63,6 +63,12 @@ export default function App() {
         appStore.setKeyboardShortcutsOpen(true);
       }
 
+      // Alt + S or Ctrl/Cmd + [: Toggle Sidebar
+      if ((e.altKey && e.key.toLowerCase() === 's') || ((e.ctrlKey || e.metaKey) && e.key === '[')) {
+        e.preventDefault();
+        appStore.toggleSidebar();
+      }
+
       // Alt + 1 through 7 for Fast Module Jump
       if (e.altKey && ['1', '2', '3', '4', '5', '6', '7'].includes(e.key)) {
         e.preventDefault();
@@ -89,21 +95,21 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      {/* Top Navigation */}
+    <div className="h-screen w-screen flex flex-col bg-slate-50 text-slate-900 font-sans overflow-hidden select-none">
+      {/* Top Navigation - Fixed height */}
       <Navbar />
 
-      {/* Body Area with Sidebar + Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Responsive Sidebar */}
+      {/* Body Area with Independent Sidebar + Content Viewport */}
+      <div className="flex-1 flex min-h-0 overflow-hidden relative">
+        {/* Responsive Independent Left Sidebar (Statis & Collapsible) */}
         <Sidebar />
 
-        {/* Main Content Area */}
+        {/* Main Content Area - Completely Independent Scroll */}
         <main
           id="main-content-viewport"
-          className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-4 sm:p-6 lg:p-8 select-text focus:outline-hidden"
         >
-          <div className="max-w-7xl mx-auto">
+          <div className="w-full max-w-7xl mx-auto pb-12">
             {activeModule === 'finance' && <FinanceAnalyticsModule />}
             {activeModule === 'qc' && <ProductionQcModule />}
             {activeModule === 'procurement' && <ProcurementEximModule />}

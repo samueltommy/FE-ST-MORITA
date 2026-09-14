@@ -130,32 +130,30 @@ export const UserManagementModule: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Banner / Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               Manajemen Akun Pegawai & Kontrol Akses (RBAC)
             </h1>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
-              Admin & HRD Console
-            </span>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
+              Pusat pembuatan akun karyawan baru PT ST. Morita Industries, penugasan tingkatan peran (Level 0 - Level 3), dan audit keamanan akses
+            </p>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Pusat pembuatan akun karyawan baru PT ST. Morita Industries, penugasan tingkatan peran (Level 0 - Level 3), dan audit keamanan akses
-          </p>
+          
+          <div className="flex items-center gap-2 shrink-0">
+            {isAuthorized && (
+              <button
+                id="open-create-user-btn"
+                onClick={() => setIsFormOpen(!isFormOpen)}
+                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+              >
+                {isFormOpen ? <X className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                <span>{isFormOpen ? 'Tutup Formulir Pendaftaran' : 'Buat Akun Pegawai Baru'}</span>
+              </button>
+            )}
+          </div>
         </div>
-
-        {/* Action button to open Form */}
-        {isAuthorized && (
-          <button
-            id="open-create-user-btn"
-            onClick={() => setIsFormOpen(!isFormOpen)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>{isFormOpen ? 'Tutup Formulir Pendaftaran' : 'Buat Akun Pegawai Baru'}</span>
-          </button>
-        )}
       </div>
 
       {/* Success Notification Alert */}

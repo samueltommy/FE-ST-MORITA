@@ -23,6 +23,7 @@ export const KeyboardShortcutsModal: React.FC = () => {
     {
       groupName: 'Alat Cepat & Kepatuhan',
       shortcuts: [
+        { keys: ['Alt', 'S'], label: 'Buka / Tutup (Collapse) Menu Navigasi Samping' },
         { keys: ['Ctrl / ⌘', 'K'], label: 'Buka Command Palette & Pencarian Global' },
         { keys: ['Alt', 'B'], label: 'Buka Handheld Barcode Scanner PWA' },
         { keys: ['Alt', 'T'], label: 'Ganti Tema Gelap / Terang (Dark/Light Mode)' },

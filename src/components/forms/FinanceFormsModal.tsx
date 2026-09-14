@@ -18,6 +18,13 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
   const complaints = useAppStore((state) => state.eComplaints);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      setSuccessMessage(null);
+    }
+  }, [isOpen, defaultTab]);
+
   // Form 1: E-Complaint state
   const [complaintTicket, setComplaintTicket] = useState(`CMP/SMI/2026/09/00${Math.floor(Math.random() * 90 + 10)}`);
   const [complaintCustomer, setComplaintCustomer] = useState(customers[0]?.companyName || 'PT Astra Daihatsu Motor');

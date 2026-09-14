@@ -164,9 +164,6 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
                         <div className={`p-2.5 rounded-xl border ${cat.color}`}>
                           <Icon className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {cat.badge}
-                        </span>
                       </div>
                       <h3 className="text-sm font-bold text-slate-900 mb-1">{cat.title}</h3>
                       <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-3">

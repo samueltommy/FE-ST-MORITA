@@ -18,6 +18,13 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
   const qcRecords = useAppStore((state) => state.qcRecords);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      setSuccessMessage(null);
+    }
+  }, [isOpen, defaultTab]);
+
   // Form 1: Quotation state
   const [quotationNo, setQuotationNo] = useState(`SQ/SALES/2026/09/01${Math.floor(Math.random() * 90 + 10)}`);
   const [customerName, setCustomerName] = useState(customers[0]?.companyName || 'PT Astra Daihatsu Motor');

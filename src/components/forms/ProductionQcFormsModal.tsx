@@ -17,6 +17,13 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
   const qcRecords = useAppStore((state) => state.qcRecords);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      setSuccessMessage(null);
+    }
+  }, [isOpen, defaultTab]);
+
   // Form 1: SPK state
   const [spkNumber, setSpkNumber] = useState(`SPK/PRD/2026/09/00${Math.floor(Math.random() * 90 + 10)}`);
   const [customerIoRef, setCustomerIoRef] = useState('IO/SMI/2026/09/0235');

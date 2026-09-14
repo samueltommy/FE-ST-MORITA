@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Sparkles,
   Award,
+  QrCode,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { QcInspectionRecord, QcStatus } from '../../types';
@@ -56,48 +57,36 @@ export const ProductionQcModule: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               Production Floor & Quality Control (QC Hold Lockout)
             </h1>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
-              Core 4 Lockout Engine
-            </span>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
+              Inspeksi lot bahan baku & hasil slitting roll pita perekat, mekanisme cekal transfer otomatis (QC Hold), dan penerbitan COA
+            </p>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Inspeksi lot bahan baku & hasil slitting roll pita perekat, mekanisme cekal transfer otomatis (QC Hold), dan penerbitan COA
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              setQcFormsTab('spk');
-              setQcFormsOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors shadow-xs cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Buat SPK Produksi</span>
-          </button>
-          <button
-            onClick={() => {
-              setQcFormsTab('qc_test');
-              setQcFormsOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors shadow-xs cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Input Uji Lab QC</span>
-          </button>
-          <button
-            onClick={() => appStore.setBarcodeModalOpen(true)}
-            className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition-colors shadow-xs cursor-pointer"
-          >
-            <span>Scan Lot</span>
-          </button>
+          
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                setQcFormsTab('spk');
+                setQcFormsOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Form Produksi & QC</span>
+            </button>
+            <button
+              onClick={() => appStore.setBarcodeModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 text-sm font-bold transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+            >
+              <QrCode className="w-4 h-4" />
+              <span>Scan Lot</span>
+            </button>
+          </div>
         </div>
       </div>
 

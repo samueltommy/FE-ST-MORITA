@@ -17,6 +17,13 @@ export const ProcurementFormsModal: React.FC<Props> = ({ isOpen, onClose, defaul
   const purchaseRequests = useAppStore((state) => state.purchaseRequests);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      setSuccessMessage(null);
+    }
+  }, [isOpen, defaultTab]);
+
   // Form 1: PR state
   const [prNumber, setPrNumber] = useState(`PR/PPIC/2026/09/00${Math.floor(Math.random() * 90 + 10)}`);
   const [prItemCode, setPrItemCode] = useState('RM-BOPP-JMB');

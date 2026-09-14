@@ -103,42 +103,29 @@ export const MasterDataModule: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               Master Data Management & Zebra LOT Label Generator
             </h1>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-300 dark:border-sky-800">
-              Core 2 MDM
-            </span>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
+              Katalog SKU bahan baku & produk jadi, rak penyimpanan gudang, dan cetak label thermal printer Zebra
+            </p>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Katalog SKU bahan baku & produk jadi, rak penyimpanan gudang, dan cetak label thermal printer Zebra
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              setMasterFormsTab('customer');
-              setMasterFormsOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs shadow-xs transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Pelanggan / Vendor</span>
-          </button>
-          <button
-            onClick={() => {
-              setMasterFormsTab('item');
-              setMasterFormsOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Form Master Data</span>
-          </button>
+          
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                setMasterFormsTab('item');
+                setMasterFormsOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Formulir Master Data</span>
+            </button>
+          </div>
         </div>
       </div>
 

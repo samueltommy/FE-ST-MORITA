@@ -8,6 +8,7 @@ import {
   UserPlus,
   LogOut,
   PlusCircle,
+  Menu,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { ROLE_DEFINITIONS, getTierBadge, canManageUsers } from '../../utils/rbac';
@@ -23,21 +24,27 @@ export const Navbar: React.FC = () => {
   const isUserAdmin = canManageUsers(currentUser);
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b bg-white/95 backdrop-blur-md border-slate-200 shadow-xs">
-      <div className="flex items-center justify-between px-4 lg:px-8 h-16 max-w-7xl mx-auto w-full">
-        {/* Left Section: Clean Company Brand */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-sm bg-blue-700 shadow-blue-700/20">
-              <Building2 className="w-5 h-5" />
+    <header className="sticky top-0 z-30 w-full border-b bg-white/95 backdrop-blur-md border-slate-200 shadow-xs shrink-0">
+      <div className="flex items-center justify-between px-4 sm:px-6 h-16 w-full">
+        {/* Left Section: Mobile Menu Toggle + Clean Company Brand */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => appStore.toggleMobileSidebar()}
+            className="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+            title="Buka Menu Navigasi"
+            aria-label="Buka Menu Navigasi"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-sm bg-blue-700 shadow-blue-700/20 shrink-0">
+            <Building2 className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight tracking-tight">
+              ST. Morita Industries
             </div>
-            <div>
-              <div className="text-sm font-extrabold text-slate-900 leading-tight tracking-tight">
-                ST. Morita Industries
-              </div>
-              <div className="text-[11px] font-medium text-slate-500">
-                Enterprise ERP Portal
-              </div>
+            <div className="text-[10px] sm:text-[11px] font-medium text-slate-500 hidden sm:block">
+              Enterprise ERP Portal
             </div>
           </div>
         </div>

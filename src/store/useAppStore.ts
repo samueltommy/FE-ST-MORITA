@@ -725,6 +725,8 @@ const INITIAL_SALES_TRACKING: SalesTrackingOrder[] = [
   {
     id: 'TRK-2026-001',
     ioNumber: 'IO/SMI/2026/09/0231',
+    soNumber: 'SO/SMI/2026/09/0115',
+    barcode: 'BC-LOT-ADM-20260908-01',
     customerName: 'PT Astra Daihatsu Motor (Plant Sunter)',
     poCustomerRef: 'PO-ADM-2026-8910',
     orderDate: '2026-09-08',
@@ -736,10 +738,46 @@ const INITIAL_SALES_TRACKING: SalesTrackingOrder[] = [
       { stage: 'Armada Berangkat Menuju Site', timestamp: '2026-09-09 13:30', location: 'Gate 2 Central Warehouse', operator: 'Eko Prasetyo', completed: true },
       { stage: 'Konfirmasi Serah Terima (POD)', timestamp: 'Dalam Perjalanan (Est: 16:30)', location: 'Tol Jakarta-Cikampek KM 19', operator: 'Pak Sutrisno (Driver)', completed: false },
     ],
+    steps: [
+      { stage: 'Order Masuk & Verifikasi IO', timestamp: '2026-09-08 08:30', location: 'Sales & Marketing Office', operator: 'Dimas Aditya', completed: true },
+      { stage: 'Slitting & Konversi Selesai', timestamp: '2026-09-08 15:45', location: 'Lini Slitting 2 Pabrik Utama', operator: 'Wahyu Hidayat', completed: true },
+      { stage: 'Inspeksi Kualitas (COA Issued)', timestamp: '2026-09-09 09:00', location: 'QC Testing Bay', operator: 'Rian Pratama', completed: true },
+      { stage: 'Armada Berangkat Menuju Site', timestamp: '2026-09-09 13:30', location: 'Gate 2 Central Warehouse', operator: 'Eko Prasetyo', completed: true },
+      { stage: 'Konfirmasi Serah Terima (POD)', timestamp: 'Dalam Perjalanan (Est: 16:30)', location: 'Tol Jakarta-Cikampek KM 19', operator: 'Pak Sutrisno (Driver)', completed: false },
+    ],
     truckNumber: 'B 9128 UXT',
     driverName: 'Pak Sutrisno',
     driverPhone: '+62 812-3456-7890',
     eta: 'Hari ini, 16:30 WIB',
+    businessUnit: 'INDUSTRIES',
+  },
+  {
+    id: 'TRK-2026-002',
+    ioNumber: 'IO/SMI/2026/09/0235',
+    soNumber: 'SO/SMI/2026/09/0122',
+    barcode: 'BC-LOT-THS-20260909-04',
+    customerName: 'PT Toyota Housing Indonesia',
+    poCustomerRef: 'PO-THS-2026-4421',
+    orderDate: '2026-09-09',
+    currentStage: 'QC_OUT',
+    timeline: [
+      { stage: 'Order Masuk & Verifikasi IO', timestamp: '2026-09-09 10:00', location: 'Sales & Marketing Office', operator: 'Siti Rahma', completed: true },
+      { stage: 'Slitting & Konversi Selesai', timestamp: '2026-09-09 16:20', location: 'Lini Slitting 1 Pabrik Utama', operator: 'Wahyu Hidayat', completed: true },
+      { stage: 'Inspeksi Kualitas (COA Issued)', timestamp: '2026-09-10 08:30', location: 'QC Testing Bay', operator: 'Rian Pratama', completed: true },
+      { stage: 'Armada Berangkat Menuju Site', timestamp: 'Menunggu Pengemudi (Est: 14:00)', location: 'Gate 2 Central Warehouse', operator: 'Eko Prasetyo', completed: false },
+      { stage: 'Konfirmasi Serah Terima (POD)', timestamp: 'Terjadwal 17:00 WIB', location: 'Site MM2100 Cikarang', operator: 'Logistik SMI', completed: false },
+    ],
+    steps: [
+      { stage: 'Order Masuk & Verifikasi IO', timestamp: '2026-09-09 10:00', location: 'Sales & Marketing Office', operator: 'Siti Rahma', completed: true },
+      { stage: 'Slitting & Konversi Selesai', timestamp: '2026-09-09 16:20', location: 'Lini Slitting 1 Pabrik Utama', operator: 'Wahyu Hidayat', completed: true },
+      { stage: 'Inspeksi Kualitas (COA Issued)', timestamp: '2026-09-10 08:30', location: 'QC Testing Bay', operator: 'Rian Pratama', completed: true },
+      { stage: 'Armada Berangkat Menuju Site', timestamp: 'Menunggu Pengemudi (Est: 14:00)', location: 'Gate 2 Central Warehouse', operator: 'Eko Prasetyo', completed: false },
+      { stage: 'Konfirmasi Serah Terima (POD)', timestamp: 'Terjadwal 17:00 WIB', location: 'Site MM2100 Cikarang', operator: 'Logistik SMI', completed: false },
+    ],
+    truckNumber: 'B 9481 UIY',
+    driverName: 'Pak Agus Salim',
+    driverPhone: '+62 813-8877-2211',
+    eta: 'Hari ini, 17:00 WIB',
     businessUnit: 'INDUSTRIES',
   },
 ];
@@ -839,6 +877,8 @@ export interface AppState {
   isCommandPaletteOpen: boolean;
   isKeyboardShortcutsOpen: boolean;
   isAuditLogsOpen: boolean;
+  isSidebarCollapsed: boolean;
+  isMobileSidebarOpen: boolean;
   
   // Datasets
   users: UserProfile[];
@@ -876,6 +916,8 @@ let globalState: AppState = {
   isCommandPaletteOpen: false,
   isKeyboardShortcutsOpen: false,
   isAuditLogsOpen: false,
+  isSidebarCollapsed: typeof window !== 'undefined' ? localStorage.getItem('stmorita_sidebar_collapsed') === 'true' : false,
+  isMobileSidebarOpen: false,
   users: INITIAL_REGISTERED_USERS,
   items: INITIAL_ITEMS,
   qcRecords: INITIAL_QC_RECORDS,
@@ -1156,6 +1198,33 @@ export const appStore = {
 
   setAuditLogsOpen: (open: boolean) => {
     updateGlobalState((prev) => ({ ...prev, isAuditLogsOpen: open }));
+  },
+
+  setSidebarCollapsed: (collapsed: boolean) => {
+    updateGlobalState((prev) => {
+      try {
+        localStorage.setItem('stmorita_sidebar_collapsed', String(collapsed));
+      } catch (e) {}
+      return { ...prev, isSidebarCollapsed: collapsed };
+    });
+  },
+
+  toggleSidebar: () => {
+    updateGlobalState((prev) => {
+      const next = !prev.isSidebarCollapsed;
+      try {
+        localStorage.setItem('stmorita_sidebar_collapsed', String(next));
+      } catch (e) {}
+      return { ...prev, isSidebarCollapsed: next };
+    });
+  },
+
+  setMobileSidebarOpen: (open: boolean) => {
+    updateGlobalState((prev) => ({ ...prev, isMobileSidebarOpen: open }));
+  },
+
+  toggleMobileSidebar: () => {
+    updateGlobalState((prev) => ({ ...prev, isMobileSidebarOpen: !prev.isMobileSidebarOpen }));
   },
 
   // QC Actions

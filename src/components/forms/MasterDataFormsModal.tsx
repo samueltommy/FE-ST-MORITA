@@ -15,6 +15,13 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
   const currentUser = useAppStore((state) => state.currentUser);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      setSuccessMessage(null);
+    }
+  }, [isOpen, defaultTab]);
+
   // Form 1: Customer state
   const [custCode, setCustCode] = useState(`CUST-${Math.floor(Math.random() * 900 + 100)}`);
   const [custName, setCustName] = useState('');

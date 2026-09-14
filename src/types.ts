@@ -243,11 +243,20 @@ export interface Quotation {
 export interface SalesTrackingOrder {
   id: string;
   ioNumber: string;
+  soNumber?: string;
+  barcode?: string;
   customerName: string;
   poCustomerRef: string;
   orderDate: string;
   currentStage: 'PRODUCTION' | 'STAGING' | 'QC_OUT' | 'IN_TRANSIT' | 'DELIVERED';
   timeline: {
+    stage: string;
+    timestamp: string;
+    location: string;
+    operator: string;
+    completed: boolean;
+  }[];
+  steps?: {
     stage: string;
     timestamp: string;
     location: string;
