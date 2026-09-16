@@ -139,7 +139,7 @@ export const Sidebar: React.FC = () => {
                 id="sidebar-collapse-btn"
                 onClick={() => appStore.toggleSidebar()}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                title="Kecilkan Menu / Lebarkan Tampilan (Alt+S)"
+                title="Kecilkan Menu / Lebarkan Tampilan"
                 aria-label="Kecilkan Menu"
               >
                 <PanelLeftClose className="w-4 h-4" />
@@ -151,7 +151,7 @@ export const Sidebar: React.FC = () => {
                 id="sidebar-expand-btn"
                 onClick={() => appStore.toggleSidebar()}
                 className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
-                title="Lebarkan Menu Navigasi (Alt+S)"
+                title="Lebarkan Menu Navigasi"
                 aria-label="Lebarkan Menu"
               >
                 <PanelLeftOpen className="w-4 h-4" />
@@ -201,11 +201,11 @@ export const Sidebar: React.FC = () => {
                       </div>
                       {!isSidebarCollapsed && (
                         <div className="min-w-0">
-                          <div className="text-xs truncate flex items-center gap-1.5 leading-tight">
-                            <span>{m.label}</span>
+                          <div className="text-xs flex items-center gap-1.5 leading-tight min-w-0">
+                            <span className="truncate">{m.label}</span>
                             {m.badge && (
                               <span
-                                className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase tracking-wider shrink-0 ${m.badgeColor}`}
+                                className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${m.badgeColor}`}
                               >
                                 {m.badge}
                               </span>
@@ -241,7 +241,7 @@ export const Sidebar: React.FC = () => {
             <button
               id="sidebar-nav-users-btn"
               onClick={() => handleSelectModule('users')}
-              title="Akun Pegawai & RBAC (Alt+7)"
+              title="Akun Pegawai & RBAC"
               className={`w-full text-left rounded-xl flex items-center transition-all cursor-pointer ${
                 isSidebarCollapsed
                   ? 'p-2 justify-center'
@@ -264,10 +264,10 @@ export const Sidebar: React.FC = () => {
                 </div>
                 {!isSidebarCollapsed && (
                   <div className="min-w-0">
-                    <div className="text-xs truncate flex items-center gap-1.5 leading-tight">
+                    <div className="text-xs flex items-center gap-1.5 leading-tight min-w-0">
                       <span>Akun Pegawai & RBAC</span>
                       {isUserAdmin && (
-                        <span className="text-[9px] px-1 py-0.2 rounded-full font-bold uppercase bg-purple-500 text-white">
+                        <span className="text-[9px] px-1 py-0.5 rounded-full font-bold uppercase bg-purple-500 text-white">
                           Admin
                         </span>
                       )}
@@ -282,11 +282,7 @@ export const Sidebar: React.FC = () => {
                   </div>
                 )}
               </div>
-              {!isSidebarCollapsed && (
-                <span className="text-[9px] font-mono px-1 py-0.5 rounded opacity-70 bg-slate-100 text-slate-400 shrink-0">
-                  Alt+7
-                </span>
-              )}
+              
             </button>
           </div>
 
@@ -301,7 +297,7 @@ export const Sidebar: React.FC = () => {
               <button
                 id="sidebar-pwa-scanner-btn"
                 onClick={() => appStore.setBarcodeModalOpen(true)}
-                title="Scanner Barcode PWA (Alt+B)"
+                title="Scanner Barcode PWA"
                 className={`w-full text-left rounded-xl flex items-center text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${
                   isSidebarCollapsed ? 'p-2 justify-center' : 'px-2.5 py-1.5 justify-between'
                 }`}
@@ -317,11 +313,7 @@ export const Sidebar: React.FC = () => {
                     </div>
                   )}
                 </div>
-                {!isSidebarCollapsed && (
-                  <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-slate-100 text-slate-400 shrink-0">
-                    Alt+B
-                  </span>
-                )}
+                
               </button>
 
               <button
@@ -343,11 +335,7 @@ export const Sidebar: React.FC = () => {
                     </div>
                   )}
                 </div>
-                {!isSidebarCollapsed && (
-                  <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold shrink-0">
-                    SEC
-                  </span>
-                )}
+                
               </button>
             </div>
           </div>
@@ -382,7 +370,7 @@ export const Sidebar: React.FC = () => {
                 <button
                   onClick={() => appStore.setKeyboardShortcutsOpen(true)}
                   className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
-                  title="Keyboard Shortcuts (?)"
+                  title="Keyboard Shortcuts"
                 >
                   <Keyboard className="w-4 h-4" />
                 </button>
@@ -475,7 +463,7 @@ export const Sidebar: React.FC = () => {
                         </div>
                       </div>
                       {m.badge && (
-                        <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase ${m.badgeColor}`}>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${m.badgeColor}`}>
                           {m.badge}
                         </span>
                       )}
