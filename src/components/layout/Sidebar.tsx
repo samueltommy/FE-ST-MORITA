@@ -16,6 +16,7 @@ import {
   PanelLeftOpen,
   X,
   Building2,
+  Keyboard,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { canManageUsers, getTierBadge } from '../../utils/rbac';
@@ -130,8 +131,8 @@ export const Sidebar: React.FC = () => {
         {/* Top Header & Collapse/Expand Toggle */}
         <div className="shrink-0 px-3 py-2.5 border-b border-slate-100 flex items-center justify-between">
           {!isSidebarCollapsed ? (
-            <div className="flex items-center justify-between w-full">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+            <>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-2">
                 Menu Navigasi
               </span>
               <button
@@ -143,7 +144,7 @@ export const Sidebar: React.FC = () => {
               >
                 <PanelLeftClose className="w-4 h-4" />
               </button>
-            </div>
+            </>
           ) : (
             <div className="w-full flex justify-center">
               <button
@@ -220,20 +221,8 @@ export const Sidebar: React.FC = () => {
                         </div>
                       )}
                     </div>
-
-                    {!isSidebarCollapsed ? (
-                      <span
-                        className={`text-[9px] font-mono px-1 py-0.5 rounded shrink-0 opacity-70 ${
-                          isActive ? 'bg-black/20 text-white' : 'bg-slate-100 text-slate-400'
-                        }`}
-                      >
-                        {m.shortcut}
-                      </span>
-                    ) : (
-                      /* Collapsed dot badge for alerts */
-                      m.badge && (
-                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
-                      )
+                    {isSidebarCollapsed && m.badge && (
+                      <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
                     )}
                   </button>
                 );
@@ -368,30 +357,36 @@ export const Sidebar: React.FC = () => {
         <div className="shrink-0 p-2.5 border-t border-slate-200 bg-slate-50/70 space-y-1.5">
           {!isSidebarCollapsed ? (
             <>
-              <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-xs shadow-2xs">
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border ${tierMeta.badgeClass}`}
-                  >
-                    {tierMeta.pillText} &bull; L{currentUser.tier}
-                  </span>
+              <div
+                title={`${currentUser.name} (${currentUser.role} - L${currentUser.tier})`}
+                className="w-full text-left rounded-xl flex items-center gap-2.5 p-2"
+              >
+                <div className="relative">
+                  <img src={currentUser.avatar} alt="User Avatar" className="w-8 h-8 rounded-lg object-cover ring-2 ring-white shadow-sm" />
+                  <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white bg-emerald-500" />
                 </div>
-                <div className="mt-1 font-bold text-slate-900 truncate text-xs">
-                  {currentUser.name}
-                </div>
-                <div className="text-[10px] text-slate-500 font-mono truncate">
-                  {currentUser.nik} &bull; {currentUser.role}
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-slate-900 truncate">{currentUser.name}</div>
+                  <div className="text-[10px] text-slate-500 font-medium truncate">{currentUser.department}</div>
                 </div>
               </div>
-
-              <button
-                id="sidebar-logout-btn"
-                onClick={() => appStore.logout()}
-                className="w-full py-1.5 px-2.5 rounded-lg border border-slate-200 hover:border-rose-300 text-slate-600 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Keluar Portal</span>
-              </button>
+              
+              <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200/60">
+                <button
+                  onClick={() => appStore.logout()}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Sign Out
+                </button>
+                <button
+                  onClick={() => appStore.setKeyboardShortcutsOpen(true)}
+                  className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
+                  title="Keyboard Shortcuts (?)"
+                >
+                  <Keyboard className="w-4 h-4" />
+                </button>
+              </div>
             </>
           ) : (
             <div className="flex flex-col items-center gap-1.5">
