@@ -1,7 +1,7 @@
 import React from 'react';
 import { PermissionClaim } from '../../types';
-import { useAppStore } from '../../store/useAppStore';
-import { checkPermission, checkAnyPermission, checkAllPermissions } from '../../utils/rbac';
+import { useRBAC } from '../../hooks/useRBAC';
+import { checkAnyPermission, checkAllPermissions } from '../../utils/rbac';
 
 interface CanProps {
   perform: PermissionClaim | PermissionClaim[];
@@ -16,15 +16,22 @@ export const Can: React.FC<CanProps> = ({
   fallback = null,
   children,
 }) => {
-  const currentUser = useAppStore((state) => state.currentUser);
-  const permissions = currentUser?.permissions || [];
+  const { user, hasPermission, isExecutive, isSuperAdmin } = useRBAC();
+  const permissions = user?.permissions || [];
 
-  const isAllowed = Array.isArray(perform)
-    ? mode === 'all'
+  let isAllowed = false;
+
+  if (isExecutive || isSuperAdmin) {
+    isAllowed = true;
+  } else if (Array.isArray(perform)) {
+    isAllowed = mode === 'all'
       ? checkAllPermissions(permissions, perform)
-      : checkAnyPermission(permissions, perform)
-    : checkPermission(permissions, perform);
+      : checkAnyPermission(permissions, perform);
+  } else {
+    isAllowed = hasPermission(perform as PermissionClaim);
+  }
 
   if (!isAllowed) return <>{fallback}</>;
+
   return <>{children}</>;
 };

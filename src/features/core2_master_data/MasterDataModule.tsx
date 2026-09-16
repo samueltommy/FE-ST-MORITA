@@ -16,14 +16,13 @@ import {
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { ItemCategory, MasterItem } from '../../types';
-import { formatIDR } from '../../utils/invoiceCalculator';
+import { FinancialMask } from '../../components/ui/FinancialMask';
 import { checkPermission } from '../../utils/rbac';
 import { Can } from '../../components/rbac/Can';
 import { MasterDataFormsModal } from '../../components/forms/MasterDataFormsModal';
 
 export const MasterDataModule: React.FC = () => {
   const items = useAppStore((state) => state.items);
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const currentUser = useAppStore((state) => state.currentUser);
   const isHighDensity = useAppStore((state) => state.isHighDensity);
 
@@ -56,7 +55,7 @@ export const MasterDataModule: React.FC = () => {
   ];
 
   const filteredItems = items.filter((item) => {
-    const matchesUnit = item.businessUnit === currentUnit;
+    
     const matchesCat = selectedCategory === 'ALL' || item.category === selectedCategory;
     const matchesQuery =
       searchQuery === '' ||
@@ -64,7 +63,7 @@ export const MasterDataModule: React.FC = () => {
       item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.lotNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.barcode.includes(searchQuery);
-    return matchesUnit && matchesCat && matchesQuery;
+    return matchesCat && matchesQuery;
   });
 
   const handleCreateItem = (e: React.FormEvent) => {
@@ -72,7 +71,7 @@ export const MasterDataModule: React.FC = () => {
     if (!newCode.trim() || !newName.trim()) return;
 
     const margin = newPrice > 0 ? Number((((newPrice - newCost) / newPrice) * 100).toFixed(1)) : 25;
-    const lotNo = `LOT-${currentUnit.slice(0, 3)}-${new Date().getFullYear()}${String(
+    const lotNo = `LOT-${"IND"}-${new Date().getFullYear()}${String(
       new Date().getMonth() + 1
     ).padStart(2, '0')}-${Math.floor(Math.random() * 90 + 10)}`;
 
@@ -82,7 +81,6 @@ export const MasterDataModule: React.FC = () => {
       name: newName.trim(),
       unit: newUnit,
       category: newCategory,
-      businessUnit: currentUnit,
       stockQty: newStock,
       minStock: 25,
       unitCost: newCost,
@@ -231,8 +229,8 @@ export const MasterDataModule: React.FC = () => {
                   {/* RBAC Protected HPP & Margin Columns */}
                   {canViewCost && (
                     <>
-                      <td className="py-2.5 px-3 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                        {formatIDR(item.unitCost)}
+                      <td className="py-2.5 px-3 text-right text-emerald-600 dark:text-emerald-400">
+                        <FinancialMask value={item.unitCost} className="font-semibold" />
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         {item.grossMarginPercent}%
@@ -240,8 +238,8 @@ export const MasterDataModule: React.FC = () => {
                     </>
                   )}
 
-                  <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
-                    {formatIDR(item.sellingPrice)}
+                  <td className="py-2.5 px-3 text-right text-slate-900 dark:text-white">
+                    <FinancialMask value={item.sellingPrice} className="font-bold" />
                   </td>
 
                   <td className="py-2.5 px-3 text-center">

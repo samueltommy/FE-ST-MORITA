@@ -28,7 +28,6 @@ export const INITIAL_CUSTOMERS: CustomerMaster[] = [
     contactPerson: 'Bapak Gunawan (Procurement Section Head)',
     phone: '+62 21 6510300',
     email: 'gunawan.proc@daihatsu.astra.co.id',
-    businessUnit: 'INDUSTRIES',
     createdAt: '2025-01-10',
   },
   {
@@ -46,7 +45,6 @@ export const INITIAL_CUSTOMERS: CustomerMaster[] = [
     contactPerson: 'Ibu Ratna (Supply Chain)',
     phone: '+62 21 4600122',
     email: 'ratna.sc@yamaha-motor.co.id',
-    businessUnit: 'INDUSTRIES',
     createdAt: '2025-02-14',
   },
   {
@@ -64,7 +62,6 @@ export const INITIAL_CUSTOMERS: CustomerMaster[] = [
     contactPerson: 'Mr. Lee / Pak Hendri',
     phone: '+62 21 8983000',
     email: 'hendri.vendor@samsung.com',
-    businessUnit: 'INDUSTRIES',
     createdAt: '2026-03-01',
   },
 ];
@@ -82,7 +79,6 @@ export const INITIAL_SUPPLIERS: SupplierMaster[] = [
     paymentTerm: 'LC 60 Days / TT DP 30%',
     bankName: 'Sumitomo Mitsui Banking Corporation (SMBC)',
     bankAccountNumber: '8910-2391-0021-JPY',
-    businessUnit: 'INDUSTRIES',
     status: 'ACTIVE',
   },
   {
@@ -97,7 +93,6 @@ export const INITIAL_SUPPLIERS: SupplierMaster[] = [
     paymentTerm: 'Net 30 Hari',
     bankName: 'Bank Central Asia (BCA) KCU Cilegon',
     bankAccountNumber: '295-0019283',
-    businessUnit: 'INDUSTRIES',
     status: 'ACTIVE',
   },
   {
@@ -112,7 +107,6 @@ export const INITIAL_SUPPLIERS: SupplierMaster[] = [
     paymentTerm: 'CAD / Net 45 Days',
     bankName: 'MUFG Bank Tokyo',
     bankAccountNumber: '0129-8831-4410',
-    businessUnit: 'INDUSTRIES',
     status: 'ACTIVE',
   },
 ];
@@ -131,7 +125,6 @@ export const INITIAL_PRS: PurchaseRequest[] = [
     priority: 'HIGH',
     status: 'APPROVED',
     purpose: 'Buffer pengaman pemenuhan SPK pesanan pita perekat Daihatsu & Astra',
-    businessUnit: 'INDUSTRIES',
     createdAt: '2026-09-08',
   },
   {
@@ -147,7 +140,6 @@ export const INITIAL_PRS: PurchaseRequest[] = [
     priority: 'URGENT',
     status: 'REQUESTED',
     purpose: 'Kebutuhan mesin Coating Lini 1 untuk run produksi minggu ke-3 September',
-    businessUnit: 'INDUSTRIES',
     createdAt: '2026-09-10',
   },
   {
@@ -163,7 +155,6 @@ export const INITIAL_PRS: PurchaseRequest[] = [
     priority: 'NORMAL',
     status: 'DRAFT',
     purpose: 'Kemasan packing produk ekspor dan pengiriman lokal',
-    businessUnit: 'INDUSTRIES',
     createdAt: '2026-09-11',
   },
 ];
@@ -186,7 +177,6 @@ export const INITIAL_GOODS_RECEIPTS: GoodsReceiptLog[] = [
     unit: 'Jumbo Roll',
     isIqcTriggered: true,
     iqcStatus: 'PASS',
-    businessUnit: 'INDUSTRIES',
   },
   {
     id: 'LOG-2026-002',
@@ -205,7 +195,6 @@ export const INITIAL_GOODS_RECEIPTS: GoodsReceiptLog[] = [
     unit: 'Drum 200L',
     isIqcTriggered: true,
     iqcStatus: 'PENDING',
-    businessUnit: 'INDUSTRIES',
   },
 ];
 
@@ -229,7 +218,6 @@ export const INITIAL_SPKS: WorkOrderSpk[] = [
     startDate: '2026-09-10 08:00',
     dueDate: '2026-09-12 17:00',
     rawMaterialLotChecked: true,
-    businessUnit: 'INDUSTRIES',
   },
   {
     id: 'SPK-2026-002',
@@ -250,7 +238,6 @@ export const INITIAL_SPKS: WorkOrderSpk[] = [
     startDate: '2026-09-08 08:00',
     dueDate: '2026-09-09 16:00',
     rawMaterialLotChecked: true,
-    businessUnit: 'INDUSTRIES',
   },
 ];
 
@@ -315,7 +302,6 @@ export const INITIAL_WASTES: WasteRecord[] = [
     preventiveAction: 'Pemeriksaan kelurusan poros chucking mesin slitting sebelum start',
     reportedBy: 'Wahyu Hidayat',
     dateReported: '2026-09-09',
-    businessUnit: 'INDUSTRIES',
   },
   {
     id: 'WST-2026-002',
@@ -332,7 +318,6 @@ export const INITIAL_WASTES: WasteRecord[] = [
     preventiveAction: 'Jadwal penajaman mata pisau berkala setiap 50,000 meter lari',
     reportedBy: 'Rian Pratama (QC Inspector)',
     dateReported: '2026-09-10',
-    businessUnit: 'INDUSTRIES',
   },
 ];
 
@@ -353,7 +338,6 @@ export const INITIAL_COMPLAINTS: EComplaintTicket[] = [
     debitNoteNumber: 'DN/FIN/2026/09/0002',
     status: 'INVESTIGATING',
     createdAt: '2026-09-10',
-    businessUnit: 'INDUSTRIES',
   },
   {
     id: 'CMP-2026-002',
@@ -368,7 +352,6 @@ export const INITIAL_COMPLAINTS: EComplaintTicket[] = [
     qcReinspectionStatus: 'INSPECTED_REJECTED',
     status: 'RESOLVED',
     createdAt: '2026-09-11',
-    businessUnit: 'INDUSTRIES',
   },
 ];
 
@@ -384,7 +367,6 @@ export const INITIAL_VENDOR_INVOICES: VendorInvoiceAp[] = [
     taxAmount: 0, // EXIM KB Fasilitas
     status: 'PARTIALLY_PAID', // DP 30% paid
     paymentTerm: 'CAD / LC 45 Hari',
-    businessUnit: 'INDUSTRIES',
   },
   {
     id: 'AP-2026-002',
@@ -397,7 +379,6 @@ export const INITIAL_VENDOR_INVOICES: VendorInvoiceAp[] = [
     taxAmount: 17875000, // PPN 11%
     status: 'UNPAID',
     paymentTerm: 'Net 30 Hari',
-    businessUnit: 'INDUSTRIES',
   },
 ];
 
@@ -413,6 +394,5 @@ export const INITIAL_AR_PAYMENTS: ArPaymentRecord[] = [
     bankRef: 'TRF-BCA-ADM-890213',
     reconciled: true,
     notes: 'Pembayaran termin 1 atas pengiriman DO Multi-Item Tahap 1',
-    businessUnit: 'INDUSTRIES',
   },
 ];

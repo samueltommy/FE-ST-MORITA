@@ -22,7 +22,6 @@ import { canManageUsers, getTierBadge } from '../../utils/rbac';
 
 export const Sidebar: React.FC = () => {
   const activeModule = useAppStore((state) => state.activeModule);
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const currentUser = useAppStore((state) => state.currentUser);
   const qcRecords = useAppStore((state) => state.qcRecords);
   const quotations = useAppStore((state) => state.quotations);
@@ -31,12 +30,12 @@ export const Sidebar: React.FC = () => {
 
   // Count active QC Hold batches
   const activeQcHoldCount = qcRecords.filter(
-    (r) => r.status === 'HOLD' && r.businessUnit === currentUnit
+    (r) => r.status === 'HOLD'
   ).length;
 
   // Count quotations pending cost control
   const pendingCostControlCount = quotations.filter(
-    (q) => q.status === 'PENDING_COST_CONTROL' && q.businessUnit === currentUnit
+    (q) => q.status === 'PENDING_COST_CONTROL'
   ).length;
 
   const isUserAdmin = canManageUsers(currentUser);

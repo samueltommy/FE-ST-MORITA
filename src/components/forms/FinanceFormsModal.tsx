@@ -11,7 +11,6 @@ interface Props {
 
 export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'complaint' }) => {
   const [activeTab, setActiveTab] = useState<'complaint' | 'ap' | 'ar' | 'rma'>(defaultTab);
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const currentUser = useAppStore((state) => state.currentUser);
   const customers = useAppStore((state) => state.customers);
   const suppliers = useAppStore((state) => state.suppliers);
@@ -75,7 +74,6 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
       description: complaintDescription.trim(),
       targetDepartment: complaintDept,
       qcReinspectionStatus: 'PENDING_INSPECTION',
-      businessUnit: currentUnit,
     };
 
     appStore.addEComplaint(newCmp);
@@ -116,7 +114,6 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
       taxAmount: ppn,
       status: 'UNPAID',
       paymentTerm: 'Net 30 Days',
-      businessUnit: currentUnit,
     };
 
     appStore.addVendorInvoice(newAp);
@@ -142,7 +139,6 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
       bankRef: arRefCode.trim(),
       reconciled: true,
       notes: 'Pembayaran pelunasan piutang telah diverifikasi masuk ke rekening koran perusahaan.',
-      businessUnit: currentUnit,
     };
 
     appStore.addArPayment(newAr);
@@ -370,7 +366,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-bold"
                 >
                   {complaints
-                    .filter((c) => c.status !== 'RESOLVED' && c.businessUnit === currentUnit)
+                    .filter((c) => c.status !== 'RESOLVED')
                     .map((cmp) => (
                       <option key={cmp.id} value={cmp.id}>
                         {cmp.ticketNumber} - {cmp.customerName} ({cmp.complaintType})

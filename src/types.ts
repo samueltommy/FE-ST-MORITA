@@ -2,7 +2,6 @@
 // ST. MORITA INDUSTRIES - ENTERPRISE ERP TYPES
 // ==========================================
 
-export type BusinessUnit = 'INDUSTRIES' | 'FARMA';
 
 export type RoleTier = 0 | 1 | 2 | 3;
 
@@ -112,7 +111,6 @@ export interface UserProfile {
   status: 'ACTIVE' | 'SUSPENDED';
   joinedDate?: string;
   phoneNumber?: string;
-  businessUnit?: BusinessUnit;
 }
 
 export type ItemCategory =
@@ -129,7 +127,6 @@ export interface MasterItem {
   name: string;
   unit: string;
   category: ItemCategory;
-  businessUnit: BusinessUnit;
   stockQty: number;
   minStock: number;
   unitCost: number; // HPP (Restricted to Level 0, Level 1, Finance, Cost Control)
@@ -150,7 +147,6 @@ export interface QcInspectionRecord {
   itemName: string;
   batchSize: number;
   unit: string;
-  businessUnit: BusinessUnit;
   status: QcStatus;
   inspectionDate: string;
   inspectorName: string;
@@ -176,7 +172,6 @@ export interface ProcurementOrder {
   prNumber: string;
   poNumber: string;
   vendorName: string;
-  businessUnit: BusinessUnit;
   itemsCount: number;
   totalAmount: number;
   stage: ProcurementStage;
@@ -206,7 +201,6 @@ export interface EximDocument {
   fileName: string;
   fileSize: string;
   notes: string;
-  businessUnit: BusinessUnit;
 }
 
 export type QuotationStatus =
@@ -237,7 +231,6 @@ export interface Quotation {
   salesRep?: string;
   approvedBy?: string;
   costControlNotes?: string;
-  businessUnit: BusinessUnit;
 }
 
 export interface SalesTrackingOrder {
@@ -267,7 +260,6 @@ export interface SalesTrackingOrder {
   driverName: string;
   driverPhone: string;
   eta: string;
-  businessUnit: BusinessUnit;
 }
 
 export interface DeliveryOrder {
@@ -290,7 +282,6 @@ export interface DeliveryOrder {
   totalGrossValue: number;
   totalBeforeTax?: number;
   selectedForInvoice: boolean;
-  businessUnit: BusinessUnit;
   itemName?: string;
   qtyDelivered?: number;
   unit?: string;
@@ -417,7 +408,6 @@ export interface CustomerMaster {
   contactPerson: string;
   phone: string;
   email: string;
-  businessUnit: BusinessUnit;
   createdAt: string;
 }
 
@@ -433,7 +423,6 @@ export interface SupplierMaster {
   paymentTerm: string;
   bankName: string;
   bankAccountNumber: string;
-  businessUnit: BusinessUnit;
   status: 'ACTIVE' | 'INACTIVE';
 }
 
@@ -450,7 +439,6 @@ export interface PurchaseRequest {
   priority: 'NORMAL' | 'URGENT' | 'HIGH';
   status: 'DRAFT' | 'REQUESTED' | 'APPROVED' | 'PO_CREATED';
   purpose: string;
-  businessUnit: BusinessUnit;
   createdAt: string;
 }
 
@@ -471,7 +459,6 @@ export interface GoodsReceiptLog {
   unit: string;
   isIqcTriggered: boolean;
   iqcStatus: 'PENDING' | 'PASS' | 'HOLD';
-  businessUnit: BusinessUnit;
 }
 
 export interface WorkOrderSpk {
@@ -493,7 +480,6 @@ export interface WorkOrderSpk {
   startDate: string;
   dueDate: string;
   rawMaterialLotChecked: boolean;
-  businessUnit: BusinessUnit;
 }
 
 export interface LeaveRequest {
@@ -527,7 +513,6 @@ export interface WasteRecord {
   preventiveAction: string;
   reportedBy: string;
   dateReported: string;
-  businessUnit: BusinessUnit;
 }
 
 export interface EComplaintTicket {
@@ -558,7 +543,6 @@ export interface EComplaintTicket {
   debitNoteNumber?: string;
   status: 'OPEN' | 'INVESTIGATING' | 'RESOLVED';
   createdAt: string;
-  businessUnit: BusinessUnit;
 }
 
 export interface VendorInvoiceAp {
@@ -572,7 +556,6 @@ export interface VendorInvoiceAp {
   taxAmount: number;
   status: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
   paymentTerm: string;
-  businessUnit: BusinessUnit;
 }
 
 export interface ArPaymentRecord {
@@ -586,5 +569,4 @@ export interface ArPaymentRecord {
   bankRef: string;
   reconciled: boolean;
   notes: string;
-  businessUnit: BusinessUnit;
 }

@@ -21,7 +21,6 @@ import { ProductionQcFormsModal } from '../../components/forms/ProductionQcForms
 
 export const ProductionQcModule: React.FC = () => {
   const qcRecords = useAppStore((state) => state.qcRecords);
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const currentUser = useAppStore((state) => state.currentUser);
 
   const [selectedRecord, setSelectedRecord] = useState<QcInspectionRecord | null>(null);
@@ -35,7 +34,7 @@ export const ProductionQcModule: React.FC = () => {
   // Filter records by unit
   const filteredRecords = qcRecords.filter(
     (r) =>
-      r.businessUnit === currentUnit &&
+      
       (r.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.lotNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.itemCode.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -100,7 +99,7 @@ export const ProductionQcModule: React.FC = () => {
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black text-emerald-900 dark:text-emerald-200 mt-1">
-            {qcRecords.filter((r) => r.status === 'PASS' && r.businessUnit === currentUnit).length} Batch
+            {qcRecords.filter((r) => r.status === 'PASS').length} Batch
           </div>
           <div className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
             Bebas ditransfer ke Gudang & dialokasikan ke SPK
@@ -116,7 +115,7 @@ export const ProductionQcModule: React.FC = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping" />
           </div>
           <div className="text-2xl font-black text-rose-900 dark:text-rose-200 mt-1">
-            {qcRecords.filter((r) => r.status === 'HOLD' && r.businessUnit === currentUnit).length} Batch
+            {qcRecords.filter((r) => r.status === 'HOLD').length} Batch
           </div>
           <div className="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5 font-semibold">
             Transfer gudang & SPK diblokir sistem secara mutlak
@@ -131,7 +130,7 @@ export const ProductionQcModule: React.FC = () => {
             <AlertTriangle className="w-4 h-4 text-amber-600" />
           </div>
           <div className="text-2xl font-black text-amber-900 dark:text-amber-200 mt-1">
-            {qcRecords.filter((r) => r.status === 'REWORK' && r.businessUnit === currentUnit).length} Batch
+            {qcRecords.filter((r) => r.status === 'REWORK').length} Batch
           </div>
           <div className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
             Tahap treatment ulang sebelum uji ulang lab

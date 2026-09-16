@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   UserCheck,
   UserX,
+  X,
   LogIn,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';

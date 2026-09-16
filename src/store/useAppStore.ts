@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   AuditLog,
-  BusinessUnit,
   DeliveryOrder,
   EximDocument,
   MasterItem,
@@ -330,7 +329,6 @@ const INITIAL_ITEMS: MasterItem[] = [
     name: 'Jumbo Roll BOPP Clear Adhesive Film 1280mm x 4000m',
     unit: 'Roll',
     category: 'Jumbo Roll Tape',
-    businessUnit: 'INDUSTRIES',
     stockQty: 84,
     minStock: 25,
     unitCost: 14200000,
@@ -347,7 +345,6 @@ const INITIAL_ITEMS: MasterItem[] = [
     name: 'Automotive Masking Tape High-Temp 150°C 24mm x 50m',
     unit: 'Carton',
     category: 'Slit Tape',
-    businessUnit: 'INDUSTRIES',
     stockQty: 420,
     minStock: 100,
     unitCost: 480000,
@@ -364,7 +361,6 @@ const INITIAL_ITEMS: MasterItem[] = [
     name: 'Water-Based Pressure Sensitive Acrylic Polymer Emulsion',
     unit: 'Drum (200kg)',
     category: 'Raw Material',
-    businessUnit: 'INDUSTRIES',
     stockQty: 18,
     minStock: 30,
     unitCost: 5600000,
@@ -381,7 +377,6 @@ const INITIAL_ITEMS: MasterItem[] = [
     name: 'Heavy Duty Industrial Cloth Duct Tape Silver 50mm x 25m',
     unit: 'Carton',
     category: 'Slit Tape',
-    businessUnit: 'INDUSTRIES',
     stockQty: 310,
     minStock: 80,
     unitCost: 750000,
@@ -398,7 +393,6 @@ const INITIAL_ITEMS: MasterItem[] = [
     name: 'OPP Packaging Tape Clear 48mm x 90m (Box 72 Rolls)',
     unit: 'Carton',
     category: 'Slit Tape',
-    businessUnit: 'INDUSTRIES',
     stockQty: 540,
     minStock: 120,
     unitCost: 320000,
@@ -415,7 +409,6 @@ const INITIAL_ITEMS: MasterItem[] = [
     name: 'Double Sided Tissue Tape High Tack 12mm x 50m',
     unit: 'Carton',
     category: 'Slit Tape',
-    businessUnit: 'INDUSTRIES',
     stockQty: 260,
     minStock: 60,
     unitCost: 510000,
@@ -432,7 +425,6 @@ const INITIAL_ITEMS: MasterItem[] = [
     name: 'Black EVA Foam Mounting Tape 24mm x 10m High Bond',
     unit: 'Carton',
     category: 'Slit Tape',
-    businessUnit: 'INDUSTRIES',
     stockQty: 180,
     minStock: 50,
     unitCost: 620000,
@@ -454,7 +446,6 @@ const INITIAL_QC_RECORDS: QcInspectionRecord[] = [
     itemName: 'Jumbo Roll BOPP Clear Adhesive Film 1280mm x 4000m',
     batchSize: 12,
     unit: 'Rolls',
-    businessUnit: 'INDUSTRIES',
     status: 'PASS',
     inspectionDate: '2026-09-08 09:30',
     inspectorName: 'Rian Pratama',
@@ -473,7 +464,6 @@ const INITIAL_QC_RECORDS: QcInspectionRecord[] = [
     itemName: 'Water-Based Pressure Sensitive Acrylic Polymer Emulsion',
     batchSize: 18,
     unit: 'Drums',
-    businessUnit: 'INDUSTRIES',
     status: 'HOLD',
     inspectionDate: '2026-09-09 14:15',
     inspectorName: 'Rian Pratama',
@@ -493,7 +483,6 @@ const INITIAL_QC_RECORDS: QcInspectionRecord[] = [
     itemName: 'OPP Packaging Tape Clear 48mm x 90m',
     batchSize: 120,
     unit: 'Cartons',
-    businessUnit: 'INDUSTRIES',
     status: 'PASS',
     inspectionDate: '2026-09-09 10:00',
     inspectorName: 'Dr. Hendra Wijaya',
@@ -512,7 +501,6 @@ const INITIAL_QC_RECORDS: QcInspectionRecord[] = [
     itemName: 'Double Sided Tissue Tape High Tack 12mm x 50m',
     batchSize: 60,
     unit: 'Cartons',
-    businessUnit: 'INDUSTRIES',
     status: 'REWORK',
     inspectionDate: '2026-09-10 11:20',
     inspectorName: 'Rian Pratama',
@@ -534,7 +522,6 @@ const INITIAL_PROCUREMENTS: ProcurementOrder[] = [
     prNumber: 'PR/PPIC/2026/09/0081',
     poNumber: 'PO/PUR/2026/09/0142',
     vendorName: 'Nippon Polymer & Chemical Corp Tokyo',
-    businessUnit: 'INDUSTRIES',
     itemsCount: 3,
     totalAmount: 485000000,
     stage: 'IQC',
@@ -547,7 +534,6 @@ const INITIAL_PROCUREMENTS: ProcurementOrder[] = [
     prNumber: 'PR/PPIC/2026/09/0085',
     poNumber: 'PO/PUR/2026/09/0149',
     vendorName: 'PT Asahimas Chemical Cilegon',
-    businessUnit: 'INDUSTRIES',
     itemsCount: 5,
     totalAmount: 162500000,
     stage: 'PO',
@@ -560,7 +546,6 @@ const INITIAL_PROCUREMENTS: ProcurementOrder[] = [
     prNumber: 'PR/PPIC/2026/09/0089',
     poNumber: 'PO/PUR/2026/09/0155',
     vendorName: 'Toray Advanced Materials & Film Tokyo',
-    businessUnit: 'INDUSTRIES',
     itemsCount: 4,
     totalAmount: 318000000,
     stage: 'PR',
@@ -581,7 +566,6 @@ const INITIAL_EXIM_DOCS: EximDocument[] = [
     fileName: 'BC_2_3_Nippon_Polymer_TanjungPriok.pdf',
     fileSize: '3.4 MB',
     notes: 'Impor Bahan Baku Polimer Akrilat Kawasan Berikat ST. Morita Industries.',
-    businessUnit: 'INDUSTRIES',
   },
   {
     id: 'EXIM-BC27-002',
@@ -592,7 +576,6 @@ const INITIAL_EXIM_DOCS: EximDocument[] = [
     fileName: 'BC_2_7_Subcontract_Slitting_Transfer.pdf',
     fileSize: '2.1 MB',
     notes: 'Transfer Subkontrak Slitting Jumbo Roll antar Kawasan Berikat.',
-    businessUnit: 'INDUSTRIES',
   },
   {
     id: 'EXIM-BC40-003',
@@ -603,7 +586,6 @@ const INITIAL_EXIM_DOCS: EximDocument[] = [
     fileName: 'BC_4_0_Local_Corrugated_Box.pdf',
     fileSize: '1.8 MB',
     notes: 'Pemasukan barang kemasan karton lokal dari TLDDP ke Fasilitas Kawasan Berikat.',
-    businessUnit: 'INDUSTRIES',
   },
 ];
 
@@ -636,7 +618,6 @@ const INITIAL_DOS: DeliveryOrder[] = [
     ],
     totalGrossValue: 118800000,
     selectedForInvoice: true,
-    businessUnit: 'INDUSTRIES',
   },
   {
     id: 'DO-2026-0902',
@@ -657,7 +638,6 @@ const INITIAL_DOS: DeliveryOrder[] = [
     ],
     totalGrossValue: 52000000,
     selectedForInvoice: true,
-    businessUnit: 'INDUSTRIES',
   },
   {
     id: 'DO-2026-0903',
@@ -678,7 +658,6 @@ const INITIAL_DOS: DeliveryOrder[] = [
     ],
     totalGrossValue: 151200000,
     selectedForInvoice: false,
-    businessUnit: 'INDUSTRIES',
   },
 ];
 
@@ -699,7 +678,6 @@ const INITIAL_QUOTATIONS: Quotation[] = [
     createdDate: '2026-09-08',
     salesRepresentative: 'Dimas Aditya',
     costControlNotes: 'Margin 24.2% memenuhi ketentuan batas minimal HPP (standar internal >18%). Disetujui.',
-    businessUnit: 'INDUSTRIES',
   },
   {
     id: 'QTE-2026-002',
@@ -716,7 +694,6 @@ const INITIAL_QUOTATIONS: Quotation[] = [
     createdDate: '2026-09-09',
     salesRepresentative: 'Dimas Aditya',
     costControlNotes: 'PERHATIAN: Gross margin 13.9% berada di bawah ambang batas minimal 18.0%. Memerlukan otorisasi Cost Control / Direksi.',
-    businessUnit: 'INDUSTRIES',
   },
 ];
 
@@ -749,7 +726,6 @@ const INITIAL_SALES_TRACKING: SalesTrackingOrder[] = [
     driverName: 'Pak Sutrisno',
     driverPhone: '+62 812-3456-7890',
     eta: 'Hari ini, 16:30 WIB',
-    businessUnit: 'INDUSTRIES',
   },
   {
     id: 'TRK-2026-002',
@@ -778,7 +754,6 @@ const INITIAL_SALES_TRACKING: SalesTrackingOrder[] = [
     driverName: 'Pak Agus Salim',
     driverPhone: '+62 813-8877-2211',
     eta: 'Hari ini, 17:00 WIB',
-    businessUnit: 'INDUSTRIES',
   },
 ];
 
@@ -868,7 +843,6 @@ const INITIAL_AUDIT_LOGS: AuditLog[] = [
 
 export interface AppState {
   isAuthenticated: boolean;
-  currentBusinessUnit: BusinessUnit;
   themeMode: 'light' | 'dark';
   isHighDensity: boolean;
   activeModule: 'hrd' | 'master_data' | 'procurement' | 'qc' | 'sales' | 'finance' | 'users' | 'audit' | 'scanner';
@@ -907,7 +881,6 @@ export interface AppState {
 // Global mutable store singleton
 let globalState: AppState = {
   isAuthenticated: true, // Default authenticated to Director so user sees app immediately, but can test login/logout anytime
-  currentBusinessUnit: 'INDUSTRIES',
   themeMode: 'light',
   isHighDensity: false,
   activeModule: 'finance', // Start on financial dashboard
@@ -1005,24 +978,6 @@ export const appStore = {
         ...prev,
         isAuthenticated: false,
         auditLogs: [log, ...prev.auditLogs],
-      };
-    });
-  },
-
-  setBusinessUnit: (unit: BusinessUnit) => {
-    updateGlobalState((prev) => {
-      const newLog = createAuditLog(
-        prev.currentUser.name,
-        prev.currentUser.role,
-        'UPDATE',
-        'SYSTEM',
-        unit,
-        `Peralihan entitas bisnis portal grup ke: ST. Morita Industries`
-      );
-      return {
-        ...prev,
-        currentBusinessUnit: unit,
-        auditLogs: [newLog, ...prev.auditLogs],
       };
     });
   },
@@ -1578,7 +1533,6 @@ export const appStore = {
             { name: 'Ketebalan Tape (Micron)', standard: '50 ± 2 µm', actual: 'Belum Diuji', result: 'OK' },
             { name: 'Adhesion Force (N/25mm)', standard: '≥ 14.0 N', actual: 'Belum Diuji', result: 'OK' },
           ],
-          businessUnit: log.businessUnit,
         };
         newQcRecords = [newQc, ...newQcRecords];
       }

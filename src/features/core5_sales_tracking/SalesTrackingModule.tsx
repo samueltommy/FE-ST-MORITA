@@ -16,12 +16,11 @@ import {
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { Quotation, SalesTrackingOrder } from '../../types';
-import { formatIDR } from '../../utils/invoiceCalculator';
+import { FinancialMask } from '../../components/ui/FinancialMask';
 import { Can } from '../../components/rbac/Can';
 import { SalesFormsModal } from '../../components/forms/SalesFormsModal';
 
 export const SalesTrackingModule: React.FC = () => {
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const quotations = useAppStore((state) => state.quotations);
   const trackingOrders = useAppStore((state) => state.salesTrackingOrders);
   const currentUser = useAppStore((state) => state.currentUser);
@@ -31,7 +30,7 @@ export const SalesTrackingModule: React.FC = () => {
   const [salesFormsOpen, setSalesFormsOpen] = useState(false);
   const [salesFormsTab, setSalesFormsTab] = useState<'quotation' | 'do' | 'tracking'>('quotation');
 
-  const filteredQuotes = quotations.filter((q) => q.businessUnit === currentUnit);
+  const filteredQuotes = quotations;
 
   // Synchronize or find selected tracking order safely
   const activeTracking =
@@ -152,8 +151,8 @@ export const SalesTrackingModule: React.FC = () => {
                       </div>
 
                       <div className="text-right">
-                        <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">
-                          {formatIDR(q.totalValue || (q.targetPrice * q.quantity) || 0)}
+                        <div className="text-sm text-slate-900 dark:text-white">
+                          <FinancialMask value={q.totalValue || (q.targetPrice * q.quantity) || 0} className="font-bold" />
                         </div>
                         <div className="flex items-center justify-end gap-1 mt-0.5">
                           <span className="text-slate-400 text-[11px]">Gross Margin:</span>

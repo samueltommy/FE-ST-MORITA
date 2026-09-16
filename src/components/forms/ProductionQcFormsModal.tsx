@@ -11,7 +11,6 @@ interface Props {
 
 export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'spk' }) => {
   const [activeTab, setActiveTab] = useState<'spk' | 'qc_test' | 'hold_override' | 'coa'>(defaultTab);
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const currentUser = useAppStore((state) => state.currentUser);
   const items = useAppStore((state) => state.items);
   const qcRecords = useAppStore((state) => state.qcRecords);
@@ -60,7 +59,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
     e.preventDefault();
 
     // Verification: check if any related raw material is currently on HOLD
-    const onHoldItems = qcRecords.filter((r) => r.status === 'HOLD' && r.businessUnit === currentUnit);
+    const onHoldItems = qcRecords.filter((r) => r.status === 'HOLD');
     const isMaterialBlocked = onHoldItems.some((h) => h.itemName.toLowerCase().includes('akrilik') || h.itemName.toLowerCase().includes('bopp'));
 
     const newSpk: WorkOrderSpk = {
@@ -82,7 +81,6 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
       startDate: `${new Date().toISOString().slice(0, 10)} 08:00`,
       dueDate: `${spkDueDate} 17:00`,
       rawMaterialLotChecked: !isMaterialBlocked,
-      businessUnit: currentUnit,
     };
 
     appStore.addWorkOrder(newSpk);
@@ -111,7 +109,6 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
       itemName: testItemName.trim(),
       batchSize: Number(testBatchSize) || 100,
       unit: testUnit,
-      businessUnit: currentUnit,
       status: testStatus,
       inspectionDate: new Date().toISOString().slice(0, 10),
       inspectorName: currentUser.name,
@@ -123,7 +120,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
         { name: 'Adhesion Force (N/25mm)', standard: '≥ 14.0 N', actual: testAdhesionActual, result: 'OK' },
         { name: 'Pelepasan Liner Release', standard: '20 - 30 g/25mm', actual: testLinerActual, result: 'OK' },
       ],
-      coaNumber: testStatus === 'PASS' ? `COA/SM-${currentUnit.slice(0, 3)}/${new Date().getFullYear()}/${Math.floor(Math.random() * 9000 + 1000)}` : undefined,
+      coaNumber: testStatus === 'PASS' ? `COA/SM-${"IND"}/${new Date().getFullYear()}/${Math.floor(Math.random() * 9000 + 1000)}` : undefined,
     };
 
     appStore.addQcInspection(newQc);
@@ -573,7 +570,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white font-mono font-bold"
                 >
                   {qcRecords
-                    .filter((r) => r.status === 'HOLD' && r.businessUnit === currentUnit)
+                    .filter((r) => r.status === 'HOLD')
                     .map((rec) => (
                       <option key={rec.id} value={rec.id}>
                         {rec.lotNumber} - {rec.itemName} ({rec.defectReason || 'Penyimpangan teknis'})

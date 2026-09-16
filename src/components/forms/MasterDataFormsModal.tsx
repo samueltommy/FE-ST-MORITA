@@ -11,7 +11,6 @@ interface Props {
 
 export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'customer' }) => {
   const [activeTab, setActiveTab] = useState<'customer' | 'supplier' | 'item' | 'waste'>(defaultTab);
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const currentUser = useAppStore((state) => state.currentUser);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -95,7 +94,6 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
       contactPerson: custContactPerson.trim(),
       phone: custPhone.trim(),
       email: custEmail.trim(),
-      businessUnit: currentUnit,
       createdAt: new Date().toISOString().slice(0, 10),
     };
 
@@ -123,7 +121,6 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
       paymentTerm: suppTerm,
       bankName: suppBank.trim(),
       bankAccountNumber: suppAccount.trim(),
-      businessUnit: currentUnit,
       status: 'ACTIVE',
     };
 
@@ -140,7 +137,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
     if (!itemCode.trim() || !itemName.trim()) return;
 
     const margin = itemPrice > 0 ? Number((((itemPrice - itemCost) / itemPrice) * 100).toFixed(1)) : 20;
-    const lotNo = `LOT-${currentUnit.slice(0, 3)}-${new Date().getFullYear()}${String(
+    const lotNo = `LOT-${"IND"}-${new Date().getFullYear()}${String(
       new Date().getMonth() + 1
     ).padStart(2, '0')}-${Math.floor(Math.random() * 90 + 10)}`;
 
@@ -150,7 +147,6 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
       name: itemName.trim(),
       unit: itemUnit,
       category: itemCategory,
-      businessUnit: currentUnit,
       stockQty: Number(itemStock) || 0,
       minStock: Number(itemMinStock) || 10,
       unitCost: Number(itemCost) || 0,
@@ -189,7 +185,6 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
       preventiveAction: wastePreventive.trim(),
       reportedBy: currentUser.name,
       dateReported: new Date().toISOString().slice(0, 10),
-      businessUnit: currentUnit,
     };
 
     appStore.addWasteRecord(newWaste);

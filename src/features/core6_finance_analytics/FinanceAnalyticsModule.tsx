@@ -20,6 +20,7 @@ import {
   HelpCircle,
   Plus,
 } from 'lucide-react';
+import { FinancialMask } from "../../components/ui/FinancialMask";
 import { useAppStore, appStore } from '../../store/useAppStore';
 import {
   INVOICE_FORMULAS,
@@ -36,7 +37,6 @@ import { FinanceFormsModal } from '../../components/forms/FinanceFormsModal';
 export const FinanceAnalyticsModule: React.FC = () => {
   const deliveryOrders = useAppStore((state) => state.deliveryOrders);
   const currentUser = useAppStore((state) => state.currentUser);
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const isHighDensity = useAppStore((state) => state.isHighDensity);
 
   const [selectedFormulaId, setSelectedFormulaId] = useState<InvoiceFormulaId>(
@@ -130,7 +130,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
             </div>
           </div>
           <div className="text-xl font-black text-slate-900 mt-2">
-            {formatIDR(calculationResult.subtotalGoods)}
+            {<FinancialMask value={calculationResult.subtotalGoods} />}
           </div>
           <div className="text-xs text-slate-500 mt-1">
             {selectedDos.length} Surat Jalan (DO) terpilih
@@ -145,10 +145,10 @@ export const FinanceAnalyticsModule: React.FC = () => {
             </div>
           </div>
           <div className="text-xl font-black text-slate-900 mt-2">
-            {formatIDR(calculationResult.taxableBaseDpp)}
+            {<FinancialMask value={calculationResult.taxableBaseDpp} />}
           </div>
           <div className="text-xs text-emerald-600 mt-1 font-semibold">
-            PPN 11%: {formatIDR(calculationResult.ppnAmount)}
+            PPN 11%: {<FinancialMask value={calculationResult.ppnAmount} />}
           </div>
         </div>
 
@@ -160,7 +160,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
             </div>
           </div>
           <div className="text-xl font-black text-indigo-600 mt-2">
-            {formatIDR(calculationResult.finalPayableAmount)}
+            {<FinancialMask value={calculationResult.finalPayableAmount} />}
           </div>
           <div className="text-xs text-slate-500 mt-1 truncate">
             {calculationResult.formulaName}
@@ -294,10 +294,10 @@ export const FinanceAnalyticsModule: React.FC = () => {
                         {d.unit || (d.items && d.items[0]?.unit) || 'Carton'}
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-slate-600">
-                        {formatIDR(d.unitPrice || (d.items && d.items[0]?.unitPrice) || 0)}
+                        <FinancialMask value={d.unitPrice || (d.items && d.items[0]?.unitPrice) || 0} />
                       </td>
                       <td className="py-3 px-3 text-right font-bold font-mono text-slate-900">
-                        {formatIDR(d.totalBeforeTax || d.totalGrossValue || 0)}
+                        {<FinancialMask value={d.totalBeforeTax || d.totalGrossValue || 0} />}
                       </td>
                       <td className="py-3 px-3 text-center text-[11px] text-slate-500 font-mono">
                         {d.truckPlate || d.truckArmada}
@@ -317,7 +317,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 </span>
               </div>
               <span className="font-mono font-bold text-slate-900 text-sm">
-                Subtotal: {formatIDR(calculationResult.subtotalGoods)}
+                Subtotal: {<FinancialMask value={calculationResult.subtotalGoods} />}
               </span>
             </div>
           </div>
@@ -382,7 +382,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-slate-600">Biaya Ongkos Angkut Truk (Freight):</span>
-                    <span className="font-mono font-bold">{formatIDR(customParams.freightCost || 0)}</span>
+                    <span className="font-mono font-bold">{<FinancialMask value={customParams.freightCost || 0} />}</span>
                   </div>
                   <input
                     type="range"
@@ -402,7 +402,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-slate-600">Nilai Uang Muka (Down Payment):</span>
-                    <span className="font-mono font-bold">{formatIDR(customParams.downPaymentAmount || 0)}</span>
+                    <span className="font-mono font-bold">{<FinancialMask value={customParams.downPaymentAmount || 0} />}</span>
                   </div>
                   <input
                     type="range"
@@ -462,7 +462,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-slate-600">Potongan Nota Retur Cacat:</span>
-                    <span className="font-mono font-bold">{formatIDR(customParams.returnNoteAmount || 0)}</span>
+                    <span className="font-mono font-bold">{<FinancialMask value={customParams.returnNoteAmount || 0} />}</span>
                   </div>
                   <input
                     type="range"
@@ -496,7 +496,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               <div className="py-2 flex justify-between">
                 <span className="text-slate-600">Subtotal Nilai Barang:</span>
                 <span className="font-mono font-bold text-slate-900">
-                  {formatIDR(calculationResult.subtotalGoods)}
+                  {<FinancialMask value={calculationResult.subtotalGoods} />}
                 </span>
               </div>
 
@@ -504,7 +504,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 <div className="py-2 flex justify-between text-emerald-600">
                   <span>Potongan Diskon / Rebat:</span>
                   <span className="font-mono font-bold">
-                    - {formatIDR(calculationResult.discountOrRebate)}
+                    - {<FinancialMask value={calculationResult.discountOrRebate} />}
                   </span>
                 </div>
               )}
@@ -513,7 +513,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 <div className="py-2 flex justify-between text-blue-600">
                   <span>Ongkos Angkut Ekspedisi:</span>
                   <span className="font-mono font-bold">
-                    + {formatIDR(calculationResult.freightAmount)}
+                    + {<FinancialMask value={calculationResult.freightAmount} />}
                   </span>
                 </div>
               )}
@@ -522,7 +522,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 <div className="py-2 flex justify-between text-amber-600">
                   <span>Potongan Uang Muka (DP):</span>
                   <span className="font-mono font-bold">
-                    - {formatIDR(calculationResult.downPaymentDeduction)}
+                    - {<FinancialMask value={calculationResult.downPaymentDeduction} />}
                   </span>
                 </div>
               )}
@@ -531,20 +531,20 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 <div className="py-2 flex justify-between text-rose-600">
                   <span>Kredit Nota Retur Cacat:</span>
                   <span className="font-mono font-bold">
-                    - {formatIDR(calculationResult.returnCreditOffset)}
+                    - {<FinancialMask value={calculationResult.returnCreditOffset} />}
                   </span>
                 </div>
               )}
 
               <div className="py-2.5 flex justify-between bg-slate-50 px-2.5 rounded-lg font-semibold text-slate-800">
                 <span>Dasar Pengenaan Pajak (DPP):</span>
-                <span className="font-mono">{formatIDR(calculationResult.taxableBaseDpp)}</span>
+                <span className="font-mono">{<FinancialMask value={calculationResult.taxableBaseDpp} />}</span>
               </div>
 
               <div className="py-2 flex justify-between text-slate-700">
                 <span>PPN 11% (Faktur Pajak):</span>
                 <span className="font-mono font-bold text-blue-600">
-                  + {formatIDR(calculationResult.ppnAmount)}
+                  + {<FinancialMask value={calculationResult.ppnAmount} />}
                 </span>
               </div>
 
@@ -552,7 +552,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 <div className="py-2 flex justify-between text-amber-600">
                   <span>Potongan PPh 23 (2% Jasa Slit):</span>
                   <span className="font-mono font-bold">
-                    - {formatIDR(calculationResult.pph23Amount)}
+                    - {<FinancialMask value={calculationResult.pph23Amount} />}
                   </span>
                 </div>
               )}
@@ -561,7 +561,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 <div className="py-2 flex justify-between text-amber-600">
                   <span>Retensi Mutu Ditahan (5%):</span>
                   <span className="font-mono font-bold">
-                    - {formatIDR(calculationResult.retentionWithheld)}
+                    - {<FinancialMask value={calculationResult.retentionWithheld} />}
                   </span>
                 </div>
               )}
@@ -570,7 +570,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               <div className="py-3.5 flex justify-between items-center text-sm font-black pt-3 border-t-2 border-slate-200">
                 <span className="text-slate-900">TOTAL FAKTUR BERSIH:</span>
                 <span className="text-lg font-mono text-emerald-600">
-                  {formatIDR(calculationResult.finalPayableAmount)}
+                  {<FinancialMask value={calculationResult.finalPayableAmount} />}
                 </span>
               </div>
             </div>
@@ -642,8 +642,8 @@ export const FinanceAnalyticsModule: React.FC = () => {
                       <td className="p-2.5 font-mono text-slate-800">{d.doNumber}</td>
                       <td className="p-2.5 text-slate-800">{d.itemName}</td>
                       <td className="p-2.5 text-right font-mono">{d.qtyDelivered} {d.unit}</td>
-                      <td className="p-2.5 text-right font-mono text-slate-600">{formatIDR(d.unitPrice)}</td>
-                      <td className="p-2.5 text-right font-mono font-bold text-slate-900">{formatIDR(d.totalBeforeTax)}</td>
+                      <td className="p-2.5 text-right font-mono text-slate-600">{<FinancialMask value={d.unitPrice} />}</td>
+                      <td className="p-2.5 text-right font-mono font-bold text-slate-900">{<FinancialMask value={d.totalBeforeTax} />}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -654,16 +654,16 @@ export const FinanceAnalyticsModule: React.FC = () => {
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
               <div className="flex justify-between text-slate-600">
                 <span>Dasar Pengenaan Pajak (DPP):</span>
-                <span className="font-mono font-bold text-slate-800">{formatIDR(calculationResult.taxableBaseDpp)}</span>
+                <span className="font-mono font-bold text-slate-800">{<FinancialMask value={calculationResult.taxableBaseDpp} />}</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>PPN 11%:</span>
-                <span className="font-mono font-bold text-blue-600">{formatIDR(calculationResult.ppnAmount)}</span>
+                <span className="font-mono font-bold text-blue-600">{<FinancialMask value={calculationResult.ppnAmount} />}</span>
               </div>
               <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-200">
                 <span>TOTAL HARUS DIBAYAR:</span>
                 <span className="font-mono text-emerald-600">
-                  {formatIDR(calculationResult.finalPayableAmount)}
+                  {<FinancialMask value={calculationResult.finalPayableAmount} />}
                 </span>
               </div>
             </div>

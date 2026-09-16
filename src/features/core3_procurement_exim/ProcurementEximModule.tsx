@@ -15,12 +15,11 @@ import {
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { EximDocument, ProcurementOrder, ProcurementStage } from '../../types';
-import { formatIDR } from '../../utils/invoiceCalculator';
+import { FinancialMask } from '../../components/ui/FinancialMask';
 import { Can } from '../../components/rbac/Can';
 import { ProcurementFormsModal } from '../../components/forms/ProcurementFormsModal';
 
 export const ProcurementEximModule: React.FC = () => {
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const procurementOrders = useAppStore((state) => state.procurementOrders);
   const eximDocs = useAppStore((state) => state.eximDocs);
   const currentUser = useAppStore((state) => state.currentUser);
@@ -33,8 +32,8 @@ export const ProcurementEximModule: React.FC = () => {
   const [newRefNo, setNewRefNo] = useState('');
   const [newNotes, setNewNotes] = useState('');
 
-  const filteredOrders = procurementOrders.filter((o) => o.businessUnit === currentUnit);
-  const filteredEximDocs = eximDocs.filter((d) => d.businessUnit === currentUnit);
+  const filteredOrders = procurementOrders;
+  const filteredEximDocs = eximDocs;
 
   const stages: { key: ProcurementStage; label: string; dept: string }[] = [
     { key: 'PR', label: '1. Purchase Request', dept: 'PPIC Planner' },
@@ -59,7 +58,6 @@ export const ProcurementEximModule: React.FC = () => {
       fileName: `${newDocType.replace(' ', '_')}_${newRefNo.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
       fileSize: '2.4 MB',
       notes: newNotes.trim() || 'Dokumen kepabeanan resmi Kawasan Berikat ST. Morita Industries.',
-      businessUnit: currentUnit,
     };
 
     appStore.addEximDoc(newDoc);
@@ -187,8 +185,8 @@ export const ProcurementEximModule: React.FC = () => {
 
                           <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800/80">
                             <span className="shrink-0">{ord.itemsCount} SKU</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs truncate ml-1 text-right">
-                              {formatIDR(ord.totalAmount)}
+                            <span className="text-slate-800 dark:text-slate-200 text-xs truncate ml-1 text-right">
+                              <FinancialMask value={ord.totalAmount} className="font-bold" />
                             </span>
                           </div>
 

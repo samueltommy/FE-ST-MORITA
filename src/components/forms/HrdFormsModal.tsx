@@ -13,7 +13,6 @@ interface Props {
 export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'leave' }) => {
   const [activeTab, setActiveTab] = useState<'leave' | 'vehicle' | 'visit' | 'employee'>(defaultTab);
   const currentUser = useAppStore((state) => state.currentUser);
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Form 1: Leave Request state
@@ -140,7 +139,6 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
       department: empDept,
       avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
       permissions: roleDef.permissions,
-      businessUnit: currentUnit,
       plantLocation: empPlant,
       status: 'ACTIVE',
       phoneNumber: empPhone,

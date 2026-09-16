@@ -11,7 +11,6 @@ interface Props {
 
 export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'quotation' }) => {
   const [activeTab, setActiveTab] = useState<'quotation' | 'do' | 'tracking'>(defaultTab);
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const currentUser = useAppStore((state) => state.currentUser);
   const customers = useAppStore((state) => state.customers);
   const items = useAppStore((state) => state.items);
@@ -74,7 +73,6 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
       grossMarginPercent: marginPercent,
       status: isMarginLow ? 'PENDING_COST_CONTROL' : 'APPROVED',
       createdDate: new Date().toISOString().slice(0, 10),
-      businessUnit: currentUnit,
     };
 
     appStore.addQuotation(newQuotation);
@@ -123,7 +121,6 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
           unitPrice: 150000,
         },
       ],
-      businessUnit: currentUnit,
     };
 
     appStore.addDeliveryOrder(newDo);
@@ -446,7 +443,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-mono font-bold"
                   >
                     {qcRecords
-                      .filter((r) => r.status === 'PASS' && r.businessUnit === currentUnit)
+                      .filter((r) => r.status === 'PASS')
                       .map((lot) => (
                         <option key={lot.id} value={lot.lotNumber}>
                           {lot.lotNumber} - {lot.itemName} (COA: {lot.coaNumber || 'Terlampir'})

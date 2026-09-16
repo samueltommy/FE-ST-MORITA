@@ -20,7 +20,6 @@ import { useAppStore, appStore } from '../../store/useAppStore';
 
 export const CommandPalette: React.FC = () => {
   const isOpen = useAppStore((state) => state.isCommandPaletteOpen);
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const themeMode = useAppStore((state) => state.themeMode);
   const items = useAppStore((state) => state.items);
   const [query, setQuery] = useState('');

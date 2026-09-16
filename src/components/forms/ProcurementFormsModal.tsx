@@ -11,7 +11,6 @@ interface Props {
 
 export const ProcurementFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'pr' }) => {
   const [activeTab, setActiveTab] = useState<'pr' | 'po' | 'log' | 'exim'>(defaultTab);
-  const currentUnit = useAppStore((state) => state.currentBusinessUnit);
   const currentUser = useAppStore((state) => state.currentUser);
   const suppliers = useAppStore((state) => state.suppliers);
   const purchaseRequests = useAppStore((state) => state.purchaseRequests);
@@ -81,7 +80,6 @@ export const ProcurementFormsModal: React.FC<Props> = ({ isOpen, onClose, defaul
       priority: prPriority,
       status: 'REQUESTED',
       purpose: prPurpose.trim(),
-      businessUnit: currentUnit,
       createdAt: new Date().toISOString().slice(0, 10),
     };
 
@@ -114,7 +112,6 @@ export const ProcurementFormsModal: React.FC<Props> = ({ isOpen, onClose, defaul
       stageProgress: 40,
       lastUpdate: new Date().toISOString().slice(0, 10),
       estimatedArrival: poEta,
-      businessUnit: currentUnit,
     };
 
     appStore.addProcurementOrder(newPo);
@@ -146,7 +143,6 @@ export const ProcurementFormsModal: React.FC<Props> = ({ isOpen, onClose, defaul
       unit: logUnit.trim(),
       isIqcTriggered: triggerIqc,
       iqcStatus: triggerIqc ? 'PENDING' : 'PASS',
-      businessUnit: currentUnit,
     };
 
     appStore.addGoodsReceiptLog(newLog);
@@ -170,7 +166,6 @@ export const ProcurementFormsModal: React.FC<Props> = ({ isOpen, onClose, defaul
       fileName: `${eximDocType.replace(' ', '_')}_${eximRefNo.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
       fileSize: '2.8 MB',
       notes: eximNotes.trim(),
-      businessUnit: currentUnit,
     };
 
     appStore.addEximDoc(newExim);
