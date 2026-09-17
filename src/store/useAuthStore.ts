@@ -49,74 +49,159 @@ export interface AuthState {
   initialize: () => Promise<void>;
 }
 
-// ─── Helper: Map backend user_level string to numeric tier ───
+// ─── Helper: Normalize userLevel string → canonical 'L0_SUPER_ADMIN' format ───
+function normalizeUserLevel(raw: string): string {
+  const s = raw.trim().toUpperCase().replace(/-/g, '_');
+
+  // Already canonical: L0_SUPER_ADMIN, L1_DIREKSI, L2_MANAGER, L3_STAFF, L4_EXTERNAL
+  if (/^L[0-4]_/.test(s)) return s;
+
+  // Map common Keycloak role names → canonical level
+  if (s === 'SUPER_ADMIN' || s === 'SUPERADMIN' || s === 'SYSTEM_ADMIN' || s === 'IT_ADMIN' || s === 'ADMIN') return 'L0_SUPER_ADMIN';
+  if (s === 'DIREKSI' || s === 'DIRECTOR' || s === 'EXECUTIVE' || s === 'CEO' || s === 'OWNER') return 'L1_DIREKSI';
+  if (s === 'MANAGER' || s === 'ADMIN_BIDANG' || s === 'L2') return 'L2_MANAGER';
+  if (s === 'STAFF' || s === 'OPERATOR' || s === 'USER' || s === 'L3') return 'L3_STAFF';
+
+  return raw; // Return raw if no match
+}
+
+// ─── Helper: Map user_level string to numeric tier ───────────
 function parseTier(userLevel: string | null | undefined): RoleTier {
   if (!userLevel) return 3;
-  const lvl = userLevel.toUpperCase();
-  if (lvl.includes('L0') || lvl === 'SUPER_ADMIN') return 0;
-  if (lvl.includes('L1') || lvl === 'DIREKSI') return 1;
-  if (lvl.includes('L2') || lvl === 'MANAGER') return 2;
-  if (lvl.includes('L3') || lvl === 'STAFF') return 3;
+  const normalized = normalizeUserLevel(userLevel);
+  const lvl = normalized.toUpperCase();
+  if (lvl.startsWith('L0') || lvl === 'SUPER_ADMIN' || lvl === 'SUPERADMIN' || lvl === 'IT_ADMIN') return 0;
+  if (lvl.startsWith('L1') || lvl === 'DIREKSI' || lvl === 'DIRECTOR' || lvl === 'EXECUTIVE') return 1;
+  if (lvl.startsWith('L2') || lvl === 'MANAGER') return 2;
+  if (lvl.startsWith('L3') || lvl === 'STAFF' || lvl === 'OPERATOR') return 3;
   return 3;
 }
 
 // ─── Helper: Map backend role_id/user_level to frontend UserRole ─
 function parseRole(roleId: string | null | undefined, userLevel: string | null | undefined): UserRole {
-  // Try exact match with roleId first
-  if (roleId && roleId in ROLE_DEFINITIONS) {
-    return roleId as UserRole;
-  }
-  // Fallback based on userLevel
-  const lvl = (userLevel || '').toUpperCase();
-  if (lvl.includes('L0') || lvl === 'SUPER_ADMIN') return 'SUPER_ADMIN';
-  if (lvl.includes('L1') || lvl === 'DIREKSI') return 'DIREKSI';
-  // For L2/L3, we need the roleId to be more specific, fallback to generic
+  // Try exact match with roleId first (case-insensitive)
   if (roleId) {
-    // Try cleaning the roleId (e.g. 'L2_MANAGER' -> see if a matching role exists)
-    const cleaned = roleId.replace(/^L\d_/, '').toUpperCase();
-    if (cleaned in ROLE_DEFINITIONS) return cleaned as UserRole;
+    const upperRoleId = roleId.toUpperCase().trim();
+    if (upperRoleId in ROLE_DEFINITIONS) return upperRoleId as UserRole;
+    // Strip L-prefix (e.g. 'L2_HRD_MANAGER' → 'HRD_MANAGER')
+    const stripped = upperRoleId.replace(/^L\d_/, '');
+    if (stripped in ROLE_DEFINITIONS) return stripped as UserRole;
   }
-  return 'HRD_STAFF'; // safe default
+
+  // Fallback based on normalized userLevel
+  const normalized = normalizeUserLevel(userLevel || '').toUpperCase();
+  if (normalized.startsWith('L0') || normalized === 'SUPER_ADMIN' || normalized === 'IT_ADMIN') return 'SUPER_ADMIN';
+  if (normalized.startsWith('L1') || normalized === 'DIREKSI') return 'DIREKSI';
+
+  return 'HRD_STAFF'; // safe fallback for L2/L3 without specific role
 }
 
 // ─── Helper: Map backend permissions to frontend PermissionClaim ─
 function parsePermissions(perms: string[] | null | undefined): PermissionClaim[] {
-  if (!perms || perms.length === 0) {
-    return [];
-  }
+  if (!perms || perms.length === 0) return [];
   return perms as PermissionClaim[];
 }
 
 // ─── Helper: Convert backend /auth/me response to AuthUser ───
-function mapMeToAuthUser(me: Record<string, unknown>): AuthUser {
-  const userLevel = (me.userLevel as string) || (me.user_level as string) || '';
-  const roleId = (me.roleId as string) || (me.role_id as string) || '';
+// NOTE: Backend returns snake_case keys: user_level, full_name, role_id
+function mapMeToAuthUser(me: Record<string, unknown>, tokenRoles: string[] = [], tokenDept: string = ''): AuthUser {
+  // Accept both snake_case (backend) and camelCase (legacy)
+  const rawUserLevel =
+    (me.user_level as string) ||
+    (me.userLevel as string) ||
+    (me.usergroup as string) ||
+    '';
+  const rawRoleId =
+    (me.role_id as string) ||
+    (me.roleId as string) ||
+    '';
+  const rawFullName =
+    (me.full_name as string) ||
+    (me.fullName as string) ||
+    (me.full_name as string) ||
+    (me.name as string) ||
+    (me.username as string) ||
+    '';
+
+  // --- Step 1: Try to resolve from backend fields ---
+  let userLevel = rawUserLevel ? normalizeUserLevel(rawUserLevel) : '';
+  let roleId = rawRoleId;
+
+  // --- Step 2: Supplement from Keycloak JWT realm_access.roles ---
+  if (tokenRoles.length > 0) {
+    for (const r of tokenRoles) {
+      const rUp = r.toUpperCase().replace(/-/g, '_');
+      // Prefer the most specific role (e.g. SUPER_ADMIN over L0_SUPER_ADMIN)
+      const normalized = normalizeUserLevel(rUp);
+
+      // Check if this token role identifies a level
+      if (!userLevel && /^L[0-4]_/.test(normalized)) {
+        userLevel = normalized;
+      }
+
+      // Check if this token role maps to a specific UserRole definition
+      const stripped = rUp.replace(/^L\d_/, '');
+      if (stripped in ROLE_DEFINITIONS && !roleId) {
+        roleId = stripped;
+        if (!userLevel) {
+          const tier = ROLE_DEFINITIONS[stripped as UserRole]?.tier ?? 3;
+          userLevel = `L${tier}_${stripped}`;
+        }
+      }
+
+      // Special: detect common IT/admin role names in token
+      if (!userLevel) {
+        if (rUp === 'SUPER_ADMIN' || rUp === 'IT_ADMIN' || rUp === 'ADMIN' || rUp === 'SUPERADMIN') {
+          userLevel = 'L0_SUPER_ADMIN';
+          if (!roleId) roleId = 'SUPER_ADMIN';
+        } else if (rUp === 'DIREKSI' || rUp === 'DIRECTOR' || rUp === 'EXECUTIVE') {
+          userLevel = 'L1_DIREKSI';
+          if (!roleId) roleId = 'DIREKSI';
+        }
+      }
+    }
+  }
+
+  // --- Step 3: Derive tier and role ---
   const tier = parseTier(userLevel);
   const role = parseRole(roleId, userLevel);
-  const perms = parsePermissions(me.permissions as string[]);
 
-  // For L0/L1, grant wildcard
-  const finalPerms: PermissionClaim[] = tier <= 1 ? ['*'] : perms;
+  // --- Step 4: Resolve permissions ---
+  const rawPerms = parsePermissions(me.permissions as string[]);
+
+  // L0 & L1: always wildcard regardless of what backend says
+  const finalPerms: PermissionClaim[] = tier <= 1
+    ? ['*']
+    : rawPerms.length > 0
+      ? rawPerms
+      : (ROLE_DEFINITIONS[role]?.permissions || []);  // fallback to role definition if backend sends empty
+
+  // --- Step 5: Resolve department ---
+  const rawDept = String(me.department || '').trim();
+  const finalDept =
+    rawDept && rawDept.toUpperCase() !== 'UMUM' && rawDept.toUpperCase() !== 'TIDAK ADA'
+      ? rawDept
+      : tokenDept || ROLE_DEFINITIONS[role]?.department || rawDept;
 
   return {
-    id: String(me.id || me.keycloakId || me.keycloak_id || ''),
+    id: String(me.id || me.keycloakId || me.keycloak_id || me.keycloak_user_id || ''),
     username: String(me.username || ''),
     email: String(me.email || ''),
-    fullName: String(me.fullName || me.full_name || me.username || ''),
-    department: String(me.department || ''),
+    fullName: rawFullName,
+    department: finalDept,
     userLevel,
     roleId,
     permissions: finalPerms,
     nik: String(me.nik || ''),
     phoneNumber: String(me.phoneNumber || me.phone_number || ''),
-    keycloakId: String(me.keycloakId || me.keycloak_id || me.keycloakUserId || ''),
+    keycloakId: String(me.keycloakId || me.keycloak_id || me.keycloakUserId || me.keycloak_user_id || ''),
 
     // Derived for RBAC hook compat
     role,
     tier,
-    name: String(me.fullName || me.full_name || me.username || ''),
-    avatar: '', // Backend doesn't serve avatars — leave blank
-    plantLocation: String(me.department || 'Main Plant'),
+    name: rawFullName,
+    avatar: '',
+    plantLocation: finalDept || 'Main Plant',
     status: 'ACTIVE',
     joinedDate: String(me.joinDate || me.join_date || ''),
   };
@@ -162,7 +247,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { success: false, requiresActivation: false, errorMessage: 'Gagal memuat profil pengguna.' };
     } catch (error: unknown) {
       set({ isLoading: false });
-      const err = error as { response?: { data?: { code?: string; detail?: string; message?: string }; status?: number } };
+      const err = error as { response?: { data?: { code?: string; detail?: string; message?: string }; status?: number }; message?: string };
       const errorData = err?.response?.data;
       const code = errorData?.code || '';
       
@@ -221,7 +306,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   fetchMe: async (): Promise<boolean> => {
     try {
       const me = await getMeApi();
-      const authUser = mapMeToAuthUser(me as unknown as Record<string, unknown>);
+      const token = get().token;
+      let tokenRoles: string[] = [];
+      let tokenDept = '';
+      if (token) {
+        try {
+          const payloadStr = atob(token.split('.')[1]);
+          const payload = JSON.parse(payloadStr);
+          tokenRoles = payload.realm_access?.roles || [];
+          const rawDept = payload.department || payload.division;
+          tokenDept = Array.isArray(rawDept) ? (rawDept[0] || '') : (rawDept || '');
+          
+          // Fallback username and name from token if /me is sparse
+          if (!me.username && payload.preferred_username) me.username = payload.preferred_username;
+          if (!me.fullName && payload.name) me.fullName = payload.name;
+          if (!me.email && payload.email) me.email = payload.email;
+        } catch (e) {
+          console.warn('Failed to decode token', e);
+        }
+      }
+      
+      const authUser = mapMeToAuthUser(me as unknown as Record<string, unknown>, tokenRoles, tokenDept);
       set({ user: authUser, isAuthenticated: true });
       return true;
     } catch {

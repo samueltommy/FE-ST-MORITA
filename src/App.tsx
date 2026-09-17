@@ -18,6 +18,8 @@ import { CommandPalette } from './components/shared/CommandPalette';
 import { BarcodeScannerModal } from './components/shared/BarcodeScannerModal';
 import { AuditLogsDrawer } from './components/shared/AuditLogsDrawer';
 import { KeyboardShortcutsModal } from './components/shared/KeyboardShortcutsModal';
+import { useRBAC } from './hooks/useRBAC';
+import { Lock } from 'lucide-react';
 
 type AuthPage = 'login' | 'activation' | 'forgot-password' | 'reset-password';
 
@@ -107,6 +109,19 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const { canAccessModule, isSuperAdmin, isExecutive } = useRBAC();
+
+  // Auto-redirect to first available module if current one is not allowed
+  useEffect(() => {
+    if (isAuthenticated && !canAccessModule(activeModule)) {
+      const allModules = ['finance', 'qc', 'procurement', 'sales', 'master_data', 'hrd', 'users'];
+      const firstAllowed = allModules.find(m => canAccessModule(m));
+      if (firstAllowed) {
+        appStore.setActiveModule(firstAllowed as any);
+      }
+    }
+  }, [activeModule, isAuthenticated, canAccessModule]);
+
   // ─── Loading: Auth Initialization ──────────────────────────
   if (!isInitialized) {
     return (
@@ -169,13 +184,25 @@ export default function App() {
           className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-4 sm:p-6 lg:p-8 select-text focus:outline-hidden"
         >
           <div className="w-full max-w-7xl mx-auto pb-12">
-            {activeModule === 'finance' && <FinanceAnalyticsModule />}
-            {activeModule === 'qc' && <ProductionQcModule />}
-            {activeModule === 'procurement' && <ProcurementEximModule />}
-            {activeModule === 'sales' && <SalesTrackingModule />}
-            {activeModule === 'master_data' && <MasterDataModule />}
-            {activeModule === 'hrd' && <HrdModule />}
-            {activeModule === 'users' && <UserManagementModule />}
+            {!canAccessModule(activeModule) ? (
+              <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400">
+                <Lock className="w-16 h-16 text-slate-300 mb-4" />
+                <h2 className="text-xl font-bold text-slate-600">Akses Ditolak</h2>
+                <p className="mt-2 text-sm text-center max-w-md">
+                  Anda tidak memiliki izin (RBAC) untuk mengakses modul ini. Silakan hubungi IT Administrator (Level 0) jika ini adalah sebuah kesalahan.
+                </p>
+              </div>
+            ) : (
+              <>
+                {activeModule === 'finance' && <FinanceAnalyticsModule />}
+                {activeModule === 'qc' && <ProductionQcModule />}
+                {activeModule === 'procurement' && <ProcurementEximModule />}
+                {activeModule === 'sales' && <SalesTrackingModule />}
+                {activeModule === 'master_data' && <MasterDataModule />}
+                {activeModule === 'hrd' && <HrdModule />}
+                {activeModule === 'users' && <UserManagementModule />}
+              </>
+            )}
           </div>
         </main>
       </div>

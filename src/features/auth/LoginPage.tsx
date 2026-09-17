@@ -219,7 +219,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="contoh: admin.mock atau nama@stmorita.co.id"
+                  placeholder="contoh: nama@stmorita.co.id atau NIK"
                   required
                   autoFocus
                   autoComplete="username"

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   PlusCircle,
@@ -126,7 +127,7 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
     },
   ];
 
-  return (
+  const modalContent = (
     <>
       {isOpen && !activeSubModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
@@ -151,7 +152,7 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
             </div>
 
             {/* Grid of 6 Core Modules Input Options */}
-            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex-1 min-h-0 p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {formCategories.map((cat) => {
                 const Icon = cat.icon;
                 return (
@@ -252,4 +253,10 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
       )}
     </>
   );
+
+  if (typeof document !== 'undefined') {
+    return createPortal(modalContent, document.body);
+  }
+  
+  return null;
 };

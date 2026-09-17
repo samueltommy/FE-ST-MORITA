@@ -19,15 +19,19 @@ import {
   Keyboard,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { canManageUsers, getTierBadge } from '../../utils/rbac';
+import { useRBAC } from '../../hooks/useRBAC';
 
 export const Sidebar: React.FC = () => {
   const activeModule = useAppStore((state) => state.activeModule);
-  const currentUser = useAppStore((state) => state.currentUser);
+  const authUser = useAuthStore((state) => state.user);
+  const authLogout = useAuthStore((state) => state.logout);
   const qcRecords = useAppStore((state) => state.qcRecords);
   const quotations = useAppStore((state) => state.quotations);
   const isSidebarCollapsed = useAppStore((state) => state.isSidebarCollapsed);
   const isMobileSidebarOpen = useAppStore((state) => state.isMobileSidebarOpen);
+  const { canAccessModule, canAccessAdminUsers, canAccessTool } = useRBAC();
 
   // Count active QC Hold batches
   const activeQcHoldCount = qcRecords.filter(
@@ -39,8 +43,8 @@ export const Sidebar: React.FC = () => {
     (q) => q.status === 'PENDING_COST_CONTROL'
   ).length;
 
-  const isUserAdmin = canManageUsers(currentUser);
-  const tierMeta = getTierBadge(currentUser.tier);
+  const isUserAdmin = canManageUsers(authUser as any);
+  const tierMeta = getTierBadge(authUser?.tier ?? 3);
 
   const modules = [
     {
@@ -101,7 +105,7 @@ export const Sidebar: React.FC = () => {
       shortcut: 'Alt+1',
       color: 'text-violet-600',
     },
-  ];
+  ].filter(m => canAccessModule(m.id));
 
   const handleSelectModule = (id: any) => {
     appStore.setActiveModule(id);
@@ -230,115 +234,120 @@ export const Sidebar: React.FC = () => {
             </nav>
           </div>
 
-          {/* Administration & RBAC Section */}
-          <div className="pt-2 border-t border-slate-100">
-            {!isSidebarCollapsed && (
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1 flex items-center justify-between">
-                <span>Administrasi</span>
-                <span className="text-[9px] text-purple-600 font-bold">RBAC</span>
-              </div>
-            )}
-            <button
-              id="sidebar-nav-users-btn"
-              onClick={() => handleSelectModule('users')}
-              title="Akun Pegawai & RBAC"
-              className={`w-full text-left rounded-xl flex items-center transition-all cursor-pointer ${
-                isSidebarCollapsed
-                  ? 'p-2 justify-center'
-                  : 'px-2.5 py-2 justify-between'
-              } ${
-                activeModule === 'users'
-                  ? 'bg-purple-700 text-white font-bold shadow-sm shadow-purple-700/25'
-                  : 'text-slate-700 hover:bg-slate-100 font-medium'
-              }`}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    activeModule === 'users'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-purple-50 text-purple-600'
-                  }`}
-                >
-                  <UserPlus className="w-4 h-4" />
+          {/* Administration & RBAC Section — hanya tampil untuk yang berhak */}
+          {canAccessAdminUsers() && (
+            <div className="pt-2 border-t border-slate-100">
+              {!isSidebarCollapsed && (
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1 flex items-center justify-between">
+                  <span>Administrasi</span>
+                  <span className="text-[9px] text-purple-600 font-bold">RBAC</span>
                 </div>
-                {!isSidebarCollapsed && (
-                  <div className="min-w-0">
-                    <div className="text-xs flex items-center gap-1.5 leading-tight min-w-0">
-                      <span>Akun Pegawai & RBAC</span>
-                      {isUserAdmin && (
-                        <span className="text-[9px] px-1 py-0.5 rounded-full font-bold uppercase bg-purple-500 text-white">
-                          Admin
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      className={`text-[10px] truncate leading-tight mt-0.5 ${
-                        activeModule === 'users' ? 'text-white/80' : 'text-slate-400'
-                      }`}
-                    >
-                      Hak Akses Level 0-3
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-            </button>
-          </div>
-
-          {/* Operational Tools Section */}
-          <div className="pt-2 border-t border-slate-100">
-            {!isSidebarCollapsed && (
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">
-                Alat Lapangan
-              </div>
-            )}
-            <div className="space-y-1">
+              )}
               <button
-                id="sidebar-pwa-scanner-btn"
-                onClick={() => appStore.setBarcodeModalOpen(true)}
-                title="Scanner Barcode PWA"
-                className={`w-full text-left rounded-xl flex items-center text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${
-                  isSidebarCollapsed ? 'p-2 justify-center' : 'px-2.5 py-1.5 justify-between'
+                id="sidebar-nav-users-btn"
+                onClick={() => handleSelectModule('users')}
+                title="Akun Pegawai & RBAC"
+                className={`w-full text-left rounded-xl flex items-center transition-all cursor-pointer ${
+                  isSidebarCollapsed
+                    ? 'p-2 justify-center'
+                    : 'px-2.5 py-2 justify-between'
+                } ${
+                  activeModule === 'users'
+                    ? 'bg-purple-700 text-white font-bold shadow-sm shadow-purple-700/25'
+                    : 'text-slate-700 hover:bg-slate-100 font-medium'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                    <ScanLine className="w-4 h-4" />
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      activeModule === 'users'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-purple-50 text-purple-600'
+                    }`}
+                  >
+                    <UserPlus className="w-4 h-4" />
                   </div>
                   {!isSidebarCollapsed && (
                     <div className="min-w-0">
-                      <div className="font-semibold truncate leading-tight text-xs">Scanner Barcode</div>
-                      <div className="text-[10px] text-slate-400 truncate leading-tight">Pabrik & Gudang</div>
+                      <div className="text-xs flex items-center gap-1.5 leading-tight min-w-0">
+                        <span>Akun Pegawai & RBAC</span>
+                        {isUserAdmin && (
+                          <span className="text-[9px] px-1 py-0.5 rounded-full font-bold uppercase bg-purple-500 text-white">
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className={`text-[10px] truncate leading-tight mt-0.5 ${
+                          activeModule === 'users' ? 'text-white/80' : 'text-slate-400'
+                        }`}
+                      >
+                        Hak Akses Level 0-3
+                      </div>
                     </div>
                   )}
                 </div>
-                
-              </button>
-
-              <button
-                id="sidebar-audit-trail-btn"
-                onClick={() => appStore.setAuditLogsOpen(true)}
-                title="Audit Trail Kepatuhan SHA-256"
-                className={`w-full text-left rounded-xl flex items-center text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${
-                  isSidebarCollapsed ? 'p-2 justify-center' : 'px-2.5 py-1.5 justify-between'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                    <History className="w-4 h-4" />
-                  </div>
-                  {!isSidebarCollapsed && (
-                    <div className="min-w-0">
-                      <div className="font-semibold truncate leading-tight text-xs">Audit Trail</div>
-                      <div className="text-[10px] text-slate-400 truncate leading-tight">Enkripsi SHA-256</div>
-                    </div>
-                  )}
-                </div>
-                
               </button>
             </div>
-          </div>
+          )}
+
+          {/* Operational Tools Section — filter berdasarkan hak akses */}
+          {(canAccessTool('barcode') || canAccessTool('audit')) && (
+            <div className="pt-2 border-t border-slate-100">
+              {!isSidebarCollapsed && (
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">
+                  Alat Lapangan
+                </div>
+              )}
+              <div className="space-y-1">
+                {canAccessTool('barcode') && (
+                  <button
+                    id="sidebar-pwa-scanner-btn"
+                    onClick={() => appStore.setBarcodeModalOpen(true)}
+                    title="Scanner Barcode PWA"
+                    className={`w-full text-left rounded-xl flex items-center text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${
+                      isSidebarCollapsed ? 'p-2 justify-center' : 'px-2.5 py-1.5 justify-between'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                        <ScanLine className="w-4 h-4" />
+                      </div>
+                      {!isSidebarCollapsed && (
+                        <div className="min-w-0">
+                          <div className="font-semibold truncate leading-tight text-xs">Scanner Barcode</div>
+                          <div className="text-[10px] text-slate-400 truncate leading-tight">Pabrik & Gudang</div>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                )}
+
+                {canAccessTool('audit') && (
+                  <button
+                    id="sidebar-audit-trail-btn"
+                    onClick={() => appStore.setAuditLogsOpen(true)}
+                    title="Audit Trail Kepatuhan SHA-256"
+                    className={`w-full text-left rounded-xl flex items-center text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${
+                      isSidebarCollapsed ? 'p-2 justify-center' : 'px-2.5 py-1.5 justify-between'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <History className="w-4 h-4" />
+                      </div>
+                      {!isSidebarCollapsed && (
+                        <div className="min-w-0">
+                          <div className="font-semibold truncate leading-tight text-xs">Audit Trail</div>
+                          <div className="text-[10px] text-slate-400 truncate leading-tight">Enkripsi SHA-256</div>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bottom Section: Active User Context & Logout */}
@@ -346,22 +355,28 @@ export const Sidebar: React.FC = () => {
           {!isSidebarCollapsed ? (
             <>
               <div
-                title={`${currentUser.name} (${currentUser.role} - L${currentUser.tier})`}
+                title={`${authUser?.name} (${authUser?.role} - L${authUser?.tier})`}
                 className="w-full text-left rounded-xl flex items-center gap-2.5 p-2"
               >
                 <div className="relative">
-                  <img src={currentUser.avatar} alt="User Avatar" className="w-8 h-8 rounded-lg object-cover ring-2 ring-white shadow-sm" />
+                  {authUser?.avatar ? (
+                    <img src={authUser.avatar} alt="User Avatar" className="w-8 h-8 rounded-lg object-cover ring-2 ring-white shadow-sm" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold ring-2 ring-white shadow-sm">
+                      {authUser?.name?.charAt(0)?.toUpperCase()}
+                    </div>
+                  )}
                   <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white bg-emerald-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-slate-900 truncate">{currentUser.name}</div>
-                  <div className="text-[10px] text-slate-500 font-medium truncate">{currentUser.department}</div>
+                  <div className="text-xs font-bold text-slate-900 truncate">{authUser?.name}</div>
+                  <div className="text-[10px] text-slate-500 font-medium truncate">{authUser?.department}</div>
                 </div>
               </div>
               
               <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200/60">
                 <button
-                  onClick={() => appStore.logout()}
+                  onClick={() => authLogout()}
                   className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -379,18 +394,24 @@ export const Sidebar: React.FC = () => {
           ) : (
             <div className="flex flex-col items-center gap-1.5">
               <div
-                title={`${currentUser.name} (${currentUser.role} - L${currentUser.tier})`}
+                title={`${authUser?.name} (${authUser?.role} - L${authUser?.tier})`}
                 className="w-8 h-8 rounded-lg overflow-hidden border border-slate-300 shrink-0"
               >
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  className="w-full h-full object-cover"
-                />
+                {authUser?.avatar ? (
+                  <img
+                    src={authUser.avatar}
+                    alt={authUser.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-blue-600 text-white flex items-center justify-center font-bold">
+                    {authUser?.name?.charAt(0)?.toUpperCase()}
+                  </div>
+                )}
               </div>
               <button
                 id="sidebar-collapsed-logout-btn"
-                onClick={() => appStore.logout()}
+                onClick={() => authLogout()}
                 title="Keluar dari Portal ERP"
                 className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
               >
@@ -473,80 +494,88 @@ export const Sidebar: React.FC = () => {
               </nav>
             </div>
 
-            {/* Mobile RBAC */}
-            <div className="pt-2 border-t border-slate-100">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-                Administrasi & Akses
-              </div>
-              <button
-                onClick={() => handleSelectModule('users')}
-                className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between text-xs ${
-                  activeModule === 'users'
-                    ? 'bg-purple-700 text-white font-bold shadow-sm'
-                    : 'text-slate-700 hover:bg-slate-100 font-medium'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                    <UserPlus className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-bold">Akun Pegawai & RBAC</div>
-                    <div className="text-[10px] text-slate-400">Hak Akses Level 0-3</div>
-                  </div>
+            {/* Mobile RBAC — hanya tampil untuk yang berhak */}
+            {canAccessAdminUsers() && (
+              <div className="pt-2 border-t border-slate-100">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
+                  Administrasi & Akses
                 </div>
-              </button>
-            </div>
-
-            {/* Mobile Tools */}
-            <div className="pt-2 border-t border-slate-100">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-                Alat Lapangan
-              </div>
-              <div className="space-y-1">
                 <button
-                  onClick={() => {
-                    appStore.setMobileSidebarOpen(false);
-                    appStore.setBarcodeModalOpen(true);
-                  }}
-                  className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 text-xs text-slate-700 hover:bg-slate-100"
+                  onClick={() => handleSelectModule('users')}
+                  className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between text-xs ${
+                    activeModule === 'users'
+                      ? 'bg-purple-700 text-white font-bold shadow-sm'
+                      : 'text-slate-700 hover:bg-slate-100 font-medium'
+                  }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                    <ScanLine className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-bold">Scanner Barcode PWA</div>
-                    <div className="text-[10px] text-slate-400">Pabrik & Gudang Manufaktur</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    appStore.setMobileSidebarOpen(false);
-                    appStore.setAuditLogsOpen(true);
-                  }}
-                  className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 text-xs text-slate-700 hover:bg-slate-100"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                    <History className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-bold">Audit Trail Kepatuhan</div>
-                    <div className="text-[10px] text-slate-400">Enkripsi Log SHA-256</div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                      <UserPlus className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold">Akun Pegawai & RBAC</div>
+                      <div className="text-[10px] text-slate-400">Hak Akses Level 0-3</div>
+                    </div>
                   </div>
                 </button>
               </div>
-            </div>
+            )}
+
+            {/* Mobile Tools — filter berdasarkan hak akses */}
+            {(canAccessTool('barcode') || canAccessTool('audit')) && (
+              <div className="pt-2 border-t border-slate-100">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
+                  Alat Lapangan
+                </div>
+                <div className="space-y-1">
+                  {canAccessTool('barcode') && (
+                    <button
+                      onClick={() => {
+                        appStore.setMobileSidebarOpen(false);
+                        appStore.setBarcodeModalOpen(true);
+                      }}
+                      className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 text-xs text-slate-700 hover:bg-slate-100"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                        <ScanLine className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold">Scanner Barcode PWA</div>
+                        <div className="text-[10px] text-slate-400">Pabrik & Gudang Manufaktur</div>
+                      </div>
+                    </button>
+                  )}
+
+                  {canAccessTool('audit') && (
+                    <button
+                      onClick={() => {
+                        appStore.setMobileSidebarOpen(false);
+                        appStore.setAuditLogsOpen(true);
+                      }}
+                      className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 text-xs text-slate-700 hover:bg-slate-100"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <History className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold">Audit Trail Kepatuhan</div>
+                        <div className="text-[10px] text-slate-400">Enkripsi Log SHA-256</div>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Mobile Footer User */}
           <div className="px-4 pt-3 border-t border-slate-200 space-y-2">
             <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-              <div className="font-bold text-slate-900">{currentUser.name}</div>
-              <div className="text-[10px] text-slate-500">{currentUser.nik} &bull; {currentUser.role}</div>
+              <div className="font-bold text-slate-900">{authUser?.name}</div>
+              <div className="text-[10px] text-slate-500">{authUser?.nik} &bull; {authUser?.role}</div>
             </div>
             <button
-              onClick={() => appStore.logout()}
+              onClick={() => authLogout()}
               className="w-full py-2 px-3 rounded-xl border border-slate-200 hover:border-rose-300 text-slate-600 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold flex items-center justify-center gap-2"
             >
               <LogOut className="w-3.5 h-3.5" />

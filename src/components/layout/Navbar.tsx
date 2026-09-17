@@ -18,21 +18,20 @@ import { UserRole } from '../../types';
 import { UniversalDataEntryModal } from '../forms/UniversalDataEntryModal';
 
 export const Navbar: React.FC = () => {
-  const currentUser = useAppStore((state) => state.currentUser);
   const authUser = useAuthStore((state) => state.user);
   const authLogout = useAuthStore((state) => state.logout);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [dataEntryModalOpen, setDataEntryModalOpen] = useState(false);
 
-  // Prefer authUser (real backend) but fall back to currentUser (demo store)
-  const displayName = authUser?.name || currentUser.name;
-  const displayRole = authUser?.role || currentUser.role;
-  const displayTier = authUser?.tier ?? currentUser.tier;
-  const displayAvatar = authUser?.avatar || currentUser.avatar;
-  const displayDepartment = authUser?.department || currentUser.department;
+  // Use authUser (real backend)
+  const displayName = authUser?.name;
+  const displayRole = authUser?.role;
+  const displayTier = authUser?.tier;
+  const displayAvatar = authUser?.avatar;
+  const displayDepartment = authUser?.department;
 
-  const tierMeta = getTierBadge(displayTier);
-  const isUserAdmin = canManageUsers(authUser as any || currentUser);
+  const tierMeta = getTierBadge(displayTier ?? 3);
+  const isUserAdmin = canManageUsers(authUser as any);
 
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-white/95 backdrop-blur-md border-slate-200 shadow-xs shrink-0">
@@ -104,7 +103,7 @@ export const Navbar: React.FC = () => {
             </button>
           )}
 
-          {/* User Profile & Role Switcher Dropdown */}
+          {/* User Profile & Dropdown */}
           <div className="relative">
             <button
               id="role-switcher-dropdown-btn"
@@ -125,94 +124,50 @@ export const Navbar: React.FC = () => {
               <div className="text-left hidden sm:block">
                 <div className="text-xs font-bold text-slate-900 leading-tight flex items-center gap-1.5">
                   <span className="truncate max-w-[120px]">{displayName}</span>
-                  <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full border ${tierMeta.badgeClass}`}>
-                    L{displayTier}
-                  </span>
+                  {displayTier != null && (
+                    <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full border ${tierMeta.badgeClass}`}>
+                      L{displayTier}
+                    </span>
+                  )}
                 </div>
                 <div className="text-[10px] text-slate-500 truncate max-w-[140px]">
-                  {ROLE_DEFINITIONS[displayRole]?.label || displayRole}
+                  {displayDepartment || 'General Employee'}
                 </div>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
-            {/* Role Switcher & Session Dropdown Menu */}
+            {/* Session Dropdown Menu */}
             {roleDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white border border-slate-200 shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200 shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <div>
                     <div className="text-xs font-black text-slate-900">
-                      Ganti Pengguna & Hak Akses
+                      Akun Pengguna
                     </div>
-                    <div className="text-[11px] text-slate-500">
-                      Uji simulasi 4 level RBAC sistem
+                    <div className="text-[11px] text-slate-500 truncate max-w-[180px]">
+                      {authUser?.email || displayDepartment}
                     </div>
                   </div>
                   <Shield className="w-4 h-4 text-blue-600" />
                 </div>
 
-                <div className="max-h-72 overflow-y-auto py-1 space-y-1 mt-1">
-                  {(Object.keys(ROLE_DEFINITIONS) as UserRole[]).map((roleKey) => {
-                    const def = ROLE_DEFINITIONS[roleKey];
-                    const isCurrent = currentUser.role === roleKey;
-                    const tierBadge = getTierBadge(def.tier);
-                    return (
-                      <button
-                        key={roleKey}
-                        onClick={() => {
-                          appStore.setCurrentUserRole(roleKey);
-                          setRoleDropdownOpen(false);
-                        }}
-                        className={`w-full text-left p-2.5 rounded-xl text-xs transition-colors flex items-start gap-2.5 cursor-pointer ${
-                          isCurrent
-                            ? 'bg-blue-50 border border-blue-200 text-blue-950 font-bold'
-                            : 'hover:bg-slate-50 text-slate-700'
-                        }`}
-                      >
-                        <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-mono text-[10px] font-extrabold ${
-                            isCurrent
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-slate-200 text-slate-700'
-                          }`}
-                        >
-                          L{def.tier}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="truncate">{def.label}</span>
-                            {isCurrent ? (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                            ) : (
-                              <span className={`text-[9px] px-1.5 py-0.2 rounded border font-mono font-bold ${tierBadge.badgeClass}`}>
-                                L{def.tier}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[10px] text-slate-500 truncate font-normal">
-                            {def.department}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
                 {/* Bottom Actions: Admin Management & Logout */}
-                <div className="mt-2 pt-2 border-t border-slate-100 space-y-1.5">
-                  <button
-                    onClick={() => {
-                      appStore.setActiveModule('users');
-                      setRoleDropdownOpen(false);
-                    }}
-                    className="w-full py-2 px-2.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <UserPlus className="w-3.5 h-3.5" />
-                      <span>Manajemen Akun Pegawai</span>
-                    </span>
-                    <span className="text-[10px] font-mono">Admin</span>
-                  </button>
+                <div className="mt-2 pt-1 space-y-1.5">
+                  {isUserAdmin && (
+                    <button
+                      onClick={() => {
+                        appStore.setActiveModule('users');
+                        setRoleDropdownOpen(false);
+                      }}
+                      className="w-full py-2 px-2.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Manajemen Pegawai</span>
+                      </span>
+                    </button>
+                  )}
 
                   <button
                     id="navbar-logout-btn"
@@ -223,7 +178,7 @@ export const Navbar: React.FC = () => {
                     className="w-full py-2 px-2.5 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
-                    <span>Keluar & Kembali ke Halaman Login</span>
+                    <span>Keluar & Kembali ke Login</span>
                   </button>
                 </div>
               </div>
