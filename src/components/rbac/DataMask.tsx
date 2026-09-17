@@ -1,5 +1,6 @@
 import React from 'react';
 import { Lock } from 'lucide-react';
+import { useAuthStore } from '../../store/useAuthStore';
 import { useAppStore } from '../../store/useAppStore';
 import { canViewHpp } from '../../utils/rbac';
 
@@ -19,8 +20,12 @@ export const DataMask: React.FC<DataMaskProps> = ({
   fallbackText = 'Terkunci (L3 Masked)',
   className = '',
 }) => {
-  const currentUser = useAppStore((state) => state.currentUser);
-  const authorized = canViewHpp(currentUser);
+  // Read from real auth store first, fall back to mock store
+  const authUser = useAuthStore((state) => state.user);
+  const mockUser = useAppStore((state) => state.currentUser);
+  const user = authUser || mockUser;
+
+  const authorized = canViewHpp(user as any);
 
   if (authorized) {
     return <span className={className}>{value}</span>;

@@ -880,7 +880,7 @@ export interface AppState {
 
 // Global mutable store singleton
 let globalState: AppState = {
-  isAuthenticated: true, // Default authenticated to Director so user sees app immediately, but can test login/logout anytime
+  isAuthenticated: false, // Auth is now managed by useAuthStore (Zustand). This field kept for legacy compat only.
   themeMode: 'light',
   isHighDensity: false,
   activeModule: 'finance', // Start on financial dashboard

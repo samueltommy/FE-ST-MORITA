@@ -8,59 +8,57 @@ import {
   Compass,
   Award,
   Sparkles,
-  ChevronDown,
-  UserCheck,
+  AlertCircle,
+  KeyRound,
 } from 'lucide-react';
-import { appStore, DEMO_USERS } from '../../store/useAppStore';
-import { UserRole } from '../../types';
+import { useAuthStore } from '../../store/useAuthStore';
 
-export const LoginPage: React.FC = () => {
-  const [identifier, setIdentifier] = useState('hendra.morita@stmorita.co.id');
-  const [password, setPassword] = useState('••••••••••••');
+interface LoginPageProps {
+  onNavigate?: (page: 'login' | 'activation' | 'forgot-password' | 'reset-password') => void;
+}
+
+export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showQuickSelect, setShowQuickSelect] = useState(false);
-  const [activePreset, setActivePreset] = useState<UserRole>('DIREKSI');
 
-  // Handle standard credential login
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const login = useAuthStore((state) => state.login);
+
+  // Handle real credential login via backend API
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+
+    if (!identifier.trim() || !password.trim()) {
+      setErrorMessage('Username/email dan kata sandi wajib diisi.');
+      return;
+    }
+
     setIsSubmitting(true);
+    const result = await login(identifier.trim(), password);
+    setIsSubmitting(false);
 
-    setTimeout(() => {
-      const allUsers = Object.values(DEMO_USERS);
-      const matched = allUsers.find(
-        (u) =>
-          u.email.toLowerCase() === identifier.trim().toLowerCase() ||
-          u.nik.toLowerCase() === identifier.trim().toLowerCase()
-      );
+    if (result.success) {
+      // Auth store will set isAuthenticated=true → App.tsx re-renders to main layout
+      return;
+    }
 
-      if (matched) {
-        appStore.login(matched);
-      } else {
-        const fallback = DEMO_USERS[activePreset] || DEMO_USERS.DIREKSI;
-        appStore.login(fallback);
+    // TypeScript narrowing: at this point result is the failure type
+    const failure = result as { success: false; requiresActivation: boolean; errorMessage: string };
+
+    if (failure.requiresActivation) {
+      // Temporary password detected → navigate to activation page
+      setErrorMessage('Akun Anda memerlukan aktivasi sandi pertama.');
+      if (onNavigate) {
+        setTimeout(() => onNavigate('activation'), 1500);
       }
-      setIsSubmitting(false);
-    }, 400);
-  };
+      return;
+    }
 
-  // Quick 1-click preset login
-  const handleQuickLogin = (role: UserRole) => {
-    const user = DEMO_USERS[role];
-    if (!user) return;
-    setActivePreset(role);
-    setIdentifier(user.email);
-    setPassword('MoritaSecure2026!');
-    setIsSubmitting(true);
-
-    setTimeout(() => {
-      appStore.login(user);
-      setIsSubmitting(false);
-    }, 350);
+    setErrorMessage(failure.errorMessage);
   };
 
   return (
@@ -192,7 +190,7 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Clean & Sederhana Login Form in Light Mode */}
+        {/* Right Column: Real Login Form */}
         <div className="lg:col-span-5 w-full max-w-md mx-auto lg:max-w-none">
           <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-xl shadow-slate-200/60 space-y-5">
             <div>
@@ -205,6 +203,7 @@ export const LoginPage: React.FC = () => {
             {/* Error Message */}
             {errorMessage && (
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errorMessage}</span>
               </div>
             )}
@@ -213,15 +212,17 @@ export const LoginPage: React.FC = () => {
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Email Perusahaan atau NIK
+                  Username atau Email
                 </label>
                 <input
                   id="login-identifier-input"
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="contoh: nama.pegawai@stmorita.com"
+                  placeholder="contoh: admin.mock atau nama@stmorita.co.id"
                   required
+                  autoFocus
+                  autoComplete="username"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
                 />
               </div>
@@ -231,9 +232,13 @@ export const LoginPage: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-700">
                     Kata Sandi
                   </label>
-                  <span className="text-[11px] text-blue-600 hover:text-blue-700 transition-colors cursor-pointer">
-                    Bantuan Akun?
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate?.('forgot-password')}
+                    className="text-[11px] text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+                  >
+                    Lupa Sandi?
+                  </button>
                 </div>
                 <div className="relative">
                   <input
@@ -241,7 +246,9 @@ export const LoginPage: React.FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Masukkan kata sandi"
                     required
+                    autoComplete="current-password"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all pr-10 font-mono"
                   />
                   <button
@@ -283,63 +290,16 @@ export const LoginPage: React.FC = () => {
               </button>
             </form>
 
-            {/* Sederhana: Akses Cepat Mode Demonstrasi / Pengujian */}
+            {/* Activation Link */}
             <div className="pt-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setShowQuickSelect(!showQuickSelect)}
-                className="w-full flex items-center justify-between text-xs text-slate-500 hover:text-slate-800 transition-colors py-1 cursor-pointer"
+                onClick={() => onNavigate?.('activation')}
+                className="w-full flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-blue-700 transition-colors py-2 cursor-pointer"
               >
-                <span className="flex items-center gap-1.5 font-medium">
-                  <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Pilihan Akses Uji Coba Cepat</span>
-                </span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                    showQuickSelect ? 'rotate-180' : ''
-                  }`}
-                />
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Akun Baru? Aktivasi Sandi Pertama</span>
               </button>
-
-              {showQuickSelect && (
-                <div className="mt-3 grid grid-cols-2 gap-2 pt-1 animate-fadeIn">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('DIREKSI')}
-                    className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50/70 border border-slate-200 hover:border-blue-200 text-left transition-all cursor-pointer"
-                  >
-                    <div className="text-[10px] text-amber-700 font-bold uppercase">Direksi</div>
-                    <div className="text-xs font-semibold text-slate-800 truncate">Ir. Hendra M.</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('SUPER_ADMIN')}
-                    className="p-2.5 rounded-xl bg-slate-50 hover:bg-purple-50/70 border border-slate-200 hover:border-purple-200 text-left transition-all cursor-pointer"
-                  >
-                    <div className="text-[10px] text-purple-700 font-bold uppercase">Super Admin</div>
-                    <div className="text-xs font-semibold text-slate-800 truncate">Ir. Budi H.</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('COST_CONTROL')}
-                    className="p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-200 text-left transition-all cursor-pointer"
-                  >
-                    <div className="text-[10px] text-emerald-700 font-bold uppercase">Manajemen</div>
-                    <div className="text-xs font-semibold text-slate-800 truncate">Lestari W., Ak.</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('OPERATOR_PROD')}
-                    className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50/70 border border-slate-200 hover:border-blue-200 text-left transition-all cursor-pointer"
-                  >
-                    <div className="text-[10px] text-blue-700 font-bold uppercase">Staff Lapangan</div>
-                    <div className="text-xs font-semibold text-slate-800 truncate">Wahyu H.</div>
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -359,4 +319,3 @@ export const LoginPage: React.FC = () => {
     </div>
   );
 };
-

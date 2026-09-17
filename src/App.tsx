@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppStore, appStore } from './store/useAppStore';
+import { useAuthStore } from './store/useAuthStore';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { FinanceAnalyticsModule } from './features/core6_finance_analytics/FinanceAnalyticsModule';
@@ -10,22 +11,39 @@ import { MasterDataModule } from './features/core2_master_data/MasterDataModule'
 import { HrdModule } from './features/core1_hrd/HrdModule';
 import { UserManagementModule } from './features/admin_users/UserManagementModule';
 import { LoginPage } from './features/auth/LoginPage';
+import { ActivationPage } from './features/auth/ActivationPage';
+import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
 import { CommandPalette } from './components/shared/CommandPalette';
 import { BarcodeScannerModal } from './components/shared/BarcodeScannerModal';
 import { AuditLogsDrawer } from './components/shared/AuditLogsDrawer';
 import { KeyboardShortcutsModal } from './components/shared/KeyboardShortcutsModal';
 
+type AuthPage = 'login' | 'activation' | 'forgot-password' | 'reset-password';
+
 export default function App() {
-  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
   const activeModule = useAppStore((state) => state.activeModule);
   const themeMode = useAppStore((state) => state.themeMode);
-  const isHighDensity = useAppStore((state) => state.isHighDensity);
+
+  // Auth state from Zustand
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const initialize = useAuthStore((state) => state.initialize);
+
+  // Auth page routing (for unauthenticated screens)
+  const [authPage, setAuthPage] = useState<AuthPage>('login');
 
   // Ensure light mode is consistently applied across the app
   useEffect(() => {
     document.documentElement.classList.remove('dark');
     document.documentElement.classList.add('light');
   }, []);
+
+  // Initialize auth on mount — check for persisted token & rehydrate session
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
@@ -89,11 +107,52 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // If user is not authenticated, present the enterprise LoginPage directly
-  if (!isAuthenticated) {
-    return <LoginPage />;
+  // ─── Loading: Auth Initialization ──────────────────────────
+  if (!isInitialized) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          {/* ST. Morita Logo */}
+          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-sky-500 p-0.5 shadow-xl shadow-blue-600/20 flex items-center justify-center">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
+              <circle cx="24" cy="24" r="19" stroke="white" strokeWidth="2.5" strokeOpacity="0.4" strokeDasharray="3 3" />
+              <path
+                d="M12 28C12 21.3726 17.3726 16 24 16C28.5 16 32.5 18.5 34.5 22C36.5 25.5 35 30 31.5 32C28 34 23 33 20 30"
+                stroke="white"
+                strokeWidth="3.2"
+                strokeLinecap="round"
+              />
+              <circle cx="24" cy="24" r="4.5" fill="white" />
+              <path
+                d="M27 24C27 27 24 30 20 30C16 30 14 26 14 22"
+                stroke="#BAE6FD"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+          <div className="w-6 h-6 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+          <p className="text-sm text-slate-500 font-medium">Memuat sesi...</p>
+        </div>
+      </div>
+    );
   }
 
+  // ─── Unauthenticated: Show Auth Pages ──────────────────────
+  if (!isAuthenticated) {
+    switch (authPage) {
+      case 'activation':
+        return <ActivationPage onNavigate={setAuthPage} />;
+      case 'forgot-password':
+        return <ForgotPasswordPage onNavigate={setAuthPage} />;
+      case 'reset-password':
+        return <ResetPasswordPage onNavigate={setAuthPage} />;
+      default:
+        return <LoginPage onNavigate={setAuthPage} />;
+    }
+  }
+
+  // ─── Authenticated: Main Application Layout ────────────────
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-50 text-slate-900 font-sans overflow-hidden select-none">
       {/* Top Navigation - Fixed height */}

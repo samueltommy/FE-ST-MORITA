@@ -9,19 +9,30 @@ import {
   LogOut,
   PlusCircle,
   Menu,
+  User,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { ROLE_DEFINITIONS, getTierBadge, canManageUsers } from '../../utils/rbac';
 import { UserRole } from '../../types';
 import { UniversalDataEntryModal } from '../forms/UniversalDataEntryModal';
 
 export const Navbar: React.FC = () => {
   const currentUser = useAppStore((state) => state.currentUser);
+  const authUser = useAuthStore((state) => state.user);
+  const authLogout = useAuthStore((state) => state.logout);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [dataEntryModalOpen, setDataEntryModalOpen] = useState(false);
 
-  const tierMeta = getTierBadge(currentUser.tier);
-  const isUserAdmin = canManageUsers(currentUser);
+  // Prefer authUser (real backend) but fall back to currentUser (demo store)
+  const displayName = authUser?.name || currentUser.name;
+  const displayRole = authUser?.role || currentUser.role;
+  const displayTier = authUser?.tier ?? currentUser.tier;
+  const displayAvatar = authUser?.avatar || currentUser.avatar;
+  const displayDepartment = authUser?.department || currentUser.department;
+
+  const tierMeta = getTierBadge(displayTier);
+  const isUserAdmin = canManageUsers(authUser as any || currentUser);
 
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-white/95 backdrop-blur-md border-slate-200 shadow-xs shrink-0">
@@ -100,20 +111,26 @@ export const Navbar: React.FC = () => {
               onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
               className="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100/80 transition-all cursor-pointer"
             >
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200"
-              />
+              {displayAvatar ? (
+                <img
+                  src={displayAvatar}
+                  alt={displayName}
+                  className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold ring-1 ring-blue-500">
+                  {displayName?.charAt(0)?.toUpperCase() || <User className="w-3.5 h-3.5" />}
+                </div>
+              )}
               <div className="text-left hidden sm:block">
                 <div className="text-xs font-bold text-slate-900 leading-tight flex items-center gap-1.5">
-                  <span className="truncate max-w-[120px]">{currentUser.name}</span>
+                  <span className="truncate max-w-[120px]">{displayName}</span>
                   <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full border ${tierMeta.badgeClass}`}>
-                    L{currentUser.tier}
+                    L{displayTier}
                   </span>
                 </div>
                 <div className="text-[10px] text-slate-500 truncate max-w-[140px]">
-                  {ROLE_DEFINITIONS[currentUser.role]?.label || currentUser.role}
+                  {ROLE_DEFINITIONS[displayRole]?.label || displayRole}
                 </div>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -201,7 +218,7 @@ export const Navbar: React.FC = () => {
                     id="navbar-logout-btn"
                     onClick={() => {
                       setRoleDropdownOpen(false);
-                      appStore.logout();
+                      authLogout();
                     }}
                     className="w-full py-2 px-2.5 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >

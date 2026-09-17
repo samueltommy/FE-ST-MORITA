@@ -17,7 +17,7 @@ export const Can: React.FC<CanProps> = ({
   children,
 }) => {
   const { user, hasPermission, isExecutive, isSuperAdmin } = useRBAC();
-  const permissions = user?.permissions || [];
+  const permissions = (user?.permissions || []) as PermissionClaim[];
 
   let isAllowed = false;
 
