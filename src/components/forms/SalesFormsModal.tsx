@@ -3,6 +3,115 @@ import { X, Calculator, Truck, QrCode, CheckCircle2, AlertTriangle, ShieldCheck,
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { Quotation, DeliveryOrder, SalesTrackingOrder } from '../../types';
 
+const CONTENT = {
+  id: {
+    title: 'Formulir Penjualan & Distribusi (Sales to Dispatch)',
+    desc: 'Kalkulator Margin Penawaran (Lockout <18%), Penerbitan Surat Jalan (DO/RDO), & Update E-Tracking Barcode',
+    tabQuotation: 'Kalkulator Margin Quotation',
+    tabDo: 'Penerbitan Surat Jalan (DO/RDO)',
+    tabTracking: 'Update Checkpoint E-Tracking',
+    qNum: 'Nomor Penawaran (Quotation)',
+    qCust: 'Target Perusahaan Pelanggan',
+    qItemCode: 'Kode Item',
+    qItemName: 'Nama Produk yang Ditawarkan',
+    qQty: 'Kuantitas',
+    qUnit: 'Satuan',
+    qCost: 'HPP Unit Cost (IDR)',
+    qPrice: 'Target Harga Jual (IDR)',
+    qMarginTitle: 'Kalkulasi Gross Margin (Threshold: 18.0%):',
+    qMarginLow: '⚠️ Margin di bawah ambang batas standar (18%). Pengajuan ini akan berstatus [PENDING APPROVAL] dan membutuhkan persetujuan formal Cost Control & Direksi sebelum IO dapat diproses ke PPIC!',
+    qMarginOk: '✓ Margin memenuhi standar kelayakan bisnis (≥ 18%). Penawaran harga ini akan langsung berstatus [APPROVED] untuk dicetak ke klien.',
+    qTotalEst: 'Estimasi Total Nilai Penawaran:',
+    btnCancel: 'Batal',
+    btnQuote: 'Ajukan Penawaran Harga (Quotation)',
+    doNum: 'Nomor Delivery Order (DO)',
+    rdoNum: 'Nomor RDO (Surat Jalan)',
+    doCust: 'Tujuan Perusahaan Pelanggan',
+    doPlate: 'Plat Armada Truk Pengangkut',
+    doDriver: 'Nama Driver / Supir Logistik',
+    doLot: 'Pilih Batch Lot Barang Jadi (Hanya Lot PASS QC)',
+    doQty: 'Kuantitas Pengiriman (Roll)',
+    btnDo: 'Terbitkan Surat Jalan (DO)',
+    trackBarcode: 'Barcode / Nomor Internal Order (IO)',
+    trackStage: 'Tahap Checkpoint Saat Ini',
+    trackLoc: 'Titik Lokasi Pemindaian',
+    trackNotes: 'Catatan Lapangan / Keterangan Ekstra',
+    btnTrack: 'Update Checkpoint Status',
+    msgQuoteLow: 'berhasil dibuat dengan margin',
+    msgQuoteLowDesc: '%. PERINGATAN: Karena margin < 18%, status dikunci PENDING COST CONTROL APPROVAL!',
+    msgQuoteOk: 'dengan margin sehat',
+    msgQuoteOkDesc: '% berhasil diterbitkan dan otomatis APPROVED.',
+    errQcHold: 'ERROR CEKAL MUTU: Lot',
+    errQcHoldDesc: 'saat ini berstatus QC HOLD! Sistem mengunci pengiriman produk yang belum lolos uji lab.',
+    msgDoSuccess: 'Surat Jalan (DO)',
+    msgDoSuccessDesc: 'berhasil diterbitkan dengan validasi QC PASSED.',
+    msgTrackSuccess: 'Checkpoint E-Tracking',
+    msgTrackSuccessDesc: 'untuk Barcode',
+    msgTrackSuccessEnd: 'berhasil diperbarui.',
+    trackOptions: {
+      io: 'IO Diterbitkan',
+      slit: 'Proses Slitting & Rewinding Mesin',
+      qc: 'Inspeksi Lab QC & Penerbitan COA',
+      pack: 'Pengemasan Karton di Gudang FG',
+      gate: 'Gate Dispatch (Keberangkatan Truk)',
+      deliv: 'Delivered (Tiba di Pabrik Pelanggan)'
+    }
+  },
+  en: {
+    title: 'Sales & Distribution Forms (Sales to Dispatch)',
+    desc: 'Quotation Margin Calculator (<18% Lockout), Delivery Order (DO/RDO) Issuance, & E-Tracking Barcode Update',
+    tabQuotation: 'Quotation Margin Calculator',
+    tabDo: 'Delivery Order (DO/RDO) Issuance',
+    tabTracking: 'Update E-Tracking Checkpoint',
+    qNum: 'Quotation Number',
+    qCust: 'Target Customer Company',
+    qItemCode: 'Item Code',
+    qItemName: 'Offered Product Name',
+    qQty: 'Quantity',
+    qUnit: 'Unit',
+    qCost: 'Unit Cost COGS (IDR)',
+    qPrice: 'Target Selling Price (IDR)',
+    qMarginTitle: 'Gross Margin Calculation (Threshold: 18.0%):',
+    qMarginLow: '⚠️ Margin is below the standard threshold (18%). This submission will be [PENDING APPROVAL] and requires formal Cost Control & Director approval before IO can be processed to PPIC!',
+    qMarginOk: '✓ Margin meets business feasibility standard (≥ 18%). This quotation will immediately be [APPROVED] for printing to client.',
+    qTotalEst: 'Estimated Total Quotation Value:',
+    btnCancel: 'Cancel',
+    btnQuote: 'Submit Price Quotation',
+    doNum: 'Delivery Order (DO) Number',
+    rdoNum: 'RDO Number',
+    doCust: 'Target Customer Company Destination',
+    doPlate: 'Delivery Truck License Plate',
+    doDriver: 'Driver Name',
+    doLot: 'Select Finished Goods Batch Lot (PASS QC Lots Only)',
+    doQty: 'Delivery Quantity (Rolls)',
+    btnDo: 'Issue Delivery Order (DO)',
+    trackBarcode: 'Barcode / Internal Order (IO) Number',
+    trackStage: 'Current Checkpoint Stage',
+    trackLoc: 'Scanning Location Point',
+    trackNotes: 'Field Notes / Extra Remarks',
+    btnTrack: 'Update Checkpoint Status',
+    msgQuoteLow: 'successfully created with margin',
+    msgQuoteLowDesc: '%. WARNING: Because margin < 18%, status is locked to PENDING COST CONTROL APPROVAL!',
+    msgQuoteOk: 'with healthy margin',
+    msgQuoteOkDesc: '% successfully issued and automatically APPROVED.',
+    errQcHold: 'QC HOLD ERROR: Lot',
+    errQcHoldDesc: 'is currently on QC HOLD! The system locks delivery of products that have not passed lab tests.',
+    msgDoSuccess: 'Delivery Order (DO)',
+    msgDoSuccessDesc: 'successfully issued with QC PASSED validation.',
+    msgTrackSuccess: 'E-Tracking Checkpoint',
+    msgTrackSuccessDesc: 'for Barcode',
+    msgTrackSuccessEnd: 'successfully updated.',
+    trackOptions: {
+      io: 'IO Issued',
+      slit: 'Machine Slitting & Rewinding Process',
+      qc: 'QC Lab Inspection & COA Issuance',
+      pack: 'Carton Packaging in FG Warehouse',
+      gate: 'Gate Dispatch (Truck Departure)',
+      deliv: 'Delivered (Arrived at Customer Factory)'
+    }
+  }
+};
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -10,6 +119,9 @@ interface Props {
 }
 
 export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'quotation' }) => {
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language] || CONTENT.id;
+
   const [activeTab, setActiveTab] = useState<'quotation' | 'do' | 'tracking'>(defaultTab);
   const currentUser = useAppStore((state) => state.currentUser);
   const customers = useAppStore((state) => state.customers);
@@ -79,10 +191,10 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
 
     if (isMarginLow) {
       setSuccessMessage(
-        `Quotation ${quotationNo} berhasil dibuat dengan margin ${marginPercent}%. PERINGATAN: Karena margin < 18%, status dikunci PENDING COST CONTROL APPROVAL!`
+        `Quotation ${quotationNo} ${t.msgQuoteLow} ${marginPercent}${t.msgQuoteLowDesc}`
       );
     } else {
-      setSuccessMessage(`Quotation ${quotationNo} dengan margin sehat ${marginPercent}% berhasil diterbitkan dan otomatis APPROVED.`);
+      setSuccessMessage(`Quotation ${quotationNo} ${t.msgQuoteOk} ${marginPercent}${t.msgQuoteOkDesc}`);
     }
 
     setTimeout(() => {
@@ -97,7 +209,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
     // Check if lot is in QC hold
     const isLotOnHold = qcRecords.some((r) => r.lotNumber === doLotNumber && r.status === 'HOLD');
     if (isLotOnHold) {
-      alert(`ERROR CEKAL MUTU: Lot ${doLotNumber} saat ini berstatus QC HOLD! Sistem mengunci pengiriman produk yang belum lolos uji lab.`);
+      alert(`${t.errQcHold} ${doLotNumber} ${t.errQcHoldDesc}`);
       return;
     }
 
@@ -124,7 +236,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
     };
 
     appStore.addDeliveryOrder(newDo);
-    setSuccessMessage(`Surat Jalan (DO) ${doNumber} berhasil diterbitkan dengan validasi QC PASSED.`);
+    setSuccessMessage(`${t.msgDoSuccess} ${doNumber} ${t.msgDoSuccessDesc}`);
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -136,7 +248,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
     if (!trackBarcode.trim()) return;
 
     appStore.updateTrackingStage(trackBarcode.trim(), trackStage, trackLocation.trim(), currentUser.name);
-    setSuccessMessage(`Checkpoint E-Tracking [${trackStage}] untuk Barcode ${trackBarcode} berhasil diperbarui.`);
+    setSuccessMessage(`${t.msgTrackSuccess} [${trackStage}] ${t.msgTrackSuccessDesc} ${trackBarcode} ${t.msgTrackSuccessEnd}`);
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -151,10 +263,10 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
           <div>
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Calculator className="w-5 h-5 text-indigo-600" />
-              <span>Formulir Penjualan & Distribusi (Sales to Dispatch)</span>
+              <span>{t.title}</span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Kalkulator Margin Penawaran (Lockout &lt;18%), Penerbitan Surat Jalan (DO/RDO), & Update E-Tracking Barcode
+              {t.desc}
             </p>
           </div>
           <button
@@ -176,7 +288,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
             }`}
           >
             <Calculator className="w-4 h-4" />
-            <span>Kalkulator Margin Quotation</span>
+            <span>{t.tabQuotation}</span>
           </button>
           <button
             onClick={() => setActiveTab('do')}
@@ -187,7 +299,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
             }`}
           >
             <Truck className="w-4 h-4" />
-            <span>Penerbitan Surat Jalan (DO/RDO)</span>
+            <span>{t.tabDo}</span>
           </button>
           <button
             onClick={() => setActiveTab('tracking')}
@@ -198,7 +310,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
             }`}
           >
             <QrCode className="w-4 h-4" />
-            <span>Update Checkpoint E-Tracking</span>
+            <span>{t.tabTracking}</span>
           </button>
         </div>
 
@@ -216,7 +328,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
             <form onSubmit={handleQuotationSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Penawaran (Quotation)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.qNum}</label>
                   <input
                     type="text"
                     required
@@ -226,7 +338,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Target Perusahaan Pelanggan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.qCust}</label>
                   <select
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
@@ -243,7 +355,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kode Item</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.qItemCode}</label>
                   <input
                     type="text"
                     required
@@ -253,7 +365,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Produk yang Ditawarkan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.qItemName}</label>
                   <input
                     type="text"
                     required
@@ -266,7 +378,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
 
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kuantitas</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.qQty}</label>
                   <input
                     type="number"
                     min="1"
@@ -277,7 +389,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Satuan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.qUnit}</label>
                   <input
                     type="text"
                     required
@@ -287,7 +399,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">HPP Unit Cost (IDR)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.qCost}</label>
                   <input
                     type="number"
                     required
@@ -297,7 +409,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Target Harga Jual (IDR)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.qPrice}</label>
                   <input
                     type="number"
                     required
@@ -323,7 +435,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                     ) : (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     )}
-                    <span className="text-xs font-bold">Kalkulasi Gross Margin (Threshold: 18.0%):</span>
+                    <span className="text-xs font-bold">{t.qMarginTitle}</span>
                   </div>
                   <strong className="text-lg font-mono font-black">
                     {marginPercent}%
@@ -333,19 +445,17 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                 <div className="text-xs leading-relaxed">
                   {isMarginLow ? (
                     <span className="font-semibold text-amber-800">
-                      ⚠️ Margin di bawah ambang batas standar (18%). Pengajuan ini akan berstatus{' '}
-                      <strong>[PENDING APPROVAL]</strong> dan membutuhkan persetujuan formal Cost Control & Direksi sebelum IO dapat diproses ke PPIC!
+                      {t.qMarginLow}
                     </span>
                   ) : (
                     <span className="text-emerald-800">
-                      ✓ Margin memenuhi standar kelayakan bisnis (≥ 18%). Penawaran harga ini akan langsung berstatus{' '}
-                      <strong>[APPROVED]</strong> untuk dicetak ke klien.
+                      {t.qMarginOk}
                     </span>
                   )}
                 </div>
 
                 <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs font-mono">
-                  <span>Estimasi Total Nilai Penawaran:</span>
+                  <span>{t.qTotalEst}</span>
                   <strong className="font-bold">IDR {(quantity * sellingPrice).toLocaleString()}</strong>
                 </div>
               </div>
@@ -356,13 +466,13 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
-                  Ajukan Penawaran Harga (Quotation)
+                  {t.btnQuote}
                 </button>
               </div>
             </form>
@@ -373,7 +483,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
             <form onSubmit={handleDoSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Delivery Order (DO)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.doNum}</label>
                   <input
                     type="text"
                     required
@@ -383,7 +493,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor RDO (Surat Jalan)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.rdoNum}</label>
                   <input
                     type="text"
                     required
@@ -395,7 +505,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Tujuan Perusahaan Pelanggan</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.doCust}</label>
                 <select
                   value={doCustomer}
                   onChange={(e) => setDoCustomer(e.target.value)}
@@ -411,7 +521,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Plat Armada Truk Pengangkut</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.doPlate}</label>
                   <input
                     type="text"
                     required
@@ -421,7 +531,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Driver / Supir Logistik</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.doDriver}</label>
                   <input
                     type="text"
                     required
@@ -435,7 +545,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Pilih Batch Lot Barang Jadi (Hanya Lot PASS QC)
+                    {t.doLot}
                   </label>
                   <select
                     value={doLotNumber}
@@ -452,7 +562,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kuantitas Pengiriman (Roll)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.doQty}</label>
                   <input
                     type="number"
                     min="1"
@@ -470,13 +580,13 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
-                  Terbitkan Surat Jalan (DO)
+                  {t.btnDo}
                 </button>
               </div>
             </form>
@@ -487,7 +597,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
             <form onSubmit={handleTrackingSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Barcode / Nomor Internal Order (IO)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.trackBarcode}</label>
                   <input
                     type="text"
                     required
@@ -497,24 +607,24 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tahap Checkpoint Saat Ini</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.trackStage}</label>
                   <select
                     value={trackStage}
                     onChange={(e) => setTrackStage(e.target.value as any)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-bold"
                   >
-                    <option value="IO_CREATED">IO Diterbitkan</option>
-                    <option value="SLITTING_PROGRESS">Proses Slitting & Rewinding Mesin</option>
-                    <option value="QC_INSPECTION">Inspeksi Lab QC & Penerbitan COA</option>
-                    <option value="WAREHOUSE_PACKAGING">Pengemasan Karton di Gudang FG</option>
-                    <option value="GATE_DISPATCH">Gate Dispatch (Keberangkatan Truk)</option>
-                    <option value="DELIVERED">Delivered (Tiba di Pabrik Pelanggan)</option>
+                    <option value="IO_CREATED">{t.trackOptions.io}</option>
+                    <option value="SLITTING_PROGRESS">{t.trackOptions.slit}</option>
+                    <option value="QC_INSPECTION">{t.trackOptions.qc}</option>
+                    <option value="WAREHOUSE_PACKAGING">{t.trackOptions.pack}</option>
+                    <option value="GATE_DISPATCH">{t.trackOptions.gate}</option>
+                    <option value="DELIVERED">{t.trackOptions.deliv}</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Titik Lokasi Pemindaian</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.trackLoc}</label>
                 <input
                   type="text"
                   required
@@ -525,7 +635,7 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Lapangan / Keterangan Ekstra</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.trackNotes}</label>
                 <textarea
                   rows={2}
                   value={trackNotes}
@@ -540,13 +650,13 @@ export const SalesFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab =
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
-                  Update Checkpoint Status
+                  {t.btnTrack}
                 </button>
               </div>
             </form>

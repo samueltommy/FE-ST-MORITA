@@ -17,7 +17,81 @@ import { VehicleBooking, SalesOutdoorVisit } from '../../types';
 import { Can } from '../../components/rbac/Can';
 import { HrdFormsModal } from '../../components/forms/HrdFormsModal';
 
+const CONTENT = {
+  id: {
+    title: 'HRD, Armada Pabrik & GPS Visit Sales',
+    desc: 'Presensi staf shift kerja, jadwal pemesanan kendaraan dinas/truk armada, dan geo-tracking log visit sales outdoor',
+    btnInput: 'Form Input HRD',
+    tabFleet: 'Presensi & Armada Pabrik',
+    tabGps: 'Log GPS Sales',
+    kpi1Title: 'Total Karyawan Aktif',
+    kpi1Desc: 'Fasilitas Plant 1 & 2',
+    kpi1Value: '428 Orang',
+    kpi2Title: 'Hadir Shift Pagi/Siang',
+    kpi2Desc: 'Fingerprint & Facial Valid',
+    kpi3Title: 'Izin & Cuti Bersyarat',
+    kpi3Value: '11 Orang',
+    kpi3Desc: 'Surat Dokter / Cuti Tahunan',
+    kpi4Title: 'Tugas Luar Kota / Sales',
+    kpi4Value: '5 Orang',
+    kpi4Desc: 'Kunjungan Kawasan Industri Mitra',
+    fleetTitle: 'Jadwal Penggunaan Kendaraan Operasional & Truk Armada',
+    fleetDesc: 'Persetujuan izin armada pabrik untuk pengiriman Delivery Order atau dinas luar',
+    fleetApproveLabel: 'Persetujuan:',
+    fleetApproveRole: 'HRD & GA Officer',
+    fleetDest: 'Tujuan:',
+    fleetDriver: 'Supir:',
+    fleetReq: 'Pemohon:',
+    fleetSched: 'Jadwal:',
+    fleetSdt: 's/d',
+    fleetPending: 'Menunggu Persetujuan HRD',
+    fleetBtnApprove: 'Setujui Penggunaan Armada',
+    fleetApproved: 'Telah Disetujui HRD',
+    gpsTitle: 'Log Check-In GPS Kunjungan Lapangan Sales',
+    gpsDesc: 'Pencatatan koordinat GPS real-time kunjungan klien tim Sales Executive',
+    gpsTime: 'Waktu:',
+    gpsRep: 'Sales Rep:',
+  },
+  en: {
+    title: 'HRD, Factory Fleet & Sales GPS Visit',
+    desc: 'Shift staff attendance, official vehicle/truck fleet booking schedules, and outdoor sales visit geo-tracking logs',
+    btnInput: 'HRD Input Form',
+    tabFleet: 'Attendance & Factory Fleet',
+    tabGps: 'Sales GPS Log',
+    kpi1Title: 'Total Active Employees',
+    kpi1Desc: 'Plant 1 & 2 Facilities',
+    kpi1Value: '428 People',
+    kpi2Title: 'Morning/Afternoon Shift Present',
+    kpi2Desc: 'Fingerprint & Facial Valid',
+    kpi3Title: 'Permits & Conditional Leave',
+    kpi3Value: '11 People',
+    kpi3Desc: 'Doctor\'s Note / Annual Leave',
+    kpi4Title: 'Out of Town Duty / Sales',
+    kpi4Value: '5 People',
+    kpi4Desc: 'Partner Industrial Estate Visits',
+    fleetTitle: 'Operational Vehicle & Truck Fleet Usage Schedule',
+    fleetDesc: 'Factory fleet permit approval for Delivery Order dispatch or out of town duty',
+    fleetApproveLabel: 'Approval:',
+    fleetApproveRole: 'HRD & GA Officer',
+    fleetDest: 'Destination:',
+    fleetDriver: 'Driver:',
+    fleetReq: 'Requested By:',
+    fleetSched: 'Schedule:',
+    fleetSdt: 'to',
+    fleetPending: 'Waiting for HRD Approval',
+    fleetBtnApprove: 'Approve Fleet Usage',
+    fleetApproved: 'Approved by HRD',
+    gpsTitle: 'Sales Field Visit GPS Check-In Log',
+    gpsDesc: 'Real-time GPS coordinate recording of Sales Executive team client visits',
+    gpsTime: 'Time:',
+    gpsRep: 'Sales Rep:',
+  }
+};
+
 export const HrdModule: React.FC = () => {
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language] || CONTENT.id;
+
   const vehicleBookings = useAppStore((state) => state.vehicleBookings);
   const salesVisits = useAppStore((state) => state.salesVisits);
   const currentUser = useAppStore((state) => state.currentUser);
@@ -42,10 +116,10 @@ export const HrdModule: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              HRD, Armada Pabrik & GPS Visit Sales
+              {t.title}
             </h1>
             <p className="text-sm text-slate-500 mt-1.5">
-              Presensi staf shift kerja, jadwal pemesanan kendaraan dinas/truk armada, dan geo-tracking log visit sales outdoor
+              {t.desc}
             </p>
           </div>
           
@@ -55,7 +129,7 @@ export const HrdModule: React.FC = () => {
               className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Form Input HRD</span>
+              <span>{t.btnInput}</span>
             </button>
           </div>
         </div>
@@ -70,7 +144,7 @@ export const HrdModule: React.FC = () => {
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
-            Presensi & Armada Pabrik
+            {t.tabFleet}
           </button>
           <button
             onClick={() => setActiveTab('sales_gps')}
@@ -81,7 +155,7 @@ export const HrdModule: React.FC = () => {
             }`}
           >
             <Navigation className="w-4 h-4" />
-            <span>Log GPS Sales</span>
+            <span>{t.tabGps}</span>
           </button>
         </div>
       </div>
@@ -91,27 +165,27 @@ export const HrdModule: React.FC = () => {
           {/* Attendance KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase">Total Karyawan Aktif</span>
-              <div className="text-xl font-black text-slate-900 dark:text-white mt-1">428 Orang</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Fasilitas Plant 1 & 2</div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase">{t.kpi1Title}</span>
+              <div className="text-xl font-black text-slate-900 dark:text-white mt-1">{t.kpi1Value}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">{t.kpi1Desc}</div>
             </div>
 
             <div className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-xs">
-              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">Hadir Shift Pagi/Siang</span>
+              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">{t.kpi2Title}</span>
               <div className="text-xl font-black text-emerald-800 dark:text-emerald-200 mt-1">412 (96.2%)</div>
-              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">Fingerprint & Facial Valid</div>
+              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">{t.kpi2Desc}</div>
             </div>
 
             <div className="p-4 rounded-2xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 shadow-xs">
-              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase">Izin & Cuti Bersyarat</span>
-              <div className="text-xl font-black text-amber-800 dark:text-amber-200 mt-1">11 Orang</div>
-              <div className="text-[10px] text-amber-600 mt-0.5">Surat Dokter / Cuti Tahunan</div>
+              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase">{t.kpi3Title}</span>
+              <div className="text-xl font-black text-amber-800 dark:text-amber-200 mt-1">{t.kpi3Value}</div>
+              <div className="text-[10px] text-amber-600 mt-0.5">{t.kpi3Desc}</div>
             </div>
 
             <div className="p-4 rounded-2xl border border-blue-200 dark:border-blue-800/60 bg-blue-50/50 dark:bg-blue-950/20 shadow-xs">
-              <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase">Tugas Luar Kota / Sales</span>
-              <div className="text-xl font-black text-blue-800 dark:text-blue-200 mt-1">5 Orang</div>
-              <div className="text-[10px] text-blue-600 mt-0.5">Kunjungan Kawasan Industri Mitra</div>
+              <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase">{t.kpi4Title}</span>
+              <div className="text-xl font-black text-blue-800 dark:text-blue-200 mt-1">{t.kpi4Value}</div>
+              <div className="text-[10px] text-blue-600 mt-0.5">{t.kpi4Desc}</div>
             </div>
           </div>
 
@@ -121,15 +195,15 @@ export const HrdModule: React.FC = () => {
               <div>
                 <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <Car className="w-4 h-4 text-violet-600" />
-                  <span>Jadwal Penggunaan Kendaraan Operasional & Truk Armada</span>
+                  <span>{t.fleetTitle}</span>
                 </h3>
                 <p className="text-[11px] text-slate-500">
-                  Persetujuan izin armada pabrik untuk pengiriman Delivery Order atau dinas luar
+                  {t.fleetDesc}
                 </p>
               </div>
 
               <div className="text-xs text-slate-500 font-medium">
-                Persetujuan: <strong className="text-violet-600">HRD & GA Officer</strong>
+                {t.fleetApproveLabel} <strong className="text-violet-600">{t.fleetApproveRole}</strong>
               </div>
             </div>
 
@@ -157,10 +231,10 @@ export const HrdModule: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-slate-600 dark:text-slate-300 font-medium">
-                        Tujuan: <strong>{vcl.destination}</strong> ({vcl.purpose})
+                        {t.fleetDest} <strong>{vcl.destination}</strong> ({vcl.purpose})
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        Supir: {vcl.driverName} • Pemohon: {vcl.requestedBy || 'Staff Pabrik'} • Jadwal: {vcl.departureDate || vcl.departureTime} {vcl.returnDate ? `s/d ${vcl.returnDate}` : ''}
+                        {t.fleetDriver} {vcl.driverName} • {t.fleetReq} {vcl.requestedBy || 'Staff Pabrik'} • {t.fleetSched} {vcl.departureDate || vcl.departureTime} {vcl.returnDate ? `${t.fleetSdt} ${vcl.returnDate}` : ''}
                       </div>
                     </div>
 
@@ -178,13 +252,13 @@ export const HrdModule: React.FC = () => {
                             onClick={() => handleApproveVehicle(vcl.id)}
                             className="px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs shadow-xs"
                           >
-                            Setujui Penggunaan Armada
+                            {t.fleetBtnApprove}
                           </button>
                         </Can>
                       ) : (
                         <div className="text-emerald-600 font-bold text-xs flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Telah Disetujui HRD</span>
+                          <span>{t.fleetApproved}</span>
                         </div>
                       )}
                     </div>
@@ -201,10 +275,10 @@ export const HrdModule: React.FC = () => {
             <div>
               <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <Navigation className="w-4 h-4 text-violet-600" />
-                <span>Log Check-In GPS Kunjungan Lapangan Sales</span>
+                <span>{t.gpsTitle}</span>
               </h3>
               <p className="text-[11px] text-slate-500">
-                Pencatatan koordinat GPS real-time kunjungan klien tim Sales Executive
+                {t.gpsDesc}
               </p>
             </div>
           </div>
@@ -230,7 +304,7 @@ export const HrdModule: React.FC = () => {
                 </div>
 
                 <div className="p-2 rounded-xl bg-white dark:bg-slate-900 font-mono text-[10px] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
-                  GPS: {vst.gpsCoords || (vst.coordinates ? `${vst.coordinates.lat}, ${vst.coordinates.lng}` : '-6.3245, 107.1382')} • Waktu: {vst.checkInTime}
+                  GPS: {vst.gpsCoords || (vst.coordinates ? `${vst.coordinates.lat}, ${vst.coordinates.lng}` : '-6.3245, 107.1382')} • {t.gpsTime} {vst.checkInTime}
                 </div>
 
                 <p className="text-slate-700 dark:text-slate-300 text-[11px] italic">
@@ -238,7 +312,7 @@ export const HrdModule: React.FC = () => {
                 </p>
 
                 <div className="text-[10px] text-slate-400 border-t border-slate-200 dark:border-slate-700 pt-1.5">
-                  Sales Rep: <strong>{vst.salesRep || vst.salesName}</strong>
+                  {t.gpsRep} <strong>{vst.salesRep || vst.salesName}</strong>
                 </div>
               </div>
             ))}

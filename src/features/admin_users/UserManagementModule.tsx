@@ -32,6 +32,239 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { createEmployeeApi } from '../../services/hrdService';
 import type { CreateEmployeePayload } from '../../services/hrdService';
 
+const CONTENT = {
+  id: {
+    title: 'Manajemen Akun Pegawai & Kontrol Akses (RBAC)',
+    desc: 'Pusat pembuatan akun karyawan baru PT ST. Morita Industries, penugasan tingkatan peran (Level 0 - Level 3), dan audit keamanan akses',
+    btnFormClose: 'Tutup Formulir Pendaftaran',
+    btnFormOpen: 'Buat Akun Pegawai Baru',
+    msgSuccess: 'Penerbitan Kredensial Berhasil!',
+    msgLimitMode: 'Mode Tinjau Terbatas:',
+    msgLimitDesc: 'Anda sedang login sebagai',
+    msgLimitRole: 'Hak pembuatan akun dan reset sandi hanya tersedia bagi Super Admin (Level 0) atau HRD Manager (Level 2).',
+    kpiTotal: 'Total Pegawai',
+    kpiActive: 'Akun Aktif',
+    kpiL0: 'L0: Super Admin',
+    kpiL0Desc: 'Sistem & Keamanan',
+    kpiL1: 'L1: Direksi',
+    kpiL1Desc: 'Executive C-Level',
+    kpiL2: 'L2: Manager',
+    kpiL2Desc: 'Admin 7 Departemen',
+    kpiL3: 'L3: Staff & Ops',
+    kpiL3Desc: 'Data Entry & Barcode',
+    kpiStd: 'Standar Mutu',
+    kpiStdVal: 'ISO 9001:2015',
+    kpiStdDesc: 'Audit Trail Terverifikasi',
+    formTitle: 'Formulir Pembuatan Akun Pegawai Baru ST. Morita Industries',
+    formDesc: 'Data akan disimpan ke database dan akun akan dibuat otomatis dengan role & group yang sesuai.',
+    formCancel: 'Batal',
+    formErr: 'Error:',
+    row1Title: '① Identitas Pegawai',
+    fNik: 'NIK Karyawan *',
+    fNikFmt: '(format: EMP-YYYY-NNN)',
+    fName: 'Nama Lengkap *',
+    fEmail: 'Email Resmi *',
+    fKtp: 'No. KTP (16 digit) *',
+    fPhone: 'No. Telepon / WA *',
+    fDate: 'Tanggal Bergabung *',
+    row2Title: '② Status Kepegawaian & Penempatan',
+    fStatus: 'Status Kepegawaian *',
+    fDept: 'Departemen Penempatan',
+    fSalary: 'Gaji Pokok (IDR) *',
+    row3Title: '③ Akun Login & Hak Akses (RBAC)',
+    fUsername: 'Username Login *',
+    fPass: 'Password Sementara *',
+    fPassMin: '(min. 8 karakter)',
+    fLvl: 'Level Akses (user_level) *',
+    fPreview: 'Preview Peran Fungsional Otomatis —',
+    fPreviewDesc: 'Peran fungsional ini ditentukan secara otomatis berdasarkan kombinasi Departemen dan Level Akses yang Anda pilih.',
+    row4Title: '④ Informasi Rekening Bank',
+    row4Opt: '(opsional)',
+    fBank: 'Nama Bank',
+    fAcc: 'No. Rekening',
+    fReq: '* Field wajib diisi. Akun akan dibuat otomatis.',
+    btnSubmitting: 'Mendaftarkan...',
+    btnSubmit: 'Daftarkan Pegawai & Terbitkan Hak Akses',
+    searchPlc: 'Cari nama, NIK, email, departemen...',
+    filterLvl: 'Tingkat:',
+    filterAll: 'Semua',
+    filterL1: 'L1 Direksi',
+    filterL0: 'L0 Admin',
+    filterL2: 'L2 Manager',
+    filterL3: 'L3 Staff',
+    colEmp: 'Pegawai & Identitas',
+    colDept: 'Departemen & Penempatan',
+    colRole: 'Peran & Tingkatan RBAC',
+    colPerm: 'Hak Klaim Izin',
+    colStatus: 'Status',
+    colAction: 'Tindakan Admin',
+    emptyTable: 'Tidak ditemukan akun pegawai yang cocok dengan filter pencarian.',
+    activeSession: 'Sesi Aktif',
+    allPerms: 'Semua Hak (*)',
+    nPerms: 'Izin',
+    statusActive: 'AKTIF',
+    statusSuspended: 'SUSPENDED',
+    actionLoginAs: 'Masuk sebagai',
+    actionRbacTest: '(Uji Coba RBAC)',
+    actionSuspend: 'Tangguhkan Akun',
+    actionActivate: 'Aktifkan Akun',
+    actionReset: 'Reset Kata Sandi',
+    modalTitle: 'Klaim Izin Granular (Permissions Claim):',
+    modalDesc: 'Deskripsi Peran:',
+    modalDescDef: 'Hak akses standar sistem.',
+    modalClose: 'Tutup',
+    errKtp: 'Nomor KTP harus tepat 16 digit.',
+    errSalary: 'Gaji pokok harus diisi dan lebih dari 0.',
+    errPass: 'Password minimal 8 karakter.',
+    msgCreateSuccess: 'Akun pegawai untuk',
+    msgCreateSuccessMid: 'berhasil dibuat dengan role',
+    msgCreateFail: 'Gagal membuat akun. Cek kembali data yang dimasukkan.',
+    alertReset: 'Reset kata sandi untuk',
+    alertResetMid: '? Token baru akan dikirimkan ke',
+    alertResetSuccess: 'Password untuk',
+    alertResetSuccessEnd: 'berhasil direset.',
+    statusOptions: {
+      perm: 'PERMANENT — Karyawan Tetap',
+      cont: 'CONTRACT — Karyawan Kontrak (PKWT)',
+      prob: 'PROBATION — Masa Percobaan',
+      intern: 'INTERNSHIP — Magang / PKL',
+      resign: 'RESIGNED — Sudah Mengundurkan Diri'
+    },
+    deptOptions: {
+      exim: 'Procurement & Bea Cukai (EXIM)',
+      fin: 'Finance, Tax & Cost Accounting',
+      hrd: 'Human Resources & GA',
+      ppic: 'PPIC & Production Control',
+      qc: 'Quality Assurance & QC Lab',
+      rnd: 'R&D / Executive IT',
+      sales: 'Commercial Sales & BD',
+      wh: 'Logistics & Warehouse'
+    },
+    lvlOptions: {
+      l0: 'L0 — Super Admin',
+      l1: 'L1 — Direksi / Executive',
+      l2: 'L2 — Manager / Admin Bidang',
+      l3: 'L3 — Staff / Operator',
+      l4: 'L4 — External / Mitra'
+    }
+  },
+  en: {
+    title: 'Employee Account & Access Control (RBAC) Management',
+    desc: 'Central hub for new employee accounts creation, role tier assignments (Level 0 - Level 3), and access security audits',
+    btnFormClose: 'Close Registration Form',
+    btnFormOpen: 'Create New Employee Account',
+    msgSuccess: 'Credential Issuance Successful!',
+    msgLimitMode: 'Limited View Mode:',
+    msgLimitDesc: 'You are logged in as',
+    msgLimitRole: 'Account creation and password reset rights are only available to Super Admin (Level 0) or HRD Manager (Level 2).',
+    kpiTotal: 'Total Employees',
+    kpiActive: 'Active Accounts',
+    kpiL0: 'L0: Super Admin',
+    kpiL0Desc: 'System & Security',
+    kpiL1: 'L1: Directors',
+    kpiL1Desc: 'Executive C-Level',
+    kpiL2: 'L2: Manager',
+    kpiL2Desc: '7 Departments Admin',
+    kpiL3: 'L3: Staff & Ops',
+    kpiL3Desc: 'Data Entry & Barcode',
+    kpiStd: 'Quality Standard',
+    kpiStdVal: 'ISO 9001:2015',
+    kpiStdDesc: 'Verified Audit Trail',
+    formTitle: 'ST. Morita Industries New Employee Account Form',
+    formDesc: 'Data will be saved to the database and an account will be automatically created with the appropriate role & group.',
+    formCancel: 'Cancel',
+    formErr: 'Error:',
+    row1Title: '① Employee Identity',
+    fNik: 'Employee ID *',
+    fNikFmt: '(format: EMP-YYYY-NNN)',
+    fName: 'Full Name *',
+    fEmail: 'Official Email *',
+    fKtp: 'ID Card No. (16 digits) *',
+    fPhone: 'Phone / WA No. *',
+    fDate: 'Join Date *',
+    row2Title: '② Employment Status & Placement',
+    fStatus: 'Employment Status *',
+    fDept: 'Placement Department',
+    fSalary: 'Basic Salary (IDR) *',
+    row3Title: '③ Login Account & Access Rights (RBAC)',
+    fUsername: 'Login Username *',
+    fPass: 'Temporary Password *',
+    fPassMin: '(min. 8 characters)',
+    fLvl: 'Access Level (user_level) *',
+    fPreview: 'Automatic Functional Role Preview —',
+    fPreviewDesc: 'This functional role is automatically determined based on the combination of Department and Access Level you selected.',
+    row4Title: '④ Bank Account Information',
+    row4Opt: '(optional)',
+    fBank: 'Bank Name',
+    fAcc: 'Account No.',
+    fReq: '* Mandatory fields. Account will be created automatically.',
+    btnSubmitting: 'Registering...',
+    btnSubmit: 'Register Employee & Issue Access Rights',
+    searchPlc: 'Search name, ID, email, department...',
+    filterLvl: 'Tier:',
+    filterAll: 'All',
+    filterL1: 'L1 Directors',
+    filterL0: 'L0 Admin',
+    filterL2: 'L2 Manager',
+    filterL3: 'L3 Staff',
+    colEmp: 'Employee & Identity',
+    colDept: 'Department & Placement',
+    colRole: 'RBAC Role & Tier',
+    colPerm: 'Permissions Claim',
+    colStatus: 'Status',
+    colAction: 'Admin Actions',
+    emptyTable: 'No employee accounts match the search filter.',
+    activeSession: 'Active Session',
+    allPerms: 'All Rights (*)',
+    nPerms: 'Permissions',
+    statusActive: 'ACTIVE',
+    statusSuspended: 'SUSPENDED',
+    actionLoginAs: 'Log in as',
+    actionRbacTest: '(RBAC Trial)',
+    actionSuspend: 'Suspend Account',
+    actionActivate: 'Activate Account',
+    actionReset: 'Reset Password',
+    modalTitle: 'Granular Permissions Claim:',
+    modalDesc: 'Role Description:',
+    modalDescDef: 'Standard system access rights.',
+    modalClose: 'Close',
+    errKtp: 'ID Card number must be exactly 16 digits.',
+    errSalary: 'Basic salary must be filled and greater than 0.',
+    errPass: 'Password minimum 8 characters.',
+    msgCreateSuccess: 'Employee account for',
+    msgCreateSuccessMid: 'successfully created with role',
+    msgCreateFail: 'Failed to create account. Please check the inputted data.',
+    alertReset: 'Reset password for',
+    alertResetMid: '? A new token will be sent to',
+    alertResetSuccess: 'Password for',
+    alertResetSuccessEnd: 'successfully reset.',
+    statusOptions: {
+      perm: 'PERMANENT — Permanent Employee',
+      cont: 'CONTRACT — Contract Employee (PKWT)',
+      prob: 'PROBATION — Probation Period',
+      intern: 'INTERNSHIP — Internship',
+      resign: 'RESIGNED — Resigned'
+    },
+    deptOptions: {
+      exim: 'Procurement & Customs (EXIM)',
+      fin: 'Finance, Tax & Cost Accounting',
+      hrd: 'Human Resources & GA',
+      ppic: 'PPIC & Production Control',
+      qc: 'Quality Assurance & QC Lab',
+      rnd: 'R&D / Executive IT',
+      sales: 'Commercial Sales & BD',
+      wh: 'Logistics & Warehouse'
+    },
+    lvlOptions: {
+      l0: 'L0 — Super Admin',
+      l1: 'L1 — Board of Directors / Executive',
+      l2: 'L2 — Manager / Field Admin',
+      l3: 'L3 — Staff / Operator',
+      l4: 'L4 — External / Partner'
+    }
+  }
+};
+
 // Mapping dari UserRole (FE) → user_level enum (BE)
 const ROLE_TO_USER_LEVEL: Record<UserRole, CreateEmployeePayload['user_level']> = {
   SUPER_ADMIN: 'L0_SUPER_ADMIN',
@@ -88,6 +321,9 @@ const getDerivedRole = (level: string, department: string): UserRole => {
 };
 
 export const UserManagementModule: React.FC = () => {
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language] || CONTENT.id;
+
   const users = useAppStore((state) => state.users);
   const currentUser = useAppStore((state) => state.currentUser);
 
@@ -157,9 +393,9 @@ export const UserManagementModule: React.FC = () => {
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fFullName.trim() || !fEmail.trim() || !fUsername.trim() || !fPassword.trim()) return;
-    if (fKtp.length !== 16) { setFormError('Nomor KTP harus tepat 16 digit.'); return; }
-    if (!fSalary || Number(fSalary) <= 0) { setFormError('Gaji pokok harus diisi dan lebih dari 0.'); return; }
-    if (fPassword.length < 8) { setFormError('Password minimal 8 karakter.'); return; }
+    if (fKtp.length !== 16) { setFormError(t.errKtp); return; }
+    if (!fSalary || Number(fSalary) <= 0) { setFormError(t.errSalary); return; }
+    if (fPassword.length < 8) { setFormError(t.errPass); return; }
 
     const payload: CreateEmployeePayload = {
       nik: fNik.trim(),
@@ -183,7 +419,7 @@ export const UserManagementModule: React.FC = () => {
     setFormError('');
     try {
       await createEmployeeApi(payload);
-      setFormSuccessMessage(`Akun pegawai untuk "${fFullName}" berhasil dibuat dengan role ${derivedRole} (${fUserLevel}).`);
+      setFormSuccessMessage(`${t.msgCreateSuccess} "${fFullName}" ${t.msgCreateSuccessMid} ${derivedRole} (${fUserLevel}).`);
       resetForm();
       setIsFormOpen(false);
       setTimeout(() => setFormSuccessMessage(''), 8000);
@@ -192,7 +428,7 @@ export const UserManagementModule: React.FC = () => {
         || err?.response?.data?.message
         || (Array.isArray(err?.response?.data?.detail) ? JSON.stringify(err.response.data.detail) : null)
         || err?.message
-        || 'Gagal membuat akun. Cek kembali data yang dimasukkan.';
+        || t.msgCreateFail;
       setFormError(typeof detail === 'string' ? detail : JSON.stringify(detail));
     } finally {
       setIsSubmitting(false);
@@ -231,10 +467,10 @@ export const UserManagementModule: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Manajemen Akun Pegawai & Kontrol Akses (RBAC)
+              {t.title}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
-              Pusat pembuatan akun karyawan baru PT ST. Morita Industries, penugasan tingkatan peran (Level 0 - Level 3), dan audit keamanan akses
+              {t.desc}
             </p>
           </div>
 
@@ -246,7 +482,7 @@ export const UserManagementModule: React.FC = () => {
                 className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
               >
                 {isFormOpen ? <X className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                <span>{isFormOpen ? 'Tutup Formulir Pendaftaran' : 'Buat Akun Pegawai Baru'}</span>
+                <span>{isFormOpen ? t.btnFormClose : t.btnFormOpen}</span>
               </button>
             )}
           </div>
@@ -258,7 +494,7 @@ export const UserManagementModule: React.FC = () => {
         <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 flex items-start gap-3 shadow-xs animate-in fade-in slide-in-from-top-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
           <div className="text-xs">
-            <div className="font-bold">Penerbitan Kredensial Berhasil!</div>
+            <div className="font-bold">{t.msgSuccess}</div>
             <div>{formSuccessMessage}</div>
           </div>
         </div>
@@ -269,8 +505,8 @@ export const UserManagementModule: React.FC = () => {
         <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-3">
           <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
           <div>
-            <span className="font-bold">Mode Tinjau Terbatas:</span> Anda sedang login sebagai{' '}
-            <span className="font-extrabold underline">{currentUser.name}</span> ({ROLE_DEFINITIONS[currentUser.role]?.label || currentUser.role}). Hak pembuatan akun dan reset sandi hanya tersedia bagi Super Admin (Level 0) atau HRD Manager (Level 2).
+            <span className="font-bold">{t.msgLimitMode}</span> {t.msgLimitDesc}{' '}
+            <span className="font-extrabold underline">{currentUser.name}</span> ({ROLE_DEFINITIONS[currentUser.role]?.label || currentUser.role}). {t.msgLimitRole}
           </div>
         </div>
       )}
@@ -278,42 +514,42 @@ export const UserManagementModule: React.FC = () => {
       {/* Metrics Cards: Tier Distribution */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Pegawai</div>
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t.kpiTotal}</div>
           <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">{totalCount}</div>
           <div className="text-[10px] text-emerald-600 font-semibold mt-0.5 flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" />
-            <span>{activeCount} Akun Aktif</span>
+            <span>{activeCount} {t.kpiActive}</span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 shadow-xs">
-          <div className="text-[11px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider">L0: Super Admin</div>
+          <div className="text-[11px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider">{t.kpiL0}</div>
           <div className="text-2xl font-black text-purple-900 dark:text-purple-100 mt-1">{l0Count}</div>
-          <div className="text-[10px] text-purple-600 dark:text-purple-400 mt-0.5">Sistem & Keamanan</div>
+          <div className="text-[10px] text-purple-600 dark:text-purple-400 mt-0.5">{t.kpiL0Desc}</div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 shadow-xs">
-          <div className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">L1: Direksi</div>
+          <div className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">{t.kpiL1}</div>
           <div className="text-2xl font-black text-amber-900 dark:text-amber-100 mt-1">{l1Count}</div>
-          <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">Executive C-Level</div>
+          <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">{t.kpiL1Desc}</div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 shadow-xs">
-          <div className="text-[11px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">L2: Manager</div>
+          <div className="text-[11px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">{t.kpiL2}</div>
           <div className="text-2xl font-black text-blue-900 dark:text-blue-100 mt-1">{l2Count}</div>
-          <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">Admin 7 Departemen</div>
+          <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">{t.kpiL2Desc}</div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">L3: Staff & Ops</div>
+          <div className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t.kpiL3}</div>
           <div className="text-2xl font-black text-slate-800 dark:text-slate-200 mt-1">{l3Count}</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">Data Entry & Barcode</div>
+          <div className="text-[10px] text-slate-500 mt-0.5">{t.kpiL3Desc}</div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Standar Mutu</div>
-          <div className="text-sm font-bold text-slate-900 dark:text-white mt-2">ISO 9001:2015</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">Audit Trail Terverifikasi</div>
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t.kpiStd}</div>
+          <div className="text-sm font-bold text-slate-900 dark:text-white mt-2">{t.kpiStdVal}</div>
+          <div className="text-[10px] text-slate-500 mt-0.5">{t.kpiStdDesc}</div>
         </div>
       </div>
 
@@ -324,14 +560,14 @@ export const UserManagementModule: React.FC = () => {
             <div>
               <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-blue-600" />
-                <span>Formulir Pembuatan Akun Pegawai Baru ST. Morita Industries</span>
+                <span>{t.formTitle}</span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Data akan disimpan ke database <strong>dan</strong> akun akan dibuat otomatis dengan role & group yang sesuai.
+                {t.formDesc}
               </p>
             </div>
             <button onClick={() => { setIsFormOpen(false); resetForm(); }} className="text-xs font-bold text-slate-400 hover:text-slate-600">
-              Batal
+              {t.formCancel}
             </button>
           </div>
 
@@ -339,7 +575,7 @@ export const UserManagementModule: React.FC = () => {
           {formError && (
             <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
-              <div><span className="font-bold">Error: </span>{formError}</div>
+              <div><span className="font-bold">{t.formErr} </span>{formError}</div>
             </div>
           )}
 
@@ -347,29 +583,29 @@ export const UserManagementModule: React.FC = () => {
 
             {/* ── Row 1: Identitas Dasar ── */}
             <div>
-              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">① Identitas Pegawai</p>
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row1Title}</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">NIK Karyawan * <span className="font-normal text-slate-400">(format: EMP-YYYY-NNN)</span></label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fNik} <span className="font-normal text-slate-400">{t.fNikFmt}</span></label>
                   <input type="text" value={fNik} onChange={e => setFNik(e.target.value)} required
                     pattern="^EMP-\d{4}-\d{3,4}$" title="Format: EMP-2026-001"
                     placeholder="EMP-2026-001"
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fName}</label>
                   <input type="text" value={fFullName} onChange={e => handleNameChange(e.target.value)} required minLength={2} maxLength={200}
                     placeholder="Contoh: Rian Pratama, S.T."
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Email Resmi *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fEmail}</label>
                   <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)} required
                     placeholder="nama@stmorita.co.id"
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">No. KTP (16 digit) *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fKtp}</label>
                   <input type="text" value={fKtp} onChange={e => setFKtp(e.target.value.replace(/\D/g, '').slice(0, 16))} required
                     minLength={16} maxLength={16} inputMode="numeric"
                     placeholder="16 digit Nomor KTP"
@@ -377,13 +613,13 @@ export const UserManagementModule: React.FC = () => {
                   {fKtp.length > 0 && fKtp.length !== 16 && <p className="text-[10px] text-rose-500 mt-0.5">{fKtp.length}/16 digit</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">No. Telepon / WA *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fPhone}</label>
                   <input type="text" value={fPhone} onChange={e => setFPhone(e.target.value)} required maxLength={20}
                     placeholder="+62 8xx-xxxx-xxxx"
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tanggal Bergabung *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fDate}</label>
                   <input type="date" value={fJoinDate} onChange={e => setFJoinDate(e.target.value)} required
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
@@ -392,35 +628,35 @@ export const UserManagementModule: React.FC = () => {
 
             {/* ── Row 2: Status & Penempatan ── */}
             <div>
-              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">② Status Kepegawaian & Penempatan</p>
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row2Title}</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Status Kepegawaian *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fStatus}</label>
                   <select value={fEmploymentStatus} onChange={e => setFEmploymentStatus(e.target.value as any)} required
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold">
-                    <option value="PERMANENT">PERMANENT — Karyawan Tetap</option>
-                    <option value="CONTRACT">CONTRACT — Karyawan Kontrak (PKWT)</option>
-                    <option value="PROBATION">PROBATION — Masa Percobaan</option>
-                    <option value="INTERNSHIP">INTERNSHIP — Magang / PKL</option>
-                    <option value="RESIGNED">RESIGNED — Sudah Mengundurkan Diri</option>
+                    <option value="PERMANENT">{t.statusOptions.perm}</option>
+                    <option value="CONTRACT">{t.statusOptions.cont}</option>
+                    <option value="PROBATION">{t.statusOptions.prob}</option>
+                    <option value="INTERNSHIP">{t.statusOptions.intern}</option>
+                    <option value="RESIGNED">{t.statusOptions.resign}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Departemen Penempatan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fDept}</label>
                   <select value={fDepartment} onChange={e => setFDepartment(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="EXTERNAL_PORTAL">Procurement & Bea Cukai (EXIM)</option>
-                    <option value="FINANCE">Finance, Tax & Cost Accounting</option>
-                    <option value="HRD">Human Resources & GA</option>
-                    <option value="PPIC">PPIC & Production Control</option>
-                    <option value="QC">Quality Assurance & QC Lab</option>
-                    <option value="RND">R&D / Executive IT</option>
-                    <option value="SALES">Commercial Sales & BD</option>
-                    <option value="WAREHOUSE">Logistics & Warehouse</option>
+                    <option value="EXTERNAL_PORTAL">{t.deptOptions.exim}</option>
+                    <option value="FINANCE">{t.deptOptions.fin}</option>
+                    <option value="HRD">{t.deptOptions.hrd}</option>
+                    <option value="PPIC">{t.deptOptions.ppic}</option>
+                    <option value="QC">{t.deptOptions.qc}</option>
+                    <option value="RND">{t.deptOptions.rnd}</option>
+                    <option value="SALES">{t.deptOptions.sales}</option>
+                    <option value="WAREHOUSE">{t.deptOptions.wh}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Gaji Pokok (IDR) *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fSalary}</label>
                   <input type="number" value={fSalary} onChange={e => setFSalary(e.target.value === '' ? '' : Number(e.target.value))} required
                     min={1} step={500000} placeholder="Contoh: 5000000"
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
@@ -430,16 +666,16 @@ export const UserManagementModule: React.FC = () => {
 
             {/* ── Row 3: Akun Login & RBAC ── */}
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
-              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">③ Akun Login & Hak Akses (RBAC)</p>
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{t.row3Title}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Username Login *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fUsername}</label>
                   <input type="text" value={fUsername} onChange={e => setFUsername(e.target.value)} required minLength={3} maxLength={100}
                     placeholder="Contoh: rian_pratama"
                     className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Password Sementara * <span className="font-normal text-slate-400">(min. 8 karakter)</span></label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fPass} <span className="font-normal text-slate-400">{t.fPassMin}</span></label>
                   <input type="text" value={fPassword} onChange={e => setFPassword(e.target.value)} required minLength={8}
                     placeholder="Password awal — pegawai akan diminta ganti saat login pertama"
                     className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
@@ -449,15 +685,14 @@ export const UserManagementModule: React.FC = () => {
               <div className="grid grid-cols-1 gap-4">
                 {/* user_level */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Level Akses (user_level) *
-                  </label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fLvl}</label>
                   <select value={fUserLevel} onChange={e => setFUserLevel(e.target.value as any)} required
                     className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="L0_SUPER_ADMIN">L0 — Super Admin</option>
-                    <option value="L1_DIREKSI">L1 — Direksi / Executive</option>
-                    <option value="L2_MANAGER">L2 — Manager / Admin Bidang</option>
-                    <option value="L3_STAFF">L3 — Staff / Operator</option>
-                    <option value="L4_EXTERNAL">L4 — External / Mitra</option>
+                    <option value="L0_SUPER_ADMIN">{t.lvlOptions.l0}</option>
+                    <option value="L1_DIREKSI">{t.lvlOptions.l1}</option>
+                    <option value="L2_MANAGER">{t.lvlOptions.l2}</option>
+                    <option value="L3_STAFF">{t.lvlOptions.l3}</option>
+                    <option value="L4_EXTERNAL">{t.lvlOptions.l4}</option>
                   </select>
                 </div>
               </div>
@@ -468,14 +703,14 @@ export const UserManagementModule: React.FC = () => {
                   <div className="flex items-center justify-between mb-1">
                     <div className="font-bold text-slate-800 flex items-center gap-1.5">
                       <Shield className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Preview Peran Fungsional Otomatis — {ROLE_DEFINITIONS[derivedRole].label}</span>
+                      <span>{t.fPreview} {ROLE_DEFINITIONS[derivedRole].label}</span>
                     </div>
                     <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${getTierBadge(ROLE_DEFINITIONS[derivedRole].tier).badgeClass}`}>
                       {fUserLevel}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mb-2">
-                    Peran fungsional ini ditentukan secara otomatis berdasarkan kombinasi Departemen dan Level Akses yang Anda pilih.
+                    {t.fPreviewDesc}
                     <br /><br />
                     {ROLE_DEFINITIONS[derivedRole].description}
                   </p>
@@ -490,16 +725,16 @@ export const UserManagementModule: React.FC = () => {
 
             {/* ── Row 4: Informasi Bank (Opsional) ── */}
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">④ Informasi Rekening Bank <span className="font-normal normal-case">(opsional)</span></p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{t.row4Title} <span className="font-normal normal-case">{t.row4Opt}</span></p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Bank</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fBank}</label>
                   <input type="text" value={fBankName} onChange={e => setFBankName(e.target.value)} maxLength={50}
                     placeholder="Contoh: BCA, BNI, Mandiri, BRI"
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">No. Rekening</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fAcc}</label>
                   <input type="text" value={fBankAccount} onChange={e => setFBankAccount(e.target.value)} maxLength={30}
                     placeholder="Nomor rekening"
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
@@ -509,16 +744,16 @@ export const UserManagementModule: React.FC = () => {
 
             {/* Submit */}
             <div className="pt-3 flex items-center justify-between border-t border-slate-200">
-              <p className="text-[10px] text-slate-400">* Field wajib diisi. Akun akan dibuat otomatis.</p>
+              <p className="text-[10px] text-slate-400">{t.fReq}</p>
               <div className="flex items-center gap-3">
                 <button type="button" onClick={() => { setIsFormOpen(false); resetForm(); }}
                   className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors">
-                  Batal
+                  {t.formCancel}
                 </button>
                 <button id="submit-create-employee-btn" type="submit" disabled={isSubmitting}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all">
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
-                  <span>{isSubmitting ? 'Mendaftarkan...' : 'Daftarkan Pegawai & Terbitkan Hak Akses'}</span>
+                  <span>{isSubmitting ? t.btnSubmitting : t.btnSubmit}</span>
                 </button>
               </div>
             </div>
@@ -535,7 +770,7 @@ export const UserManagementModule: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nama, NIK, email, departemen..."
+            placeholder={t.searchPlc}
             className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -544,7 +779,7 @@ export const UserManagementModule: React.FC = () => {
         <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
           <div className="flex items-center gap-1.5 text-xs text-slate-400 shrink-0">
             <Filter className="w-3.5 h-3.5" />
-            <span>Tingkat:</span>
+            <span>{t.filterLvl}</span>
           </div>
 
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0 text-xs">
@@ -555,7 +790,7 @@ export const UserManagementModule: React.FC = () => {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
             >
-              Semua ({totalCount})
+              {t.filterAll} ({totalCount})
             </button>
             <button
               onClick={() => setSelectedTierFilter('1')}
@@ -564,7 +799,7 @@ export const UserManagementModule: React.FC = () => {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
             >
-              L1 Direksi ({l1Count})
+              {t.filterL1} ({l1Count})
             </button>
             <button
               onClick={() => setSelectedTierFilter('0')}
@@ -573,7 +808,7 @@ export const UserManagementModule: React.FC = () => {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
             >
-              L0 Admin ({l0Count})
+              {t.filterL0} ({l0Count})
             </button>
             <button
               onClick={() => setSelectedTierFilter('2')}
@@ -582,7 +817,7 @@ export const UserManagementModule: React.FC = () => {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
             >
-              L2 Manager ({l2Count})
+              {t.filterL2} ({l2Count})
             </button>
             <button
               onClick={() => setSelectedTierFilter('3')}
@@ -591,7 +826,7 @@ export const UserManagementModule: React.FC = () => {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
             >
-              L3 Staff ({l3Count})
+              {t.filterL3} ({l3Count})
             </button>
           </div>
         </div>
@@ -603,19 +838,19 @@ export const UserManagementModule: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                <th className="py-3 px-4">Pegawai & Identitas</th>
-                <th className="py-3 px-4">Departemen & Penempatan</th>
-                <th className="py-3 px-4">Peran & Tingkatan RBAC</th>
-                <th className="py-3 px-4">Hak Klaim Izin</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Tindakan Admin</th>
+                <th className="py-3 px-4">{t.colEmp}</th>
+                <th className="py-3 px-4">{t.colDept}</th>
+                <th className="py-3 px-4">{t.colRole}</th>
+                <th className="py-3 px-4">{t.colPerm}</th>
+                <th className="py-3 px-4">{t.colStatus}</th>
+                <th className="py-3 px-4 text-right">{t.colAction}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
-                    Tidak ditemukan akun pegawai yang cocok dengan filter pencarian.
+                    {t.emptyTable}
                   </td>
                 </tr>
               ) : (
@@ -642,7 +877,7 @@ export const UserManagementModule: React.FC = () => {
                               <span>{user.name}</span>
                               {isCurrent && (
                                 <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-extrabold uppercase">
-                                  Sesi Aktif
+                                  {t.activeSession}
                                 </span>
                               )}
                             </div>
@@ -687,7 +922,7 @@ export const UserManagementModule: React.FC = () => {
                           className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300 transition-colors"
                         >
                           <Shield className="w-3 h-3 text-blue-500" />
-                          <span>{user.permissions.includes('*') ? 'Semua Hak (*)' : `${user.permissions.length} Izin`}</span>
+                          <span>{user.permissions.includes('*') ? t.allPerms : `${user.permissions.length} ${t.nPerms}`}</span>
                         </button>
                       </td>
 
@@ -703,7 +938,7 @@ export const UserManagementModule: React.FC = () => {
                             className={`w-1.5 h-1.5 rounded-full ${user.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'
                               }`}
                           />
-                          {user.status === 'ACTIVE' ? 'AKTIF' : 'SUSPENDED'}
+                          {user.status === 'ACTIVE' ? t.statusActive : t.statusSuspended}
                         </span>
                       </td>
 
@@ -714,7 +949,7 @@ export const UserManagementModule: React.FC = () => {
                           <button
                             onClick={() => appStore.login(user)}
                             className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors"
-                            title={`Masuk sebagai ${user.name} (Uji Coba RBAC)`}
+                            title={`${t.actionLoginAs} ${user.name} ${t.actionRbacTest}`}
                           >
                             <LogIn className="w-4 h-4" />
                           </button>
@@ -727,7 +962,7 @@ export const UserManagementModule: React.FC = () => {
                                   ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50'
                                   : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50'
                                 }`}
-                              title={user.status === 'ACTIVE' ? 'Tangguhkan Akun' : 'Aktifkan Akun'}
+                              title={user.status === 'ACTIVE' ? t.actionSuspend : t.actionActivate}
                             >
                               {user.status === 'ACTIVE' ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                             </button>
@@ -737,13 +972,13 @@ export const UserManagementModule: React.FC = () => {
                           {isAuthorized && (
                             <button
                               onClick={() => {
-                                if (confirm(`Reset kata sandi untuk ${user.name}? Token baru akan dikirimkan ke ${user.email}.`)) {
+                                if (confirm(`${t.alertReset} ${user.name}${t.alertResetMid} ${user.email}.`)) {
                                   appStore.resetUserPassword(user.id);
-                                  alert(`Password untuk ${user.name} berhasil direset.`);
+                                  alert(`${t.alertResetSuccess} ${user.name} ${t.alertResetSuccessEnd}`);
                                 }
                               }}
                               className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                              title="Reset Kata Sandi"
+                              title={t.actionReset}
                             >
                               <Key className="w-4 h-4" />
                             </button>
@@ -789,7 +1024,7 @@ export const UserManagementModule: React.FC = () => {
 
             <div>
               <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                Klaim Izin Granular (Permissions Claim):
+                {t.modalTitle}
               </div>
               <div className="max-h-60 overflow-y-auto p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-wrap gap-1.5">
                 {inspectUser.permissions.map((perm) => (
@@ -804,8 +1039,8 @@ export const UserManagementModule: React.FC = () => {
             </div>
 
             <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl">
-              <span className="font-bold text-slate-700 dark:text-slate-300">Deskripsi Peran: </span>
-              {ROLE_DEFINITIONS[inspectUser.role]?.description || 'Hak akses standar sistem.'}
+              <span className="font-bold text-slate-700 dark:text-slate-300">{t.modalDesc} </span>
+              {ROLE_DEFINITIONS[inspectUser.role]?.description || t.modalDescDef}
             </div>
 
             <div className="flex justify-end pt-2">
@@ -813,7 +1048,7 @@ export const UserManagementModule: React.FC = () => {
                 onClick={() => setInspectUser(null)}
                 className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-white transition-colors"
               >
-                Tutup
+                {t.modalClose}
               </button>
             </div>
           </div>

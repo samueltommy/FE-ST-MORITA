@@ -11,8 +11,63 @@ import {
   AlertCircle,
   KeyRound,
 } from 'lucide-react';
-import { appStore } from '../../store/useAppStore';
+import { appStore, useAppStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
+
+const CONTENT = {
+  id: {
+    heroTitle: 'Solusi Terdepan Rekayasa Perekat & Manufaktur Industri',
+    heroDesc: 'PT ST. Morita Industries berdedikasi menghadirkan produk perekat, pita perekat industri, dan solusi pelapisan berstandar tinggi yang mendukung efisiensi manufaktur.',
+    visiTitle: 'Visi Perusahaan',
+    visiDesc: 'Menjadi industri manufaktur perekat dan pita perekat yang kompetitif, inovatif, serta berwawasan lingkungan yang terdepan di pasar nasional maupun global.',
+    misiTitle: 'Misi Perusahaan',
+    misi1: 'Produk bermutu tinggi melalui riset berkelanjutan.',
+    misi2: 'Layanan terbaik bernilai tambah.',
+    misi3: 'Aktif dalam kepedulian lingkungan hidup.',
+    val1: 'Kualitas & Keandalan',
+    val2: 'Riset & Inovasi (R&D)',
+    val3: 'Kemitraan Berkelanjutan',
+    formTitle: 'Masuk ke Akun Anda',
+    formDesc: 'Silakan masukkan kredensial resmi perusahaan',
+    usernameLabel: 'Username atau Email',
+    usernamePlaceholder: 'contoh: nama@stmorita.co.id atau NIK',
+    passwordLabel: 'Kata Sandi',
+    passwordPlaceholder: 'Masukkan kata sandi',
+    forgotPassword: 'Lupa Sandi?',
+    rememberMe: 'Ingat saya di perangkat ini',
+    submitBtn: 'Masuk ke Sistem',
+    footerRights: 'PT ST. Morita Industries. Hak cipta dilindungi.',
+    footerSys: 'Sistem Enterprise Terpadu',
+    footerPrivacy: 'Privasi Data',
+    toastEmpty: 'Username/email dan kata sandi wajib diisi.'
+  },
+  en: {
+    heroTitle: 'Leading Solutions in Adhesive Engineering & Manufacturing',
+    heroDesc: 'PT ST. Morita Industries is dedicated to delivering high-standard adhesives, industrial tapes, and coating solutions that support manufacturing efficiency.',
+    visiTitle: 'Company Vision',
+    visiDesc: 'To become a competitive, innovative, and environmentally conscious adhesive and tape manufacturing industry leading in national and global markets.',
+    misiTitle: 'Company Mission',
+    misi1: 'High-quality products through continuous research.',
+    misi2: 'Best value-added services.',
+    misi3: 'Active in environmental care.',
+    val1: 'Quality & Reliability',
+    val2: 'Research & Innovation (R&D)',
+    val3: 'Sustainable Partnership',
+    formTitle: 'Sign In to Your Account',
+    formDesc: 'Please enter your official company credentials',
+    usernameLabel: 'Username or Email',
+    usernamePlaceholder: 'e.g., name@stmorita.co.id or Employee ID',
+    passwordLabel: 'Password',
+    passwordPlaceholder: 'Enter your password',
+    forgotPassword: 'Forgot Password?',
+    rememberMe: 'Remember me on this device',
+    submitBtn: 'Sign In to System',
+    footerRights: 'PT ST. Morita Industries. All rights reserved.',
+    footerSys: 'Integrated Enterprise System',
+    footerPrivacy: 'Data Privacy',
+    toastEmpty: 'Username/email and password are required.'
+  }
+};
 
 interface LoginPageProps {
   onNavigate?: (page: 'login' | 'activation' | 'forgot-password' | 'reset-password' | 'complete-profile') => void;
@@ -26,13 +81,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const login = useAuthStore((state) => state.login);
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language];
 
   // Handle real credential login via backend API
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!identifier.trim() || !password.trim()) {
-      appStore.showToast('Username/email dan kata sandi wajib diisi.', 'error');
+      appStore.showToast(t.toastEmpty, 'error');
       return;
     }
 
@@ -113,6 +170,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             </div>
           </div>
         </div>
+
+        {/* Language Switcher */}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-full shadow-sm">
+          <button 
+            onClick={() => appStore.setLanguage('id')}
+            className={`text-xs font-bold transition-colors ${language === 'id' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            ID
+          </button>
+          <span className="text-slate-300 text-xs font-light">|</span>
+          <button 
+            onClick={() => appStore.setLanguage('en')}
+            className={`text-xs font-bold transition-colors ${language === 'en' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            EN
+          </button>
+        </div>
       </header>
 
       {/* Main Body */}
@@ -123,12 +197,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
           <div className="space-y-2">
 
             <h1 className="text-2xl sm:text-3xl lg:text-[36px] font-extrabold tracking-tight text-slate-900 leading-tight">
-              Solusi Terdepan Rekayasa Perekat & Manufaktur Industri
+              {t.heroTitle}
             </h1>
 
             <p className="text-sm text-slate-600 leading-relaxed max-w-xl font-normal">
-              PT ST. Morita Industries berdedikasi menghadirkan produk perekat, pita perekat industri,
-              dan solusi pelapisan berstandar tinggi yang mendukung efisiensi manufaktur.
+              {t.heroDesc}
             </p>
           </div>
 
@@ -140,11 +213,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                 <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center">
                   <Target className="w-4 h-4" />
                 </div>
-                <h2 className="text-sm font-bold text-slate-900 tracking-wide uppercase">Visi Perusahaan</h2>
+                <h2 className="text-sm font-bold text-slate-900 tracking-wide uppercase">{t.visiTitle}</h2>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Menjadi industri manufaktur perekat dan pita perekat yang kompetitif, inovatif,
-                serta berwawasan lingkungan yang terdepan di pasar nasional maupun global.
+                {t.visiDesc}
               </p>
             </div>
 
@@ -154,20 +226,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                 <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center">
                   <Compass className="w-4 h-4" />
                 </div>
-                <h2 className="text-sm font-bold text-slate-900 tracking-wide uppercase">Misi Perusahaan</h2>
+                <h2 className="text-sm font-bold text-slate-900 tracking-wide uppercase">{t.misiTitle}</h2>
               </div>
               <ul className="text-xs text-slate-600 space-y-1 leading-relaxed">
                 <li className="flex items-start gap-1.5">
                   <span className="text-blue-600 mt-0.5">•</span>
-                  <span>Produk bermutu tinggi melalui riset berkelanjutan.</span>
+                  <span>{t.misi1}</span>
                 </li>
                 <li className="flex items-start gap-1.5">
                   <span className="text-blue-600 mt-0.5">•</span>
-                  <span>Layanan terbaik bernilai tambah.</span>
+                  <span>{t.misi2}</span>
                 </li>
                 <li className="flex items-start gap-1.5">
                   <span className="text-blue-600 mt-0.5">•</span>
-                  <span>Aktif dalam kepedulian lingkungan hidup.</span>
+                  <span>{t.misi3}</span>
                 </li>
               </ul>
             </div>
@@ -177,15 +249,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 pt-1">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-xs">
               <Award className="w-3.5 h-3.5 text-blue-600" />
-              <span className="font-semibold text-slate-800">Kualitas & Keandalan</span>
+              <span className="font-semibold text-slate-800">{t.val1}</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-xs">
               <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-              <span className="font-semibold text-slate-800">Riset & Inovasi (R&D)</span>
+              <span className="font-semibold text-slate-800">{t.val2}</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-xs">
               <Award className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="font-semibold text-slate-800">Kemitraan Berkelanjutan</span>
+              <span className="font-semibold text-slate-800">{t.val3}</span>
             </div>
           </div>
         </div>
@@ -194,9 +266,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
         <div className="w-full max-w-md mx-auto lg:col-span-5 lg:max-w-none flex-shrink-0">
           <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xl shadow-slate-200/60 space-y-4">
             <div>
-              <h3 className="text-xl font-bold text-slate-900 tracking-tight">Masuk ke Akun Anda</h3>
+              <h3 className="text-xl font-bold text-slate-900 tracking-tight">{t.formTitle}</h3>
               <p className="text-xs text-slate-500 mt-1">
-                Silakan masukkan kredensial resmi perusahaan
+                {t.formDesc}
               </p>
             </div>
 
@@ -204,14 +276,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             <form onSubmit={handleLoginSubmit} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Username atau Email
+                  {t.usernameLabel}
                 </label>
                 <input
                   id="login-identifier-input"
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="contoh: nama@stmorita.co.id atau NIK"
+                  placeholder={t.usernamePlaceholder}
                   required
                   autoFocus
                   autoComplete="username"
@@ -222,14 +294,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-semibold text-slate-700">
-                    Kata Sandi
+                    {t.passwordLabel}
                   </label>
                   <button
                     type="button"
                     onClick={() => onNavigate?.('forgot-password')}
                     className="text-[11px] text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
                   >
-                    Lupa Sandi?
+                    {t.forgotPassword}
                   </button>
                 </div>
                 <div className="relative">
@@ -238,7 +310,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Masukkan kata sandi"
+                    placeholder={t.passwordPlaceholder}
                     required
                     autoComplete="current-password"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all pr-10 font-mono"
@@ -261,7 +333,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span>Ingat saya di perangkat ini</span>
+                  <span>{t.rememberMe}</span>
                 </label>
               </div>
 
@@ -275,7 +347,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>Masuk ke Sistem</span>
+                    <span>{t.submitBtn}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -290,12 +362,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
       {/* Simple, Clean Corporate Footer */}
       <footer className="w-full max-w-7xl mx-auto pt-2 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-[10px] sm:text-[11px] text-slate-400 gap-2 z-10 shrink-0">
         <div>
-          &copy; {new Date().getFullYear()} PT ST. Morita Industries. Hak cipta dilindungi.
+          &copy; {new Date().getFullYear()} {t.footerRights}
         </div>
         <div className="flex items-center gap-3">
-          <span>Sistem Enterprise Terpadu</span>
+          <span>{t.footerSys}</span>
           <span>&bull;</span>
-          <span>Privasi Data</span>
+          <span>{t.footerPrivacy}</span>
         </div>
       </footer>
     </div>

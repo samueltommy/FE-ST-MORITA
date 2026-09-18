@@ -853,6 +853,7 @@ export interface AppState {
   isAuditLogsOpen: boolean;
   isSidebarCollapsed: boolean;
   isMobileSidebarOpen: boolean;
+  language: 'id' | 'en';
   
   // Toast Notification
   toast: {
@@ -898,6 +899,7 @@ let globalState: AppState = {
   isAuditLogsOpen: false,
   isSidebarCollapsed: typeof window !== 'undefined' ? localStorage.getItem('stmorita_sidebar_collapsed') === 'true' : false,
   isMobileSidebarOpen: false,
+  language: 'id',
   toast: { message: '', type: 'info', visible: false },
   users: INITIAL_REGISTERED_USERS,
   items: INITIAL_ITEMS,
@@ -1188,6 +1190,10 @@ export const appStore = {
 
   toggleMobileSidebar: () => {
     updateGlobalState((prev) => ({ ...prev, isMobileSidebarOpen: !prev.isMobileSidebarOpen }));
+  },
+
+  setLanguage: (lang: 'id' | 'en') => {
+    updateGlobalState((prev) => ({ ...prev, language: lang }));
   },
 
   // Toast Actions

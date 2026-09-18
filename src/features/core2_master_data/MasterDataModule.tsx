@@ -21,7 +21,85 @@ import { checkPermission } from '../../utils/rbac';
 import { Can } from '../../components/rbac/Can';
 import { MasterDataFormsModal } from '../../components/forms/MasterDataFormsModal';
 
+const CONTENT = {
+  id: {
+    title: 'Master Data Management & Zebra LOT Label Generator',
+    desc: 'Katalog SKU bahan baku & produk jadi, rak penyimpanan gudang, dan cetak label thermal printer Zebra',
+    btnForm: 'Formulir Master Data',
+    searchPl: 'Cari kode SKU, nama produk, nomor lot, atau barcode...',
+    optAll: 'Semua Kategori',
+    showing: 'Menampilkan',
+    sku: 'SKU',
+    thCode: 'Kode SKU',
+    thDesc: 'Deskripsi Barang Master',
+    thCat: 'Kategori',
+    thLot: 'No. LOT Batch',
+    thStock: 'Stok Fisik',
+    thRack: 'Lokasi Rak',
+    thCost: 'HPP Unit (Rp)',
+    thMargin: 'Margin (%)',
+    thPrice: 'Harga Jual',
+    thZebra: 'Label Zebra',
+    lblTitle: 'Zebra Industrial Label Preview (100mm x 50mm)',
+    lblDesc: 'Thermal Printer Zebra ZD420 / ZT410 Ready',
+    lblPlant: 'PLANT MANUFAKTUR - INDONESIA',
+    btnClose: 'Tutup',
+    btnPrint: 'Kirim ke Zebra Printer (Print)',
+    // New SKU form
+    newTitle: 'Pendaftaran Item SKU Master Baru',
+    newCode: 'Kode SKU:',
+    newCat: 'Kategori:',
+    newName: 'Nama / Deskripsi Produk:',
+    newNamePl: 'Nama resmi material...',
+    newUnit: 'Satuan Unit:',
+    newRack: 'Lokasi Rak Penyimpanan:',
+    newCost: 'HPP Unit Cost (Rp):',
+    newPrice: 'Harga Jual Komersial (Rp):',
+    btnCancel: 'Batal',
+    btnSave: 'Daftarkan SKU & Generate Barcode',
+  },
+  en: {
+    title: 'Master Data Management & Zebra LOT Label Generator',
+    desc: 'Raw material & finished goods SKU catalog, warehouse storage racks, and Zebra thermal printer label generation',
+    btnForm: 'Master Data Form',
+    searchPl: 'Search SKU code, product name, lot number, or barcode...',
+    optAll: 'All Categories',
+    showing: 'Showing',
+    sku: 'SKUs',
+    thCode: 'SKU Code',
+    thDesc: 'Master Item Description',
+    thCat: 'Category',
+    thLot: 'Batch LOT No.',
+    thStock: 'Physical Stock',
+    thRack: 'Rack Location',
+    thCost: 'Unit Cost (Rp)',
+    thMargin: 'Margin (%)',
+    thPrice: 'Selling Price',
+    thZebra: 'Zebra Label',
+    lblTitle: 'Zebra Industrial Label Preview (100mm x 50mm)',
+    lblDesc: 'Zebra ZD420 / ZT410 Thermal Printer Ready',
+    lblPlant: 'MANUFACTURING PLANT - INDONESIA',
+    btnClose: 'Close',
+    btnPrint: 'Send to Zebra Printer (Print)',
+    // New SKU form
+    newTitle: 'New Master SKU Item Registration',
+    newCode: 'SKU Code:',
+    newCat: 'Category:',
+    newName: 'Product Name / Description:',
+    newNamePl: 'Official material name...',
+    newUnit: 'Unit:',
+    newRack: 'Storage Rack Location:',
+    newCost: 'Unit Cost (Rp):',
+    newPrice: 'Commercial Selling Price (Rp):',
+    btnCancel: 'Cancel',
+    btnSave: 'Register SKU & Generate Barcode',
+  }
+};
+
 export const MasterDataModule: React.FC = () => {
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language] || CONTENT.id;
+
   const items = useAppStore((state) => state.items);
   const currentUser = useAppStore((state) => state.currentUser);
   const isHighDensity = useAppStore((state) => state.isHighDensity);
@@ -105,10 +183,10 @@ export const MasterDataModule: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Master Data Management & Zebra LOT Label Generator
+              {t.title}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
-              Katalog SKU bahan baku & produk jadi, rak penyimpanan gudang, dan cetak label thermal printer Zebra
+              {t.desc}
             </p>
           </div>
           
@@ -121,7 +199,7 @@ export const MasterDataModule: React.FC = () => {
               className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Formulir Master Data</span>
+              <span>{t.btnForm}</span>
             </button>
           </div>
         </div>
@@ -136,7 +214,7 @@ export const MasterDataModule: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari kode SKU, nama produk, nomor lot, atau barcode..."
+              placeholder={t.searchPl}
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden"
             />
           </div>
@@ -146,7 +224,7 @@ export const MasterDataModule: React.FC = () => {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="text-xs py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-hidden"
           >
-            <option value="ALL">Semua Kategori</option>
+            <option value="ALL">{t.optAll}</option>
             {categories.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -156,7 +234,7 @@ export const MasterDataModule: React.FC = () => {
         </div>
 
         <div className="text-xs text-slate-400 flex items-center gap-2">
-          <span>Menampilkan <strong>{filteredItems.length} SKU</strong></span>
+          <span>{t.showing} <strong>{filteredItems.length} {t.sku}</strong></span>
         </div>
       </div>
 
@@ -166,27 +244,27 @@ export const MasterDataModule: React.FC = () => {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800">
-                <th className="py-2.5 px-3 font-bold">Kode SKU</th>
-                <th className="py-2.5 px-3 font-bold">Deskripsi Barang Master</th>
-                <th className="py-2.5 px-3 font-bold">Kategori</th>
-                <th className="py-2.5 px-3 font-bold text-center">No. LOT Batch</th>
-                <th className="py-2.5 px-3 font-bold text-right">Stok Fisik</th>
-                <th className="py-2.5 px-3 font-bold text-center">Lokasi Rak</th>
+                <th className="py-2.5 px-3 font-bold">{t.thCode}</th>
+                <th className="py-2.5 px-3 font-bold">{t.thDesc}</th>
+                <th className="py-2.5 px-3 font-bold">{t.thCat}</th>
+                <th className="py-2.5 px-3 font-bold text-center">{t.thLot}</th>
+                <th className="py-2.5 px-3 font-bold text-right">{t.thStock}</th>
+                <th className="py-2.5 px-3 font-bold text-center">{t.thRack}</th>
 
                 {/* Role-filtered Columns for Finance/Cost Control */}
                 {canViewCost && (
                   <>
                     <th className="py-2.5 px-3 font-bold text-right text-emerald-600">
-                      HPP Unit (Rp)
+                      {t.thCost}
                     </th>
                     <th className="py-2.5 px-3 font-bold text-right text-emerald-600">
-                      Margin (%)
+                      {t.thMargin}
                     </th>
                   </>
                 )}
 
-                <th className="py-2.5 px-3 font-bold text-right">Harga Jual</th>
-                <th className="py-2.5 px-3 font-bold text-center">Label Zebra</th>
+                <th className="py-2.5 px-3 font-bold text-right">{t.thPrice}</th>
+                <th className="py-2.5 px-3 font-bold text-center">{t.thZebra}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -265,10 +343,10 @@ export const MasterDataModule: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                  Zebra Industrial Label Preview (100mm x 50mm)
+                  {t.lblTitle}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Thermal Printer Zebra ZD420 / ZT410 Ready
+                  {t.lblDesc}
                 </p>
               </div>
               <Barcode className="w-6 h-6 text-slate-400" />
@@ -284,7 +362,7 @@ export const MasterDataModule: React.FC = () => {
                   <div className="text-[10px] font-black uppercase tracking-wider">
                     ST. MORITA INDUSTRIES
                   </div>
-                  <div className="text-[8px] uppercase">PLANT MANUFAKTUR - INDONESIA</div>
+                  <div className="text-[8px] uppercase">{t.lblPlant}</div>
                 </div>
                 <span className="text-[9px] font-black border border-black px-1">QC APPROVED</span>
               </div>
@@ -339,14 +417,14 @@ export const MasterDataModule: React.FC = () => {
                 onClick={() => setZebraModalItem(null)}
                 className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold"
               >
-                Tutup
+                {t.btnClose}
               </button>
               <button
                 onClick={() => window.print()}
                 className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" />
-                <span>Kirim ke Zebra Printer (Print)</span>
+                <span>{t.btnPrint}</span>
               </button>
             </div>
           </div>
@@ -361,12 +439,12 @@ export const MasterDataModule: React.FC = () => {
             className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto"
           >
             <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              Pendaftaran Item SKU Master Baru
+              {t.newTitle}
             </h3>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold block mb-1">Kode SKU:</label>
+                <label className="text-xs font-bold block mb-1">{t.newCode}</label>
                 <input
                   type="text"
                   required
@@ -378,7 +456,7 @@ export const MasterDataModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold block mb-1">Kategori:</label>
+                <label className="text-xs font-bold block mb-1">{t.newCat}</label>
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value as any)}
@@ -394,11 +472,11 @@ export const MasterDataModule: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-xs font-bold block mb-1">Nama / Deskripsi Produk:</label>
+              <label className="text-xs font-bold block mb-1">{t.newName}</label>
               <input
                 type="text"
                 required
-                placeholder="Nama resmi material..."
+                placeholder={t.newNamePl}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
@@ -407,7 +485,7 @@ export const MasterDataModule: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold block mb-1">Satuan Unit:</label>
+                <label className="text-xs font-bold block mb-1">{t.newUnit}</label>
                 <input
                   type="text"
                   value={newUnit}
@@ -417,7 +495,7 @@ export const MasterDataModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold block mb-1">Lokasi Rak Penyimpanan:</label>
+                <label className="text-xs font-bold block mb-1">{t.newRack}</label>
                 <input
                   type="text"
                   value={newRack}
@@ -429,7 +507,7 @@ export const MasterDataModule: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold block mb-1">HPP Unit Cost (Rp):</label>
+                <label className="text-xs font-bold block mb-1">{t.newCost}</label>
                 <input
                   type="number"
                   value={newCost}
@@ -439,7 +517,7 @@ export const MasterDataModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold block mb-1">Harga Jual Komersial (Rp):</label>
+                <label className="text-xs font-bold block mb-1">{t.newPrice}</label>
                 <input
                   type="number"
                   value={newPrice}
@@ -455,13 +533,13 @@ export const MasterDataModule: React.FC = () => {
                 onClick={() => setCreateModalOpen(false)}
                 className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold"
               >
-                Batal
+                {t.btnCancel}
               </button>
               <button
                 type="submit"
                 className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold"
               >
-                Daftarkan SKU & Generate Barcode
+                {t.btnSave}
               </button>
             </div>
           </form>

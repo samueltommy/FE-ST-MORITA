@@ -19,7 +19,65 @@ import { FinancialMask } from '../../components/ui/FinancialMask';
 import { Can } from '../../components/rbac/Can';
 import { ProcurementFormsModal } from '../../components/forms/ProcurementFormsModal';
 
+const CONTENT = {
+  id: {
+    title: 'Supply Chain & Kepabeanan EXIM Kawasan Berikat',
+    desc: 'Alur pengadaan 5-tahap (PR → PO → LOG → IQC → AP) dan kepatuhan berkas pabean BC 2.3, BC 2.7, BC 4.0 & SPPB',
+    btnForm: 'Form Pengadaan / PO',
+    tabKanban: 'Kanban Alur Pengadaan',
+    tabExim: 'Dokumen Kepabeanan EXIM',
+    emptyQueue: 'Tidak ada antrean',
+    sku: 'SKU',
+    dzTitle: 'Dropzone Berkas Kepabeanan Kawasan Berikat',
+    dzDesc: 'Unggah dokumen BC 2.3 (Impor), BC 2.7 (Antar KB), BC 4.0 (Lokal), dan SPPB (Gate Pass Priok)',
+    dzRestricted: 'Akses Upload Terbatas: Memerlukan Role Purchasing / EXIM Officer',
+    btnUpload: 'Upload Dokumen Bea Cukai Baru',
+    docList: 'Daftar Dokumen Pabean Terverifikasi',
+    file: 'File:',
+    date: 'Tanggal:',
+    btnDownload: 'Unduh PDF',
+    upTitle: 'Upload Berkas Dokumen Pabean Kawasan Berikat',
+    upType: 'Jenis Dokumen Pabean:',
+    upRef: 'Nomor Registrasi / Referensi Dokumen:',
+    upRefPl: 'Contoh: BC23-CKR-2026-0914',
+    upDesc: 'Deskripsi / Keterangan Muatan:',
+    upDescPl: 'Keterangan bahan baku atau subkontrak slitting...',
+    btnCancel: 'Batal',
+    btnSaveLog: 'Simpan & Enkripsi Log',
+    alertDl: 'Mengunduh salinan pabean',
+  },
+  en: {
+    title: 'Supply Chain & Bonded Zone EXIM Customs',
+    desc: '5-stage procurement flow (PR → PO → LOG → IQC → AP) and customs compliance for BC 2.3, BC 2.7, BC 4.0 & SPPB',
+    btnForm: 'Procurement / PO Form',
+    tabKanban: 'Procurement Flow Kanban',
+    tabExim: 'EXIM Customs Documents',
+    emptyQueue: 'No queue',
+    sku: 'SKUs',
+    dzTitle: 'Bonded Zone Customs Document Dropzone',
+    dzDesc: 'Upload BC 2.3 (Import), BC 2.7 (Inter-Bonded), BC 4.0 (Local), and SPPB (Priok Gate Pass) documents',
+    dzRestricted: 'Restricted Upload Access: Requires Purchasing / EXIM Officer Role',
+    btnUpload: 'Upload New Customs Document',
+    docList: 'Verified Customs Documents List',
+    file: 'File:',
+    date: 'Date:',
+    btnDownload: 'Download PDF',
+    upTitle: 'Upload Bonded Zone Customs Document',
+    upType: 'Customs Document Type:',
+    upRef: 'Registration / Document Reference Number:',
+    upRefPl: 'Example: BC23-CKR-2026-0914',
+    upDesc: 'Cargo Description / Notes:',
+    upDescPl: 'Raw material details or slitting subcontracting...',
+    btnCancel: 'Cancel',
+    btnSaveLog: 'Save & Encrypt Log',
+    alertDl: 'Downloading customs copy',
+  }
+};
+
 export const ProcurementEximModule: React.FC = () => {
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language] || CONTENT.id;
+
   const procurementOrders = useAppStore((state) => state.procurementOrders);
   const eximDocs = useAppStore((state) => state.eximDocs);
   const currentUser = useAppStore((state) => state.currentUser);
@@ -73,10 +131,10 @@ export const ProcurementEximModule: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Supply Chain & Kepabeanan EXIM Kawasan Berikat
+              {t.title}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
-              Alur pengadaan 5-tahap (PR → PO → LOG → IQC → AP) dan kepatuhan berkas pabean BC 2.3, BC 2.7, BC 4.0 & SPPB
+              {t.desc}
             </p>
           </div>
           
@@ -89,7 +147,7 @@ export const ProcurementEximModule: React.FC = () => {
               className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Form Pengadaan / PO</span>
+              <span>{t.btnForm}</span>
             </button>
           </div>
         </div>
@@ -104,7 +162,7 @@ export const ProcurementEximModule: React.FC = () => {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
             }`}
           >
-            Kanban Alur Pengadaan
+            {t.tabKanban}
           </button>
           <button
             onClick={() => setActiveTab('exim_dropzone')}
@@ -115,7 +173,7 @@ export const ProcurementEximModule: React.FC = () => {
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>Dokumen Kepabeanan EXIM</span>
+            <span>{t.tabExim}</span>
           </button>
         </div>
       </div>
@@ -148,7 +206,7 @@ export const ProcurementEximModule: React.FC = () => {
                   <div className="space-y-2.5">
                     {ordersInStage.length === 0 ? (
                       <div className="py-8 text-center text-slate-400 text-[11px] italic">
-                        Tidak ada antrean
+                        {t.emptyQueue}
                       </div>
                     ) : (
                       ordersInStage.map((ord) => (
@@ -184,7 +242,7 @@ export const ProcurementEximModule: React.FC = () => {
                           </div>
 
                           <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800/80">
-                            <span className="shrink-0">{ord.itemsCount} SKU</span>
+                            <span className="shrink-0">{ord.itemsCount} {t.sku}</span>
                             <span className="text-slate-800 dark:text-slate-200 text-xs truncate ml-1 text-right">
                               <FinancialMask value={ord.totalAmount} className="font-bold" />
                             </span>
@@ -238,10 +296,10 @@ export const ProcurementEximModule: React.FC = () => {
             </div>
             <div>
               <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                Dropzone Berkas Kepabeanan Kawasan Berikat
+                {t.dzTitle}
               </h3>
               <p className="text-xs text-slate-500 max-w-md mt-0.5">
-                Unggah dokumen BC 2.3 (Impor), BC 2.7 (Antar KB), BC 4.0 (Lokal), dan SPPB (Gate Pass Priok)
+                {t.dzDesc}
               </p>
             </div>
 
@@ -249,7 +307,7 @@ export const ProcurementEximModule: React.FC = () => {
               perform="exim:bc_doc:upload"
               fallback={
                 <div className="text-xs text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/50 px-3 py-1.5 rounded-xl">
-                  Akses Upload Terbatas: Memerlukan Role Purchasing / EXIM Officer
+                  {t.dzRestricted}
                 </div>
               }
             >
@@ -258,7 +316,7 @@ export const ProcurementEximModule: React.FC = () => {
                 className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition-colors flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
-                <span>Upload Dokumen Bea Cukai Baru</span>
+                <span>{t.btnUpload}</span>
               </button>
             </Can>
           </div>
@@ -266,7 +324,7 @@ export const ProcurementEximModule: React.FC = () => {
           {/* Verification Checklist Table */}
           <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3">
             <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              Daftar Dokumen Pabean Terverifikasi
+              {t.docList}
             </h3>
 
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -298,17 +356,17 @@ export const ProcurementEximModule: React.FC = () => {
                         {doc.notes}
                       </div>
                       <div className="text-[10px] text-slate-400 mt-0.5">
-                        File: {doc.fileName} ({doc.fileSize}) • Tanggal: {doc.submissionDate || doc.registrationDate}
+                        {t.file} {doc.fileName} ({doc.fileSize}) • {t.date} {doc.submissionDate || doc.registrationDate}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => alert(`Mengunduh salinan pabean ${doc.fileName}`)}
+                      onClick={() => alert(`${t.alertDl} ${doc.fileName}`)}
                       className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-[11px] text-slate-700 dark:text-slate-300"
                     >
-                      Unduh PDF
+                      {t.btnDownload}
                     </button>
                   </div>
                 </div>
@@ -326,12 +384,12 @@ export const ProcurementEximModule: React.FC = () => {
             className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4"
           >
             <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              Upload Berkas Dokumen Pabean Kawasan Berikat
+              {t.upTitle}
             </h3>
 
             <div>
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                Jenis Dokumen Pabean:
+                {t.upType}
               </label>
               <select
                 value={newDocType}
@@ -347,27 +405,27 @@ export const ProcurementEximModule: React.FC = () => {
 
             <div>
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                Nomor Registrasi / Referensi Dokumen:
+                {t.upRef}
               </label>
               <input
                 type="text"
                 required
                 value={newRefNo}
                 onChange={(e) => setNewRefNo(e.target.value)}
-                placeholder="Contoh: BC23-CKR-2026-0914"
+                placeholder={t.upRefPl}
                 className="w-full p-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               />
             </div>
 
             <div>
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                Deskripsi / Keterangan Muatan:
+                {t.upDesc}
               </label>
               <textarea
                 rows={2}
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
-                placeholder="Keterangan bahan baku atau subkontrak slitting..."
+                placeholder={t.upDescPl}
                 className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               />
             </div>
@@ -378,13 +436,13 @@ export const ProcurementEximModule: React.FC = () => {
                 onClick={() => setUploadModalOpen(false)}
                 className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold"
               >
-                Batal
+                {t.btnCancel}
               </button>
               <button
                 type="submit"
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold"
               >
-                Simpan & Enkripsi Log
+                {t.btnSaveLog}
               </button>
             </div>
           </form>

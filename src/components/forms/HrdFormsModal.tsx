@@ -10,7 +10,159 @@ interface Props {
   defaultTab?: 'leave' | 'vehicle' | 'visit' | 'employee';
 }
 
+const CONTENT = {
+  id: {
+    formTitle: 'Formulir Input Data HRD & Administrasi',
+    formDesc: 'Kelola pengajuan cuti/izin, peminjaman kendaraan pabrik, log kunjungan luar kota & karyawan baru',
+    tabLeave: 'Pengajuan Cuti / Izin',
+    tabVehicle: 'Peminjaman Armada Kendaraan',
+    tabVisit: 'Log Kunjungan Sales (GPS)',
+    tabEmployee: 'Pendaftaran Karyawan Baru',
+    
+    // Leave form
+    lvName: 'Nama Karyawan',
+    lvNik: 'Nomor Induk Karyawan (NIK)',
+    lvDept: 'Departemen / Divisi',
+    lvType: 'Jenis Cuti / Izin',
+    lvType1: 'Cuti Tahunan (Hak Cuti Resmi)',
+    lvType2: 'Izin Sakit (Surat Dokter Terlampir)',
+    lvType3: 'Izin Khusus / Dispensasi Resmi',
+    lvType4: 'Cuti Melahirkan / Gugur Kandungan',
+    lvStart: 'Tanggal Mulai',
+    lvEnd: 'Tanggal Selesai',
+    lvDays: 'Durasi (Hari Kerja)',
+    lvReason: 'Alasan Pengajuan / Keterangan',
+    lvReasonPl: 'Contoh: Keperluan acara keluarga di luar kota / rawat inap di rumah sakit...',
+    btnCancel: 'Batal',
+    btnLeave: 'Kirim Pengajuan Cuti',
+
+    // Vehicle form
+    vhFleet: 'Pilihan Kendaraan / Armada',
+    vhFleet1: 'Truk Wingbox Isuzu Giga (B 9128 UXT)',
+    vhFleet2: 'Toyota Avanza Operasional Sales (B 2419 KFA)',
+    vhFleet3: 'Mitsubishi Fuso Engkel Box (B 9912 UZ)',
+    vhDriver: 'Nama Supir / Pengemudi',
+    vhDest: 'Lokasi Tujuan / Client Site',
+    vhDestPl: 'Contoh: PT Astra Daihatsu Motor (Sunter, Jakarta Utara)',
+    vhTime: 'Waktu Keberangkatan',
+    vhPurpose: 'Keperluan Operasional',
+    vhPurposePl: 'Contoh: Pengantaran batch Delivery Order DO/SMI/2026/09/0112 ke plant perakitan otomotif',
+    btnVehicle: 'Simpan Reservasi Armada',
+
+    // Visit form
+    vsRep: 'Nama Sales Representative',
+    vsClient: 'Perusahaan Klien / Target',
+    vsClientPl: 'Contoh: PT Toyota Astra Motor Karawang',
+    vsAddress: 'Alamat Lokasi Kunjungan',
+    vsAddressPl: 'Kawasan Industri KIIC Lot CC-4, Teluk Jambe, Karawang',
+    vsLat: 'Koordinat GPS Latitude',
+    vsLng: 'Koordinat GPS Longitude',
+    vsPurpose: 'Tujuan Kunjungan',
+    vsPurposePl: 'Presentasi produk pita perekat double-side & uji spesifikasi tahan panas...',
+    vsResult: 'Catatan Hasil Pertemuan (Meeting Notes)',
+    vsResultPl: 'Klien menyetujui sampel batch dan meminta penawaran harga (Quotation) untuk 1.000 roll...',
+    btnVisit: 'Check-in Kunjungan Lapangan',
+
+    // Employee form
+    empNik: 'Nomor Induk Karyawan (NIK)',
+    empNikPl: 'Contoh: NIK-2026-145',
+    empName: 'Nama Lengkap Karyawan',
+    empNamePl: 'Contoh: Aditya Nugroho, S.T.',
+    empRole: 'Hak Akses Role (RBAC)',
+    empRole1: 'Operator Lantai Produksi (Level 3)',
+    empRole2: 'Sales Executive / Staff (Level 3)',
+    empRole3: 'QC Inspector / Tester (Level 3)',
+    empRole4: 'PPIC Planner (Level 2)',
+    empDept: 'Departemen / Penempatan',
+    empPhone: 'No. Kontak WhatsApp / Telepon',
+    empPlant: 'Lokasi Plant / Fasilitas',
+    btnEmployee: 'Daftarkan Karyawan',
+
+    // Success Messages
+    succLeave: 'Pengajuan {type} atas nama {name} berhasil didaftarkan.',
+    succVehicle: 'Peminjaman armada {name} tujuan {dest} berhasil didaftarkan.',
+    succVisit: 'Pencatatan kunjungan ke {client} berhasil disimpan.',
+    succEmp: 'Karyawan baru {name} ({nik}) berhasil didaftarkan ke sistem HRD.',
+  },
+  en: {
+    formTitle: 'HRD & Administration Data Input Form',
+    formDesc: 'Manage leave/permit requests, factory vehicle bookings, out-of-town visit logs & new employees',
+    tabLeave: 'Leave / Permit Request',
+    tabVehicle: 'Vehicle Fleet Booking',
+    tabVisit: 'Sales Visit Log (GPS)',
+    tabEmployee: 'New Employee Registration',
+
+    // Leave form
+    lvName: 'Employee Name',
+    lvNik: 'Employee ID (NIK)',
+    lvDept: 'Department / Division',
+    lvType: 'Leave / Permit Type',
+    lvType1: 'Annual Leave (Official Leave Right)',
+    lvType2: 'Sick Leave (Doctor\'s Note Attached)',
+    lvType3: 'Special Permit / Official Dispensation',
+    lvType4: 'Maternity / Miscarriage Leave',
+    lvStart: 'Start Date',
+    lvEnd: 'End Date',
+    lvDays: 'Duration (Working Days)',
+    lvReason: 'Reason / Remarks',
+    lvReasonPl: 'Example: Family event out of town / hospitalization...',
+    btnCancel: 'Cancel',
+    btnLeave: 'Submit Leave Request',
+
+    // Vehicle form
+    vhFleet: 'Vehicle / Fleet Selection',
+    vhFleet1: 'Isuzu Giga Wingbox Truck (B 9128 UXT)',
+    vhFleet2: 'Toyota Avanza Sales Ops (B 2419 KFA)',
+    vhFleet3: 'Mitsubishi Fuso Engkel Box (B 9912 UZ)',
+    vhDriver: 'Driver Name',
+    vhDest: 'Destination Location / Client Site',
+    vhDestPl: 'Example: PT Astra Daihatsu Motor (Sunter, North Jakarta)',
+    vhTime: 'Departure Time',
+    vhPurpose: 'Operational Purpose',
+    vhPurposePl: 'Example: Delivery Order batch DO/SMI/2026/09/0112 delivery to automotive assembly plant',
+    btnVehicle: 'Save Fleet Reservation',
+
+    // Visit form
+    vsRep: 'Sales Representative Name',
+    vsClient: 'Client Company / Target',
+    vsClientPl: 'Example: PT Toyota Astra Motor Karawang',
+    vsAddress: 'Visit Location Address',
+    vsAddressPl: 'KIIC Industrial Estate Lot CC-4, Teluk Jambe, Karawang',
+    vsLat: 'GPS Latitude Coordinate',
+    vsLng: 'GPS Longitude Coordinate',
+    vsPurpose: 'Visit Purpose',
+    vsPurposePl: 'Double-sided adhesive tape product presentation & heat resistance spec testing...',
+    vsResult: 'Meeting Notes',
+    vsResultPl: 'Client approved batch sample and requested Quotation for 1,000 rolls...',
+    btnVisit: 'Field Visit Check-in',
+
+    // Employee form
+    empNik: 'Employee ID (NIK)',
+    empNikPl: 'Example: NIK-2026-145',
+    empName: 'Employee Full Name',
+    empNamePl: 'Example: Aditya Nugroho, S.T.',
+    empRole: 'Access Role (RBAC)',
+    empRole1: 'Production Floor Operator (Level 3)',
+    empRole2: 'Sales Executive / Staff (Level 3)',
+    empRole3: 'QC Inspector / Tester (Level 3)',
+    empRole4: 'PPIC Planner (Level 2)',
+    empDept: 'Department / Placement',
+    empPhone: 'WhatsApp / Phone Contact No.',
+    empPlant: 'Plant Location / Facility',
+    btnEmployee: 'Register Employee',
+
+    // Success Messages
+    succLeave: 'Request {type} for {name} was successfully registered.',
+    succVehicle: 'Fleet booking {name} to {dest} was successfully registered.',
+    succVisit: 'Visit record to {client} was successfully saved.',
+    succEmp: 'New employee {name} ({nik}) was successfully registered into HRD system.',
+  }
+};
+
 export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'leave' }) => {
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language] || CONTENT.id;
+
   const [activeTab, setActiveTab] = useState<'leave' | 'vehicle' | 'visit' | 'employee'>(defaultTab);
   const currentUser = useAppStore((state) => state.currentUser);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -71,7 +223,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
     };
 
     appStore.addLeaveRequest(newLeave);
-    setSuccessMessage(`Pengajuan ${leaveType} atas nama ${leaveEmployeeName} berhasil didaftarkan.`);
+    setSuccessMessage(t.succLeave.replace('{type}', leaveType).replace('{name}', leaveEmployeeName));
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -94,7 +246,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
     };
 
     appStore.addVehicleBooking(newBooking);
-    setSuccessMessage(`Peminjaman armada ${vehicleName} tujuan ${destination} berhasil didaftarkan.`);
+    setSuccessMessage(t.succVehicle.replace('{name}', vehicleName).replace('{dest}', destination));
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -117,7 +269,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
     };
 
     appStore.addSalesVisit(newVisit);
-    setSuccessMessage(`Pencatatan kunjungan ke ${visitClientName} berhasil disimpan.`);
+    setSuccessMessage(t.succVisit.replace('{client}', visitClientName));
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -144,7 +296,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
       phoneNumber: empPhone,
     });
 
-    setSuccessMessage(`Karyawan baru ${empName} (${empNik}) berhasil didaftarkan ke sistem HRD.`);
+    setSuccessMessage(t.succEmp.replace('{name}', empName).replace('{nik}', empNik));
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -159,10 +311,10 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
           <div>
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-indigo-600" />
-              <span>Formulir Input Data HRD & Administrasi</span>
+              <span>{t.formTitle}</span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Kelola pengajuan cuti/izin, peminjaman kendaraan pabrik, log kunjungan luar kota & karyawan baru
+              {t.formDesc}
             </p>
           </div>
           <button
@@ -184,7 +336,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>Pengajuan Cuti / Izin</span>
+            <span>{t.tabLeave}</span>
           </button>
           <button
             onClick={() => setActiveTab('vehicle')}
@@ -195,7 +347,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
             }`}
           >
             <Car className="w-4 h-4" />
-            <span>Peminjaman Armada Kendaraan</span>
+            <span>{t.tabVehicle}</span>
           </button>
           <button
             onClick={() => setActiveTab('visit')}
@@ -206,7 +358,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
             }`}
           >
             <MapPin className="w-4 h-4" />
-            <span>Log Kunjungan Sales (GPS)</span>
+            <span>{t.tabVisit}</span>
           </button>
           <button
             onClick={() => setActiveTab('employee')}
@@ -217,7 +369,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
             }`}
           >
             <UserPlus className="w-4 h-4" />
-            <span>Pendaftaran Karyawan Baru</span>
+            <span>{t.tabEmployee}</span>
           </button>
         </div>
 
@@ -235,7 +387,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
             <form onSubmit={handleLeaveSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Karyawan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvName}</label>
                   <input
                     type="text"
                     required
@@ -245,7 +397,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Induk Karyawan (NIK)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvNik}</label>
                   <input
                     type="text"
                     required
@@ -258,7 +410,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Departemen / Divisi</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvDept}</label>
                   <input
                     type="text"
                     required
@@ -268,23 +420,23 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Jenis Cuti / Izin</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvType}</label>
                   <select
                     value={leaveType}
                     onChange={(e) => setLeaveType(e.target.value as LeaveRequest['leaveType'])}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   >
-                    <option value="CUTI_TAHUNAN">Cuti Tahunan (Hak Cuti Resmi)</option>
-                    <option value="SAKIT_SURAT_DOKTER">Izin Sakit (Surat Dokter Terlampir)</option>
-                    <option value="IZIN_KEPERLUAN_KHUSUS">Izin Khusus / Dispensasi Resmi</option>
-                    <option value="CUTI_MELAHIRKAN">Cuti Melahirkan / Gugur Kandungan</option>
+                    <option value="CUTI_TAHUNAN">{t.lvType1}</option>
+                    <option value="SAKIT_SURAT_DOKTER">{t.lvType2}</option>
+                    <option value="IZIN_KEPERLUAN_KHUSUS">{t.lvType3}</option>
+                    <option value="CUTI_MELAHIRKAN">{t.lvType4}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tanggal Mulai</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvStart}</label>
                   <input
                     type="date"
                     required
@@ -294,7 +446,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tanggal Selesai</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvEnd}</label>
                   <input
                     type="date"
                     required
@@ -304,7 +456,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Durasi (Hari Kerja)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvDays}</label>
                   <input
                     type="number"
                     min="1"
@@ -318,11 +470,11 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Alasan Pengajuan / Keterangan</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvReason}</label>
                 <textarea
                   rows={2}
                   required
-                  placeholder="Contoh: Keperluan acara keluarga di luar kota / rawat inap di rumah sakit..."
+                  placeholder={t.lvReasonPl}
                   value={leaveReason}
                   onChange={(e) => setLeaveReason(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -335,13 +487,13 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
-                  Kirim Pengajuan Cuti
+                  {t.btnLeave}
                 </button>
               </div>
             </form>
@@ -352,7 +504,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
             <form onSubmit={handleVehicleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Pilihan Kendaraan / Armada</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.vhFleet}</label>
                   <select
                     value={vehicleName}
                     onChange={(e) => {
@@ -363,13 +515,13 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                     }}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   >
-                    <option value="Isuzu Giga Wingbox (B 9128 UXT)">Truk Wingbox Isuzu Giga (B 9128 UXT)</option>
-                    <option value="Toyota Avanza Dinas Sales (B 2419 KFA)">Toyota Avanza Operasional Sales (B 2419 KFA)</option>
-                    <option value="Mitsubishi Fuso Fighter (B 9912 UZ)">Mitsubishi Fuso Engkel Box (B 9912 UZ)</option>
+                    <option value="Isuzu Giga Wingbox (B 9128 UXT)">{t.vhFleet1}</option>
+                    <option value="Toyota Avanza Dinas Sales (B 2419 KFA)">{t.vhFleet2}</option>
+                    <option value="Mitsubishi Fuso Fighter (B 9912 UZ)">{t.vhFleet3}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Supir / Pengemudi</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.vhDriver}</label>
                   <input
                     type="text"
                     required
@@ -382,18 +534,18 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Lokasi Tujuan / Client Site</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.vhDest}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: PT Astra Daihatsu Motor (Sunter, Jakarta Utara)"
+                    placeholder={t.vhDestPl}
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Waktu Keberangkatan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.vhTime}</label>
                   <input
                     type="datetime-local"
                     required
@@ -405,11 +557,11 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Keperluan Operasional</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.vhPurpose}</label>
                 <textarea
                   rows={2}
                   required
-                  placeholder="Contoh: Pengantaran batch Delivery Order DO/SMI/2026/09/0112 ke plant perakitan otomotif"
+                  placeholder={t.vhPurposePl}
                   value={vehiclePurpose}
                   onChange={(e) => setVehiclePurpose(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -422,13 +574,13 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
-                  Simpan Reservasi Armada
+                  {t.btnVehicle}
                 </button>
               </div>
             </form>
@@ -439,7 +591,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
             <form onSubmit={handleVisitSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Sales Representative</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.vsRep}</label>
                   <input
                     type="text"
                     required
@@ -449,11 +601,11 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Perusahaan Klien / Target</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.vsClient}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: PT Toyota Astra Motor Karawang"
+                    placeholder={t.vsClientPl}
                     value={visitClientName}
                     onChange={(e) => setVisitClientName(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -462,11 +614,11 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Alamat Lokasi Kunjungan</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.vsAddress}</label>
                 <input
                   type="text"
                   required
-                  placeholder="Kawasan Industri KIIC Lot CC-4, Teluk Jambe, Karawang"
+                  placeholder={t.vsAddressPl}
                   value={visitAddress}
                   onChange={(e) => setVisitAddress(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -475,7 +627,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Koordinat GPS Latitude</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.vsLat}</label>
                   <input
                     type="text"
                     value={visitLat}
@@ -484,7 +636,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Koordinat GPS Longitude</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.vsLng}</label>
                   <input
                     type="text"
                     value={visitLng}
@@ -495,11 +647,11 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Tujuan Kunjungan</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.vsPurpose}</label>
                 <input
                   type="text"
                   required
-                  placeholder="Presentasi produk pita perekat double-side & uji spesifikasi tahan panas..."
+                  placeholder={t.vsPurposePl}
                   value={visitPurpose}
                   onChange={(e) => setVisitPurpose(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -507,10 +659,10 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Hasil Pertemuan (Meeting Notes)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.vsResult}</label>
                 <textarea
                   rows={2}
-                  placeholder="Klien menyetujui sampel batch dan meminta penawaran harga (Quotation) untuk 1.000 roll..."
+                  placeholder={t.vsResultPl}
                   value={visitResult}
                   onChange={(e) => setVisitResult(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -523,13 +675,13 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
-                  Check-in Kunjungan Lapangan
+                  {t.btnVisit}
                 </button>
               </div>
             </form>
@@ -540,22 +692,22 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
             <form onSubmit={handleEmployeeSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Induk Karyawan (NIK)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.empNik}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: NIK-2026-145"
+                    placeholder={t.empNikPl}
                     value={empNik}
                     onChange={(e) => setEmpNik(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap Karyawan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.empName}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Aditya Nugroho, S.T."
+                    placeholder={t.empNamePl}
                     value={empName}
                     onChange={(e) => setEmpName(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -565,20 +717,20 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Hak Akses Role (RBAC)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.empRole}</label>
                   <select
                     value={empRole}
                     onChange={(e) => setEmpRole(e.target.value as any)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   >
-                    <option value="OPERATOR">Operator Lantai Produksi (Level 3)</option>
-                    <option value="SALES_STAFF">Sales Executive / Staff (Level 3)</option>
-                    <option value="QC_INSPECTOR">QC Inspector / Tester (Level 3)</option>
-                    <option value="PPIC_PLANNER">PPIC Planner (Level 2)</option>
+                    <option value="OPERATOR">{t.empRole1}</option>
+                    <option value="SALES_STAFF">{t.empRole2}</option>
+                    <option value="QC_INSPECTOR">{t.empRole3}</option>
+                    <option value="PPIC_PLANNER">{t.empRole4}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Departemen / Penempatan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.empDept}</label>
                   <input
                     type="text"
                     required
@@ -591,7 +743,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">No. Kontak WhatsApp / Telepon</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.empPhone}</label>
                   <input
                     type="text"
                     required
@@ -601,7 +753,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Lokasi Plant / Fasilitas</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.empPlant}</label>
                   <input
                     type="text"
                     required
@@ -618,13 +770,13 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
-                  Daftarkan Karyawan
+                  {t.btnEmployee}
                 </button>
               </div>
             </form>

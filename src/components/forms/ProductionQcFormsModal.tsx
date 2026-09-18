@@ -6,10 +6,120 @@ import { WorkOrderSpk, QcInspectionRecord, QcStatus } from '../../types';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  defaultTab?: 'spk' | 'qc_test' | 'hold_override' | 'coa';
+  defaultTab?: 'spk' | 'qc_test' | 'hold_override';
 }
 
+const CONTENT = {
+  id: {
+    title: 'Formulir Produksi & Kontrol Mutu (SPK & QC Hold Lockout)',
+    desc: 'Penerbitan SPK (validasi blokir bahan baku), Formulir Uji Lab IQC/PQC, & Otorisasi Buka Kunci (Release Hold)',
+    tabSpk: 'Penerbitan SPK (Work Order)',
+    tabQc: 'Input Uji Mutu QC (IQC & PQC)',
+    tabHold: 'Otorisasi Release QC Hold',
+    spkNum: 'Nomor SPK Produksi',
+    spkIo: 'Referensi IO / PO Pelanggan',
+    spkItem: 'Kode Produk',
+    spkName: 'Nama Produk yang Dikonversi',
+    spkQty: 'Target Qty',
+    spkW: 'Lebar (mm)',
+    spkL: 'Panjang (m)',
+    spkT: 'Tebal (µm)',
+    spkLine: 'Mesin Produksi',
+    spkOp: 'Operator Penanggung Jawab',
+    spkDue: 'Target Selesai (Due Date)',
+    btnCancel: 'Batal',
+    btnSpk: 'Terbitkan SPK Produksi',
+    qcLot: 'Nomor Lot Uji',
+    qcItem: 'Kode Item',
+    qcBatch: 'Ukuran Batch (Jumlah Roll)',
+    qcName: 'Nama Produk / Lot Diuji',
+    qcResultHeader: 'Hasil Parameter Uji Laboratorium',
+    qcThick: 'Ketebalan Tape (Micron)',
+    qcAdhesion: 'Daya Rekat (Adhesion N/25mm)',
+    qcLiner: 'Pelepasan Liner (g/25mm)',
+    qcStandard: 'Standar:',
+    qcStatusTitle: 'Keputusan Status Mutu QC',
+    qcPass: '[PASS] LULUS',
+    qcPassDesc: 'Terbitkan COA Resmi',
+    qcHold: '[HOLD] CEKAL',
+    qcHoldDesc: 'Kunci Blokir Sistem',
+    qcRework: '[REWORK] PROSES ULANG',
+    qcReworkDesc: 'Slitting / Trimming Ulang',
+    qcDefectLabel: 'Alasan Pencekalan / Catatan Penyimpangan Mutu (Wajib diisi jika HOLD / REWORK)',
+    qcDefectPl: 'Contoh: Ketebalan lapisan adhesive melampaui toleransi atas (+5.2 µm) sehingga berisiko bleeding lem...',
+    btnQcSubmit: 'Simpan Keputusan QC',
+    overrideTitle: 'Otorisasi Khusus Level 1 (QC Manager / Direksi):',
+    overrideDesc: 'Membuka cekal QC Hold secara manual memerlukan justifikasi teknis formal yang akan direkam dalam log audit SHA-256 dan dilaporkan ke Board of Directors.',
+    overrideLotLabel: 'Pilih Batch Lot yang Sedang Dicekal (HOLD)',
+    overrideReasonLabel: 'Justifikasi Teknis Pelepasan Cekal (Dispensasi QC)',
+    overrideReasonPl: 'Contoh: Telah dilakukan uji komparasi suhu ruangan 30°C dan aplikasi non-kritis dengan persetujuan Section Head QC & Direksi...',
+    btnOverrideSubmit: 'Buka Kunci Cekal (Release Hold)',
+    msgSpkHold: 'berhasil diterbitkan namun DIBLOKIR SEMENTARA (Status: HOLD_BLOCKED) karena bahan baku terkait sedang dicekal QC.',
+    msgSpkSuccess: 'berhasil diterbitkan dan siap dikerjakan di',
+    msgQcHold: 'PERINGATAN: Lot',
+    msgQcHoldDesc: 'BERSTATUS [QC HOLD]! Sistem Lockout otomatis mengunci transfer & penerbitan DO untuk lot ini.',
+    msgQcSuccess: 'Hasil Pengujian QC Lot',
+    msgQcSuccessDesc: 'berhasil dicatat & diterbitkan.',
+    msgOverride: 'Otorisasi Override QC Hold berhasil. Kunci blokir sistem untuk lot tersebut telah dibuka resmi.',
+  },
+  en: {
+    title: 'Production & Quality Control Forms (SPK & QC Hold Lockout)',
+    desc: 'SPK Issuance (raw material block validation), IQC/PQC Lab Test Forms, & Unlock Authorization (Release Hold)',
+    tabSpk: 'SPK Issuance (Work Order)',
+    tabQc: 'QC Quality Test Input (IQC & PQC)',
+    tabHold: 'QC Hold Release Authorization',
+    spkNum: 'Production SPK Number',
+    spkIo: 'Customer IO / PO Reference',
+    spkItem: 'Product Code',
+    spkName: 'Converted Product Name',
+    spkQty: 'Target Qty',
+    spkW: 'Width (mm)',
+    spkL: 'Length (m)',
+    spkT: 'Thickness (µm)',
+    spkLine: 'Production Line',
+    spkOp: 'Responsible Operator',
+    spkDue: 'Target Completion (Due Date)',
+    btnCancel: 'Cancel',
+    btnSpk: 'Issue Production SPK',
+    qcLot: 'Test Lot Number',
+    qcItem: 'Item Code',
+    qcBatch: 'Batch Size (Number of Rolls)',
+    qcName: 'Tested Product / Lot Name',
+    qcResultHeader: 'Laboratory Test Parameter Results',
+    qcThick: 'Tape Thickness (Micron)',
+    qcAdhesion: 'Adhesion Force (N/25mm)',
+    qcLiner: 'Liner Release (g/25mm)',
+    qcStandard: 'Standard:',
+    qcStatusTitle: 'QC Quality Status Decision',
+    qcPass: '[PASS] PASSED',
+    qcPassDesc: 'Issue Official COA',
+    qcHold: '[HOLD] BLOCKED',
+    qcHoldDesc: 'System Lock Block',
+    qcRework: '[REWORK] REPROCESS',
+    qcReworkDesc: 'Re-Slitting / Trimming',
+    qcDefectLabel: 'Block Reason / Quality Deviation Note (Required if HOLD / REWORK)',
+    qcDefectPl: 'Example: Adhesive layer thickness exceeds upper tolerance (+5.2 µm) risking glue bleeding...',
+    btnQcSubmit: 'Save QC Decision',
+    overrideTitle: 'Level 1 Special Authorization (QC Manager / Directors):',
+    overrideDesc: 'Manually unlocking QC Hold requires formal technical justification that will be recorded in SHA-256 audit log and reported to Board of Directors.',
+    overrideLotLabel: 'Select Batch Lot Currently on HOLD',
+    overrideReasonLabel: 'Technical Justification for Release (QC Dispensation)',
+    overrideReasonPl: 'Example: 30°C room temperature comparison test and non-critical application approved by QC Section Head & Directors...',
+    btnOverrideSubmit: 'Unlock Hold (Release Hold)',
+    msgSpkHold: 'successfully issued but TEMPORARILY BLOCKED (Status: HOLD_BLOCKED) because related raw materials are blocked by QC.',
+    msgSpkSuccess: 'successfully issued and ready to work in',
+    msgQcHold: 'WARNING: Lot',
+    msgQcHoldDesc: 'IS ON [QC HOLD] STATUS! Automatic Lockout system locks transfer & DO issuance for this lot.',
+    msgQcSuccess: 'QC Test Results for Lot',
+    msgQcSuccessDesc: 'successfully recorded & issued.',
+    msgOverride: 'QC Hold Override Authorization successful. System block lock for the lot has been officially released.',
+  }
+};
+
 export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'spk' }) => {
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language] || CONTENT.id;
+
   const [activeTab, setActiveTab] = useState<'spk' | 'qc_test' | 'hold_override' | 'coa'>(defaultTab);
   const currentUser = useAppStore((state) => state.currentUser);
   const items = useAppStore((state) => state.items);
@@ -85,9 +195,9 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
 
     appStore.addWorkOrder(newSpk);
     if (isMaterialBlocked) {
-      setSuccessMessage(`SPK ${spkNumber} berhasil diterbitkan namun DIBLOKIR SEMENTARA (Status: HOLD_BLOCKED) karena bahan baku terkait sedang dicekal QC.`);
+      setSuccessMessage(`SPK ${spkNumber} ${t.msgSpkHold}`);
     } else {
-      setSuccessMessage(`SPK ${spkNumber} berhasil diterbitkan dan siap dikerjakan di ${spkLine}.`);
+      setSuccessMessage(`SPK ${spkNumber} ${t.msgSpkSuccess} ${spkLine}.`);
     }
 
     setTimeout(() => {
@@ -126,9 +236,9 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
     appStore.addQcInspection(newQc);
 
     if (isHold) {
-      setSuccessMessage(`PERINGATAN: Lot ${testLotNumber} BERSTATUS [QC HOLD]! Sistem Lockout otomatis mengunci transfer & penerbitan DO untuk lot ini.`);
+      setSuccessMessage(`${t.msgQcHold} ${testLotNumber} ${t.msgQcHoldDesc}`);
     } else {
-      setSuccessMessage(`Hasil Pengujian QC Lot ${testLotNumber} [${testStatus}] berhasil dicatat & diterbitkan.`);
+      setSuccessMessage(`${t.msgQcSuccess} ${testLotNumber} [${testStatus}] ${t.msgQcSuccessDesc}`);
     }
 
     setTimeout(() => {
@@ -142,7 +252,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
     if (!overrideLot || !overrideReason.trim()) return;
 
     appStore.overrideQcHold(overrideLot, overrideReason.trim());
-    setSuccessMessage(`Otorisasi Override QC Hold berhasil. Kunci blokir sistem untuk lot tersebut telah dibuka resmi.`);
+    setSuccessMessage(t.msgOverride);
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -157,10 +267,10 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
           <div>
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <ShieldAlert className="w-5 h-5 text-rose-600" />
-              <span>Formulir Produksi & Kontrol Mutu (SPK & QC Hold Lockout)</span>
+              <span>{t.title}</span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Penerbitan SPK (validasi blokir bahan baku), Formulir Uji Lab IQC/PQC, & Otorisasi Buka Kunci (Release Hold)
+              {t.desc}
             </p>
           </div>
           <button
@@ -182,7 +292,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
             }`}
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Penerbitan SPK (Work Order)</span>
+            <span>{t.tabSpk}</span>
           </button>
           <button
             onClick={() => setActiveTab('qc_test')}
@@ -193,7 +303,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
             }`}
           >
             <ShieldAlert className="w-4 h-4" />
-            <span>Input Uji Mutu QC (IQC & PQC)</span>
+            <span>{t.tabQc}</span>
           </button>
           <button
             onClick={() => setActiveTab('hold_override')}
@@ -204,7 +314,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
             }`}
           >
             <Unlock className="w-4 h-4" />
-            <span>Otorisasi Release QC Hold</span>
+            <span>{t.tabHold}</span>
           </button>
         </div>
 
@@ -222,7 +332,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
             <form onSubmit={handleSpkSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor SPK Produksi</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.spkNum}</label>
                   <input
                     type="text"
                     required
@@ -232,7 +342,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Referensi IO / PO Pelanggan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.spkIo}</label>
                   <input
                     type="text"
                     required
@@ -245,7 +355,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kode Produk</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.spkItem}</label>
                   <input
                     type="text"
                     required
@@ -255,7 +365,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Produk yang Dikonversi</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.spkName}</label>
                   <input
                     type="text"
                     required
@@ -268,7 +378,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
 
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Target Qty</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.spkQty}</label>
                   <input
                     type="number"
                     min="1"
@@ -279,7 +389,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Lebar (mm)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.spkW}</label>
                   <input
                     type="number"
                     required
@@ -289,7 +399,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Panjang (m)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.spkL}</label>
                   <input
                     type="number"
                     required
@@ -299,7 +409,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tebal (µm)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.spkT}</label>
                   <input
                     type="number"
                     required
@@ -312,7 +422,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Mesin Produksi</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.spkLine}</label>
                   <select
                     value={spkLine}
                     onChange={(e) => setSpkLine(e.target.value)}
@@ -325,7 +435,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Operator Penanggung Jawab</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.spkOp}</label>
                   <input
                     type="text"
                     required
@@ -335,7 +445,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Target Selesai (Due Date)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.spkDue}</label>
                   <input
                     type="date"
                     required
@@ -352,13 +462,13 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
                 >
-                  Terbitkan SPK Produksi
+                  {t.btnSpk}
                 </button>
               </div>
             </form>
@@ -369,7 +479,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
             <form onSubmit={handleQcTestSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Lot Uji</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.qcLot}</label>
                   <input
                     type="text"
                     required
@@ -379,7 +489,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kode Item</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.qcItem}</label>
                   <input
                     type="text"
                     required
@@ -389,7 +499,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Ukuran Batch (Jumlah Roll)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.qcBatch}</label>
                   <input
                     type="number"
                     required
@@ -401,7 +511,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nama Produk / Lot Diuji</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.qcName}</label>
                 <input
                   type="text"
                   required
@@ -414,44 +524,44 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
               {/* Lab Parameters */}
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                 <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block">
-                  Hasil Parameter Uji Laboratorium
+                  {t.qcResultHeader}
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Ketebalan Tape (Micron)</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{t.qcThick}</label>
                     <input
                       type="text"
                       value={testMicronActual}
                       onChange={(e) => setTestMicronActual(e.target.value)}
                       className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Standar: 135 ± 3 µm</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">{t.qcStandard} 135 ± 3 µm</span>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Daya Rekat (Adhesion N/25mm)</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{t.qcAdhesion}</label>
                     <input
                       type="text"
                       value={testAdhesionActual}
                       onChange={(e) => setTestAdhesionActual(e.target.value)}
                       className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Standar: ≥ 14.0 N</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">{t.qcStandard} ≥ 14.0 N</span>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Pelepasan Liner (g/25mm)</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{t.qcLiner}</label>
                     <input
                       type="text"
                       value={testLinerActual}
                       onChange={(e) => setTestLinerActual(e.target.value)}
                       className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Standar: 20 - 30 g</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">{t.qcStandard} 20 - 30 g</span>
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Keputusan Status Mutu QC</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.qcStatusTitle}</label>
                 <div className="grid grid-cols-3 gap-3">
                   <label
                     className={`p-3 rounded-xl border text-center cursor-pointer transition-all ${
@@ -469,8 +579,8 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                       className="sr-only"
                     />
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
-                    <span className="text-xs font-black block">[PASS] LULUS</span>
-                    <span className="text-[10px] text-slate-500">Terbitkan COA Resmi</span>
+                    <span className="text-xs font-black block">{t.qcPass}</span>
+                    <span className="text-[10px] text-slate-500">{t.qcPassDesc}</span>
                   </label>
 
                   <label
@@ -489,8 +599,8 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                       className="sr-only"
                     />
                     <Lock className="w-5 h-5 text-rose-600 mx-auto mb-1" />
-                    <span className="text-xs font-black block">[HOLD] CEKAL</span>
-                    <span className="text-[10px] text-slate-500">Kunci Blokir Sistem</span>
+                    <span className="text-xs font-black block">{t.qcHold}</span>
+                    <span className="text-[10px] text-slate-500">{t.qcHoldDesc}</span>
                   </label>
 
                   <label
@@ -509,8 +619,8 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                       className="sr-only"
                     />
                     <AlertTriangle className="w-5 h-5 text-amber-600 mx-auto mb-1" />
-                    <span className="text-xs font-black block">[REWORK] PROSES ULANG</span>
-                    <span className="text-[10px] text-slate-500">Slitting / Trimming Ulang</span>
+                    <span className="text-xs font-black block">{t.qcRework}</span>
+                    <span className="text-[10px] text-slate-500">{t.qcReworkDesc}</span>
                   </label>
                 </div>
               </div>
@@ -518,12 +628,12 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
               {testStatus !== 'PASS' && (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Alasan Pencekalan / Catatan Penyimpangan Mutu (Wajib diisi jika HOLD / REWORK)
+                    {t.qcDefectLabel}
                   </label>
                   <textarea
                     rows={2}
                     required
-                    placeholder="Contoh: Ketebalan lapisan adhesive melampaui toleransi atas (+5.2 µm) sehingga berisiko bleeding lem..."
+                    placeholder={t.qcDefectPl}
                     value={defectReason}
                     onChange={(e) => setDefectReason(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500"
@@ -537,13 +647,13 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
                 >
-                  Simpan Keputusan QC
+                  {t.btnQcSubmit}
                 </button>
               </div>
             </form>
@@ -555,15 +665,15 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
               <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-start gap-3">
                 <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="font-bold">Otorisasi Khusus Level 1 (QC Manager / Direksi):</strong>
+                  <strong className="font-bold">{t.overrideTitle}</strong>
                   <div className="text-[11px] text-rose-800 mt-0.5">
-                    Membuka cekal QC Hold secara manual memerlukan justifikasi teknis formal yang akan direkam dalam log audit SHA-256 dan dilaporkan ke Board of Directors.
+                    {t.overrideDesc}
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Pilih Batch Lot yang Sedang Dicekal (HOLD)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.overrideLotLabel}</label>
                 <select
                   value={overrideLot}
                   onChange={(e) => setOverrideLot(e.target.value)}
@@ -581,12 +691,12 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Justifikasi Teknis Pelepasan Cekal (Dispensasi QC)
+                  {t.overrideReasonLabel}
                 </label>
                 <textarea
                   rows={3}
                   required
-                  placeholder="Contoh: Telah dilakukan uji komparasi suhu ruangan 30°C dan aplikasi non-kritis dengan persetujuan Section Head QC & Direksi..."
+                  placeholder={t.overrideReasonPl}
                   value={overrideReason}
                   onChange={(e) => setOverrideReason(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500"
@@ -599,13 +709,13 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
                 >
-                  Buka Kunci Cekal (Release Hold)
+                  {t.btnOverrideSubmit}
                 </button>
               </div>
             </form>

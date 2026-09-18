@@ -3,6 +3,203 @@ import { X, Building2, Truck, Boxes, Trash2, CheckCircle2, AlertTriangle, Shield
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { CustomerMaster, SupplierMaster, MasterItem, WasteRecord, ItemCategory } from '../../types';
 
+const CONTENT = {
+  id: {
+    formTitle: 'Formulir Master Data & Pengelolaan Item',
+    formDesc: 'Registrasi Pelanggan (NPWP & Kode Pajak 01-09), Vendor/Supplier, Item Produk & Pelaporan Limbah',
+    tabCust: 'Master Pelanggan (Customer)',
+    tabSupp: 'Master Vendor / Supplier',
+    tabItem: 'Master Item & Pita Perekat',
+    tabWaste: 'Pencatatan Limbah Pabrik',
+
+    // Customer
+    cuCode: 'Kode Pelanggan',
+    cuName: 'Nama Badan Usaha / PT',
+    cuNamePl: 'Contoh: PT Astra Daihatsu Motor (Plant Sunter)',
+    cuStatus: 'Status Klien',
+    cuStatusNew: 'Pelanggan Baru (New)',
+    cuStatusOld: 'Pelanggan Lama (Existing/VIP)',
+    cuTax: 'Kode Transaksi Pajak',
+    cuTax1: '01 - Penyerahan BKP/JKP Normal',
+    cuTax2: '02 - Pemungut Bendaharawan Pemerintah',
+    cuTax3: '03 - Pemungut BUMN / Non-Bendahara',
+    cuTax4: '04 - DPP Nilai Lain',
+    cuTax7: '07 - Kawasan Berikat (PPN Dibebaskan)',
+    cuTax8: '08 - PPN Tidak Dipungut',
+    cuNpwp: 'Nomor Pokok Wajib Pajak (NPWP)',
+    cuBill: 'Alamat Penagihan (Billing Address)',
+    cuBillPl: 'Alamat kantor pusat / faktur pajak...',
+    cuShip: 'Alamat Pengiriman Pabrik (Shipping)',
+    cuShipPl: 'Jika sama, biarkan kosong...',
+    cuTerm: 'Termin Pembayaran',
+    cuTerm1: 'Cash Before Delivery (CBD)',
+    cuTerm2: 'Net 14 Hari',
+    cuTerm3: 'Net 30 Hari',
+    cuTerm4: 'Net 45 Hari',
+    cuTerm5: 'Net 60 Hari',
+    cuLimit: 'Plafon Kredit Maksimum (IDR)',
+    cuPic: 'PIC Procurement / Kontak',
+    cuPicPl: 'Contoh: Pak Bambang (Section Head)',
+    btnSaveCust: 'Simpan Master Pelanggan',
+    
+    // Supplier
+    suCode: 'Kode Vendor / Supplier',
+    suName: 'Nama Perusahaan Vendor',
+    suNamePl: 'Contoh: Nippon Polymer & Chemical Corp Tokyo',
+    suNpwp: 'NPWP / Tax ID',
+    suTerm: 'Termin Pembayaran',
+    suAddr: 'Alamat Kantor / Pabrik Supplier',
+    suAddrPl: 'Alamat lengkap lokasi pengiriman atau negara asal impor...',
+    suBank: 'Nama Bank Rekening',
+    suAcc: 'Nomor Rekening Bank',
+    suAccPl: 'Contoh: 295-0019283',
+    btnSaveSupp: 'Simpan Master Vendor',
+
+    // Item
+    itCode: 'Kode Item',
+    itCodePl: 'Contoh: SM-MSK-KFT24',
+    itName: 'Nama Produk / Material',
+    itNamePl: 'Contoh: Automotive Masking Tape High-Temp 150°C 24mm x 50m',
+    itCat: 'Kategori',
+    itCat1: 'Raw Material (Bahan Baku)',
+    itCat2: 'Jumbo Roll Tape',
+    itCat3: 'Slit Tape (Produk Konversi)',
+    itCat4: 'Finished Goods',
+    itCat5: 'Packaging (Karton & Core)',
+    itUnit: 'Satuan Dasar',
+    itRack: 'Lokasi Rak Gudang',
+    itStock: 'Stok Awal',
+    itMin: 'Safety Stock (Min)',
+    itCost: 'HPP Unit Cost (IDR)',
+    itPrice: 'Harga Jual (IDR)',
+    itCalc: 'Kalkulasi Gross Margin Otomatis:',
+    btnSaveItem: 'Simpan Item Master',
+
+    // Waste
+    wsType: 'Tipe Limbah',
+    wsType1: 'Raw Material Waste (Bahan Baku / Film / Lem)',
+    wsType2: 'Finished Product Waste (Roll Pita Cacat / NG)',
+    wsSev: 'Klasifikasi Severity',
+    wsSev1: 'MINOR (< 2% Toleransi Standar)',
+    wsSev2: 'MAJOR (2% - 5% Perlu Evaluasi Mesin)',
+    wsSev3: 'CRITICAL (> 5% Stop Mesin & Review QC)',
+    wsCode: 'Kode Item Material',
+    wsLot: 'Nomor Lot Material',
+    wsQty: 'Jumlah',
+    wsUnit: 'Satuan',
+    wsRoot: 'Akar Masalah (Root Cause)',
+    wsRootPl: 'Contoh: Ketegangan tension brake tidak stabil menyebabkan kerutan tepi pada film roll...',
+    wsCorr: 'Tindakan Korektif (Corrective Action)',
+    wsCorrPl: 'Tindakan langsung penanganan limbah saat ini...',
+    wsPrev: 'Tindakan Preventif (Preventive Action)',
+    wsPrevPl: 'Pencegahan agar masalah tidak terulang di masa depan...',
+    btnSaveWaste: 'Catat Laporan Limbah',
+
+    btnCancel: 'Batal',
+    succCust: 'Pelanggan {name} ({code}) berhasil didaftarkan ke Master Data.',
+    succSupp: 'Vendor/Supplier {name} ({code}) berhasil didaftarkan.',
+    succItem: 'Item {name} ({code}) berhasil disimpan dengan kalkulasi Gross Margin {margin}%.',
+    succWaste: 'Tiket Limbah {ticket} tingkat [{sev}] berhasil dicatat.',
+  },
+  en: {
+    formTitle: 'Master Data & Item Management Form',
+    formDesc: 'Customer Registration (Tax ID 01-09), Vendor/Supplier, Product Item & Waste Reporting',
+    tabCust: 'Customer Master',
+    tabSupp: 'Vendor / Supplier Master',
+    tabItem: 'Item Master & Adhesive Tape',
+    tabWaste: 'Factory Waste Recording',
+
+    // Customer
+    cuCode: 'Customer Code',
+    cuName: 'Company Name / Entity',
+    cuNamePl: 'Example: PT Astra Daihatsu Motor (Sunter Plant)',
+    cuStatus: 'Client Status',
+    cuStatusNew: 'New Customer',
+    cuStatusOld: 'Existing/VIP Customer',
+    cuTax: 'Tax Transaction Code',
+    cuTax1: '01 - Normal Taxable Goods/Services Delivery',
+    cuTax2: '02 - Government Treasurer Collector',
+    cuTax3: '03 - SOE / Non-Treasurer Collector',
+    cuTax4: '04 - Other Value Tax Base',
+    cuTax7: '07 - Bonded Zone (VAT Exempt)',
+    cuTax8: '08 - VAT Not Collected',
+    cuNpwp: 'Taxpayer Registration Number (NPWP)',
+    cuBill: 'Billing Address',
+    cuBillPl: 'Head office address / tax invoice address...',
+    cuShip: 'Factory Shipping Address',
+    cuShipPl: 'If same, leave blank...',
+    cuTerm: 'Payment Term',
+    cuTerm1: 'Cash Before Delivery (CBD)',
+    cuTerm2: 'Net 14 Days',
+    cuTerm3: 'Net 30 Days',
+    cuTerm4: 'Net 45 Days',
+    cuTerm5: 'Net 60 Days',
+    cuLimit: 'Maximum Credit Limit (IDR)',
+    cuPic: 'Procurement PIC / Contact',
+    cuPicPl: 'Example: Mr. Bambang (Section Head)',
+    btnSaveCust: 'Save Customer Master',
+    
+    // Supplier
+    suCode: 'Vendor / Supplier Code',
+    suName: 'Vendor Company Name',
+    suNamePl: 'Example: Nippon Polymer & Chemical Corp Tokyo',
+    suNpwp: 'NPWP / Tax ID',
+    suTerm: 'Payment Term',
+    suAddr: 'Supplier Office / Factory Address',
+    suAddrPl: 'Complete delivery location address or import country of origin...',
+    suBank: 'Bank Name',
+    suAcc: 'Bank Account Number',
+    suAccPl: 'Example: 295-0019283',
+    btnSaveSupp: 'Save Vendor Master',
+
+    // Item
+    itCode: 'Item Code',
+    itCodePl: 'Example: SM-MSK-KFT24',
+    itName: 'Product / Material Name',
+    itNamePl: 'Example: Automotive Masking Tape High-Temp 150°C 24mm x 50m',
+    itCat: 'Category',
+    itCat1: 'Raw Material',
+    itCat2: 'Jumbo Roll Tape',
+    itCat3: 'Slit Tape (Converted Product)',
+    itCat4: 'Finished Goods',
+    itCat5: 'Packaging (Carton & Core)',
+    itUnit: 'Base Unit',
+    itRack: 'Warehouse Rack Location',
+    itStock: 'Initial Stock',
+    itMin: 'Safety Stock (Min)',
+    itCost: 'Unit Cost (IDR)',
+    itPrice: 'Selling Price (IDR)',
+    itCalc: 'Automatic Gross Margin Calculation:',
+    btnSaveItem: 'Save Item Master',
+
+    // Waste
+    wsType: 'Waste Type',
+    wsType1: 'Raw Material Waste (Film / Glue)',
+    wsType2: 'Finished Product Waste (Defective Tape Roll / NG)',
+    wsSev: 'Severity Classification',
+    wsSev1: 'MINOR (< 2% Standard Tolerance)',
+    wsSev2: 'MAJOR (2% - 5% Needs Machine Evaluation)',
+    wsSev3: 'CRITICAL (> 5% Stop Machine & QC Review)',
+    wsCode: 'Material Item Code',
+    wsLot: 'Material Lot Number',
+    wsQty: 'Quantity',
+    wsUnit: 'Unit',
+    wsRoot: 'Root Cause',
+    wsRootPl: 'Example: Unstable tension brake causing edge wrinkles on film roll...',
+    wsCorr: 'Corrective Action',
+    wsCorrPl: 'Immediate waste handling action...',
+    wsPrev: 'Preventive Action',
+    wsPrevPl: 'Prevention to avoid repeating issue in the future...',
+    btnSaveWaste: 'Log Waste Report',
+
+    btnCancel: 'Cancel',
+    succCust: 'Customer {name} ({code}) was successfully registered into Master Data.',
+    succSupp: 'Vendor/Supplier {name} ({code}) was successfully registered.',
+    succItem: 'Item {name} ({code}) was successfully saved with {margin}% Gross Margin calculation.',
+    succWaste: 'Waste Ticket {ticket} level [{sev}] was successfully recorded.',
+  }
+};
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -10,6 +207,9 @@ interface Props {
 }
 
 export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'customer' }) => {
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language] || CONTENT.id;
+
   const [activeTab, setActiveTab] = useState<'customer' | 'supplier' | 'item' | 'waste'>(defaultTab);
   const currentUser = useAppStore((state) => state.currentUser);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -98,7 +298,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
     };
 
     appStore.addCustomer(newCust);
-    setSuccessMessage(`Pelanggan ${custName} (${custCode}) berhasil didaftarkan ke Master Data.`);
+    setSuccessMessage(t.succCust.replace('{name}', custName).replace('{code}', custCode));
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -125,7 +325,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
     };
 
     appStore.addSupplier(newSupp);
-    setSuccessMessage(`Vendor/Supplier ${suppName} (${suppCode}) berhasil didaftarkan.`);
+    setSuccessMessage(t.succSupp.replace('{name}', suppName).replace('{code}', suppCode));
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -159,7 +359,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
     };
 
     appStore.addMasterItem(newItem);
-    setSuccessMessage(`Item ${itemName} (${itemCode}) berhasil disimpan dengan kalkulasi Gross Margin ${margin}%.`);
+    setSuccessMessage(t.succItem.replace('{name}', itemName).replace('{code}', itemCode).replace('{margin}', margin.toString()));
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -188,7 +388,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
     };
 
     appStore.addWasteRecord(newWaste);
-    setSuccessMessage(`Tiket Limbah ${newWaste.ticketNumber} tingkat [${wasteSeverity}] berhasil dicatat.`);
+    setSuccessMessage(t.succWaste.replace('{ticket}', newWaste.ticketNumber).replace('{sev}', wasteSeverity));
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -203,10 +403,10 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
           <div>
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Boxes className="w-5 h-5 text-emerald-600" />
-              <span>Formulir Master Data & Pengelolaan Item</span>
+              <span>{t.formTitle}</span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Registrasi Pelanggan (NPWP & Kode Pajak 01-09), Vendor/Supplier, Item Produk & Pelaporan Limbah
+              {t.formDesc}
             </p>
           </div>
           <button
@@ -228,7 +428,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
             }`}
           >
             <Building2 className="w-4 h-4" />
-            <span>Master Pelanggan (Customer)</span>
+            <span>{t.tabCust}</span>
           </button>
           <button
             onClick={() => setActiveTab('supplier')}
@@ -239,7 +439,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
             }`}
           >
             <Truck className="w-4 h-4" />
-            <span>Master Vendor / Supplier</span>
+            <span>{t.tabSupp}</span>
           </button>
           <button
             onClick={() => setActiveTab('item')}
@@ -250,7 +450,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
             }`}
           >
             <Boxes className="w-4 h-4" />
-            <span>Master Item & Pita Perekat</span>
+            <span>{t.tabItem}</span>
           </button>
           <button
             onClick={() => setActiveTab('waste')}
@@ -261,7 +461,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
             }`}
           >
             <Trash2 className="w-4 h-4" />
-            <span>Pencatatan Limbah Pabrik</span>
+            <span>{t.tabWaste}</span>
           </button>
         </div>
 
@@ -279,7 +479,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
             <form onSubmit={handleCustomerSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kode Pelanggan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cuCode}</label>
                   <input
                     type="text"
                     required
@@ -289,11 +489,11 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Badan Usaha / PT</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cuName}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: PT Astra Daihatsu Motor (Plant Sunter)"
+                    placeholder={t.cuNamePl}
                     value={custName}
                     onChange={(e) => setCustName(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
@@ -303,35 +503,35 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Status Klien</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cuStatus}</label>
                   <select
                     value={custStatus}
                     onChange={(e) => setCustStatus(e.target.value as any)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   >
-                    <option value="NEW">Pelanggan Baru (New)</option>
-                    <option value="OLD">Pelanggan Lama (Existing/VIP)</option>
+                    <option value="NEW">{t.cuStatusNew}</option>
+                    <option value="OLD">{t.cuStatusOld}</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Kode Transaksi Pajak
+                    {t.cuTax}
                   </label>
                   <select
                     value={custTaxCode}
                     onChange={(e) => setCustTaxCode(e.target.value as any)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-mono"
                   >
-                    <option value="01">01 - Penyerahan BKP/JKP Normal</option>
-                    <option value="02">02 - Pemungut Bendaharawan Pemerintah</option>
-                    <option value="03">03 - Pemungut BUMN / Non-Bendahara</option>
-                    <option value="04">04 - DPP Nilai Lain</option>
-                    <option value="07">07 - Kawasan Berikat (PPN Dibebaskan)</option>
-                    <option value="08">08 - PPN Tidak Dipungut</option>
+                    <option value="01">{t.cuTax1}</option>
+                    <option value="02">{t.cuTax2}</option>
+                    <option value="03">{t.cuTax3}</option>
+                    <option value="04">{t.cuTax4}</option>
+                    <option value="07">{t.cuTax7}</option>
+                    <option value="08">{t.cuTax8}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Pokok Wajib Pajak (NPWP)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cuNpwp}</label>
                   <input
                     type="text"
                     required
@@ -345,21 +545,21 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Alamat Penagihan (Billing Address)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cuBill}</label>
                   <textarea
                     rows={2}
                     required
-                    placeholder="Alamat kantor pusat / faktur pajak..."
+                    placeholder={t.cuBillPl}
                     value={custBillingAddress}
                     onChange={(e) => setCustBillingAddress(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Alamat Pengiriman Pabrik (Shipping)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cuShip}</label>
                   <textarea
                     rows={2}
-                    placeholder="Jika sama, biarkan kosong..."
+                    placeholder={t.cuShipPl}
                     value={custShippingAddress}
                     onChange={(e) => setCustShippingAddress(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -369,21 +569,21 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Termin Pembayaran</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cuTerm}</label>
                   <select
                     value={custPaymentTerm}
                     onChange={(e) => setCustPaymentTerm(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   >
-                    <option value="Cash Before Delivery (CBD)">Cash Before Delivery (CBD)</option>
-                    <option value="Net 14 Hari">Net 14 Hari</option>
-                    <option value="Net 30 Hari">Net 30 Hari</option>
-                    <option value="Net 45 Hari">Net 45 Hari</option>
-                    <option value="Net 60 Hari">Net 60 Hari</option>
+                    <option value="Cash Before Delivery (CBD)">{t.cuTerm1}</option>
+                    <option value="Net 14 Hari">{t.cuTerm2}</option>
+                    <option value="Net 30 Hari">{t.cuTerm3}</option>
+                    <option value="Net 45 Hari">{t.cuTerm4}</option>
+                    <option value="Net 60 Hari">{t.cuTerm5}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Plafon Kredit Maksimum (IDR)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cuLimit}</label>
                   <input
                     type="number"
                     value={custCreditLimit}
@@ -392,11 +592,11 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">PIC Procurement / Kontak</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cuPic}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Pak Bambang (Section Head)"
+                    placeholder={t.cuPicPl}
                     value={custContactPerson}
                     onChange={(e) => setCustContactPerson(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -410,13 +610,13 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                 >
-                  Simpan Master Pelanggan
+                  {t.btnSaveCust}
                 </button>
               </div>
             </form>
@@ -427,7 +627,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
             <form onSubmit={handleSupplierSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kode Vendor / Supplier</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.suCode}</label>
                   <input
                     type="text"
                     required
@@ -437,11 +637,11 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Perusahaan Vendor</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.suName}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Nippon Polymer & Chemical Corp Tokyo"
+                    placeholder={t.suNamePl}
                     value={suppName}
                     onChange={(e) => setSuppName(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
@@ -451,7 +651,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">NPWP / Tax ID</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.suNpwp}</label>
                   <input
                     type="text"
                     required
@@ -462,7 +662,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Termin Pembayaran</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.suTerm}</label>
                   <input
                     type="text"
                     required
@@ -474,11 +674,11 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Alamat Kantor / Pabrik Supplier</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.suAddr}</label>
                 <textarea
                   rows={2}
                   required
-                  placeholder="Alamat lengkap lokasi pengiriman atau negara asal impor..."
+                  placeholder={t.suAddrPl}
                   value={suppAddress}
                   onChange={(e) => setSuppAddress(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -487,7 +687,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Bank Rekening</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.suBank}</label>
                   <input
                     type="text"
                     required
@@ -497,11 +697,11 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Rekening Bank</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.suAcc}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: 295-0019283"
+                    placeholder={t.suAccPl}
                     value={suppAccount}
                     onChange={(e) => setSuppAccount(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
@@ -515,13 +715,13 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                 >
-                  Simpan Master Vendor
+                  {t.btnSaveSupp}
                 </button>
               </div>
             </form>
@@ -532,22 +732,22 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
             <form onSubmit={handleItemSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kode Item</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.itCode}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: SM-MSK-KFT24"
+                    placeholder={t.itCodePl}
                     value={itemCode}
                     onChange={(e) => setItemCode(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Produk / Material</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.itName}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Automotive Masking Tape High-Temp 150°C 24mm x 50m"
+                    placeholder={t.itNamePl}
                     value={itemName}
                     onChange={(e) => setItemName(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
@@ -557,21 +757,21 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kategori</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.itCat}</label>
                   <select
                     value={itemCategory}
                     onChange={(e) => setItemCategory(e.target.value as ItemCategory)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   >
-                    <option value="Raw Material">Raw Material (Bahan Baku)</option>
-                    <option value="Jumbo Roll Tape">Jumbo Roll Tape</option>
-                    <option value="Slit Tape">Slit Tape (Produk Konversi)</option>
-                    <option value="Finished Goods">Finished Goods</option>
-                    <option value="Packaging">Packaging (Karton & Core)</option>
+                    <option value="Raw Material">{t.itCat1}</option>
+                    <option value="Jumbo Roll Tape">{t.itCat2}</option>
+                    <option value="Slit Tape">{t.itCat3}</option>
+                    <option value="Finished Goods">{t.itCat4}</option>
+                    <option value="Packaging">{t.itCat5}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Satuan Dasar</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.itUnit}</label>
                   <input
                     type="text"
                     required
@@ -581,7 +781,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Lokasi Rak Gudang</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.itRack}</label>
                   <input
                     type="text"
                     required
@@ -594,7 +794,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
 
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Stok Awal</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.itStock}</label>
                   <input
                     type="number"
                     value={itemStock}
@@ -603,7 +803,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Safety Stock (Min)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.itMin}</label>
                   <input
                     type="number"
                     value={itemMinStock}
@@ -612,7 +812,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">HPP Unit Cost (IDR)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.itCost}</label>
                   <input
                     type="number"
                     value={itemCost}
@@ -621,7 +821,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Harga Jual (IDR)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.itPrice}</label>
                   <input
                     type="number"
                     value={itemPrice}
@@ -632,7 +832,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
               </div>
 
               <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-center justify-between">
-                <span>Kalkulasi Gross Margin Otomatis:</span>
+                <span>{t.itCalc}</span>
                 <strong className="font-mono text-sm font-black">
                   {itemPrice > 0 ? (((itemPrice - itemCost) / itemPrice) * 100).toFixed(1) : 0}%
                 </strong>
@@ -644,13 +844,13 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                 >
-                  Simpan Item Master
+                  {t.btnSaveItem}
                 </button>
               </div>
             </form>
@@ -661,33 +861,33 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
             <form onSubmit={handleWasteSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tipe Limbah</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.wsType}</label>
                   <select
                     value={wasteType}
                     onChange={(e) => setWasteType(e.target.value as any)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   >
-                    <option value="RAW_MATERIAL_WASTE">Raw Material Waste (Bahan Baku / Film / Lem)</option>
-                    <option value="FINISHED_PRODUCT_WASTE">Finished Product Waste (Roll Pita Cacat / NG)</option>
+                    <option value="RAW_MATERIAL_WASTE">{t.wsType1}</option>
+                    <option value="FINISHED_PRODUCT_WASTE">{t.wsType2}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Klasifikasi Severity</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.wsSev}</label>
                   <select
                     value={wasteSeverity}
                     onChange={(e) => setWasteSeverity(e.target.value as any)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   >
-                    <option value="MINOR">MINOR (&lt; 2% Toleransi Standar)</option>
-                    <option value="MAJOR">MAJOR (2% - 5% Perlu Evaluasi Mesin)</option>
-                    <option value="CRITICAL">CRITICAL (&gt; 5% Stop Mesin & Review QC)</option>
+                    <option value="MINOR">{t.wsSev1}</option>
+                    <option value="MAJOR">{t.wsSev2}</option>
+                    <option value="CRITICAL">{t.wsSev3}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kode Item Material</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.wsCode}</label>
                   <input
                     type="text"
                     required
@@ -697,7 +897,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Lot Material</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.wsLot}</label>
                   <input
                     type="text"
                     required
@@ -708,7 +908,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Jumlah</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">{t.wsQty}</label>
                     <input
                       type="number"
                       required
@@ -718,7 +918,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Satuan</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">{t.wsUnit}</label>
                     <input
                       type="text"
                       required
@@ -731,11 +931,11 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Akar Masalah (Root Cause)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.wsRoot}</label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Ketegangan tension brake tidak stabil menyebabkan kerutan tepi pada film roll..."
+                  placeholder={t.wsRootPl}
                   value={wasteRootCause}
                   onChange={(e) => setWasteRootCause(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -744,21 +944,21 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tindakan Korektif (Corrective Action)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.wsCorr}</label>
                   <textarea
                     rows={2}
                     required
-                    placeholder="Tindakan langsung penanganan limbah saat ini..."
+                    placeholder={t.wsCorrPl}
                     value={wasteCorrective}
                     onChange={(e) => setWasteCorrective(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tindakan Preventif (Preventive Action)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.wsPrev}</label>
                   <textarea
                     rows={2}
-                    placeholder="Pencegahan agar masalah tidak terulang di masa depan..."
+                    placeholder={t.wsPrevPl}
                     value={wastePreventive}
                     onChange={(e) => setWastePreventive(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -772,13 +972,13 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                 >
-                  Catat Laporan Limbah
+                  {t.btnSaveWaste}
                 </button>
               </div>
             </form>

@@ -17,11 +17,38 @@ import { ROLE_DEFINITIONS, getTierBadge, canManageUsers } from '../../utils/rbac
 import { UserRole } from '../../types';
 import { UniversalDataEntryModal } from '../forms/UniversalDataEntryModal';
 
+const CONTENT = {
+  id: {
+    searchPh: 'Cari DO, Batch QC, Faktur, Dokumen EXIM...',
+    newDataBtn: 'Input Data Baru',
+    newDataBtnMobile: 'Input',
+    manageAccounts: 'Kelola Akun',
+    manageAccountsFull: 'Manajemen Pegawai',
+    userAccount: 'Akun Pengguna',
+    genEmployee: 'General Employee',
+    language: 'Bahasa / Language',
+    logoutBtn: 'Keluar & Kembali ke Login',
+  },
+  en: {
+    searchPh: 'Search DO, QC Batch, Invoice, EXIM Docs...',
+    newDataBtn: 'New Data Entry',
+    newDataBtnMobile: 'New',
+    manageAccounts: 'Manage Accounts',
+    manageAccountsFull: 'Employee Management',
+    userAccount: 'User Account',
+    genEmployee: 'General Employee',
+    language: 'Bahasa / Language',
+    logoutBtn: 'Sign Out & Return to Login',
+  }
+};
+
 export const Navbar: React.FC = () => {
   const authUser = useAuthStore((state) => state.user);
   const authLogout = useAuthStore((state) => state.logout);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [dataEntryModalOpen, setDataEntryModalOpen] = useState(false);
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language];
 
   // Use authUser (real backend)
   const displayName = authUser?.name;
@@ -68,7 +95,7 @@ export const Navbar: React.FC = () => {
           >
             <span className="flex items-center gap-2.5">
               <Search className="w-4 h-4 text-slate-400" />
-              <span>Cari DO, Batch QC, Faktur, Dokumen EXIM...</span>
+              <span>{t.searchPh}</span>
             </span>
             <kbd className="px-2 py-0.5 text-[10px] font-mono bg-white border border-slate-200 rounded text-slate-500 shadow-xs">
               ⌘K
@@ -86,8 +113,8 @@ export const Navbar: React.FC = () => {
             title="Buka Formulir Input Data Transaksi untuk Semua Modul"
           >
             <PlusCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">Input Data Baru</span>
-            <span className="sm:hidden">Input</span>
+            <span className="hidden sm:inline">{t.newDataBtn}</span>
+            <span className="sm:hidden">{t.newDataBtnMobile}</span>
           </button>
 
           {/* Quick link to User Management for Admin */}
@@ -99,7 +126,7 @@ export const Navbar: React.FC = () => {
               title="Kelola Akun Pegawai & RBAC"
             >
               <UserPlus className="w-3.5 h-3.5 text-purple-600" />
-              <span>Kelola Akun</span>
+              <span>{t.manageAccounts}</span>
             </button>
           )}
 
@@ -131,7 +158,7 @@ export const Navbar: React.FC = () => {
                   )}
                 </div>
                 <div className="text-[10px] text-slate-500 truncate max-w-[140px]">
-                  {displayDepartment || 'General Employee'}
+                  {displayDepartment || t.genEmployee}
                 </div>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -143,13 +170,40 @@ export const Navbar: React.FC = () => {
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <div>
                     <div className="text-xs font-black text-slate-900">
-                      Akun Pengguna
+                      {t.userAccount}
                     </div>
                     <div className="text-[11px] text-slate-500 truncate max-w-[180px]">
                       {authUser?.email || displayDepartment}
                     </div>
                   </div>
                   <Shield className="w-4 h-4 text-blue-600" />
+                </div>
+
+                {/* Language Toggle */}
+                <div className="py-2.5 border-b border-slate-100 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-700">{t.language}</span>
+                  <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg">
+                    <button
+                      onClick={() => appStore.setLanguage('id')}
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                        language === 'id' 
+                          ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' 
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      ID
+                    </button>
+                    <button
+                      onClick={() => appStore.setLanguage('en')}
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                        language === 'en' 
+                          ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' 
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      EN
+                    </button>
+                  </div>
                 </div>
 
                 {/* Bottom Actions: Admin Management & Logout */}
@@ -164,7 +218,7 @@ export const Navbar: React.FC = () => {
                     >
                       <span className="flex items-center gap-1.5">
                         <UserPlus className="w-3.5 h-3.5" />
-                        <span>Manajemen Pegawai</span>
+                        <span>{t.manageAccountsFull}</span>
                       </span>
                     </button>
                   )}
@@ -178,7 +232,7 @@ export const Navbar: React.FC = () => {
                     className="w-full py-2 px-2.5 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
-                    <span>Keluar & Kembali ke Login</span>
+                    <span>{t.logoutBtn}</span>
                   </button>
                 </div>
               </div>

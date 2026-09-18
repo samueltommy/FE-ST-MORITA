@@ -3,6 +3,147 @@ import { X, Receipt, CreditCard, AlertCircle, FileCheck, CheckCircle2, DollarSig
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { EComplaintTicket, VendorInvoiceAp, ArPaymentRecord } from '../../types';
 
+const CONTENT = {
+  id: {
+    title: 'Formulir Keuangan & Rekonsiliasi Komplain (Finance & E-Complaint)',
+    desc: 'E-Complaint Pelanggan (DO/Invoice Ref), Disposisi RMA/Debit Note, Faktur Hutang AP, & Penerimaan Piutang AR',
+    tabComplaint: '1. Tiket E-Complaint',
+    tabRma: '2. Disposisi RMA & Debit Note',
+    tabAp: '3. Faktur Hutang (AP)',
+    tabAr: '4. Penerimaan Piutang (AR)',
+    cTicket: 'Nomor Tiket E-Complaint',
+    cCust: 'Nama Perusahaan Pelanggan',
+    cDoRef: 'Nomor Referensi DO / Surat Jalan',
+    cInvRef: 'Nomor Faktur Penjualan (Invoice Ref)',
+    cCat: 'Kategori Ketidaksesuaian',
+    cSol: 'Tuntutan Solusi Pelanggan',
+    cDept: 'Divisi Penanggung Jawab',
+    cDesc: 'Uraian Detail Masalah Komplain',
+    btnCancel: 'Batal',
+    btnCSubmit: 'Daftarkan Tiket E-Complaint',
+    msgCSuccess: 'berhasil didaftarkan dan didisposisikan ke divisi',
+    rmaSelect: 'Pilih Tiket Komplain yang Memerlukan Disposisi',
+    rmaNo: 'Nomor RMA Resmi (Return Merchandise)',
+    rmaDn: 'Nomor Debit Note Finansial',
+    rmaNotes: 'Catatan Investigasi Teknis QC & Kesepakatan Solusi',
+    btnRma: 'Terbitkan RMA & Selesaikan Komplain',
+    msgRmaSuccess: 'Tiket Komplain berhasil diselesaikan. RMA',
+    msgRmaSuccessDn: 'dan Debit Note',
+    msgRmaSuccessEnd: 'resmi diterbitkan.',
+    apInv: 'Nomor Faktur Supplier',
+    apPo: 'Referensi Purchase Order (PO)',
+    apSupp: 'Pilihan Vendor / Supplier',
+    apDpp: 'Dasar Pengenaan Pajak (DPP IDR)',
+    apDue: 'Jatuh Tempo Pembayaran',
+    apPpn: 'PPN 11%:',
+    apTotal: 'Total Tagihan: IDR',
+    btnAp: 'Catat Voucher Hutang (AP)',
+    msgApSuccess: 'Faktur Hutang (AP)',
+    msgApSuccessFrom: 'dari',
+    msgApSuccessValue: 'senilai IDR',
+    msgApSuccessEnd: 'berhasil dicatat.',
+    arRec: 'Nomor Bukti Penerimaan (AR Receipt)',
+    arInvRef: 'Nomor Referensi Faktur Penjualan',
+    arCust: 'Nama Perusahaan Pelanggan',
+    arAmount: 'Nominal Pembayaran Masuk (IDR)',
+    arMethod: 'Metode Pembayaran',
+    arRef: 'Ref / No Transaksi Bank',
+    btnAr: 'Simpan Penerimaan Piutang (AR)',
+    msgArSuccess: 'Penerimaan Piutang (AR)',
+    msgArSuccessFrom: 'dari',
+    msgArSuccessValue: 'senilai IDR',
+    msgArSuccessEnd: 'berhasil direkonsiliasi.',
+    catOptions: {
+      ng: 'Kualitas / NG Teknis (Quality)',
+      doc: 'Dokumen Tidak Sesuai (Pajak/SJ)',
+      qty: 'Selisih Kuantitas Kurang/Lebih',
+      color: 'Penyimpangan Warna / Visual',
+      size: 'Penyimpangan Ukuran (Lebar/Panjang)',
+      delay: 'Keterlambatan Pengiriman (Delay)'
+    },
+    solOptions: {
+      rep: 'Penggantian Barang (Replace)',
+      dn: 'Penerbitan Debit Note (Potong Tagihan)',
+      rev: 'Revisi Dokumen Faktur/Pajak',
+      meet: 'Klarifikasi & Meeting Teknis'
+    },
+    deptOptions: {
+      qc: 'QC (Penyimpangan Kualitas)',
+      mkt: 'Marketing (Komersial/Harga)',
+      log: 'Logistik (Pengiriman & Armada)'
+    }
+  },
+  en: {
+    title: 'Finance & Complaint Reconciliation Forms',
+    desc: 'Customer E-Complaint (DO/Invoice Ref), RMA/Debit Note Disposition, AP Invoices, & AR Receipts',
+    tabComplaint: '1. E-Complaint Ticket',
+    tabRma: '2. RMA & Debit Note Disposition',
+    tabAp: '3. Account Payable (AP)',
+    tabAr: '4. Account Receivable (AR)',
+    cTicket: 'E-Complaint Ticket Number',
+    cCust: 'Customer Company Name',
+    cDoRef: 'DO / Delivery Order Reference Number',
+    cInvRef: 'Sales Invoice Reference Number',
+    cCat: 'Discrepancy Category',
+    cSol: 'Demanded Customer Solution',
+    cDept: 'Responsible Division',
+    cDesc: 'Detailed Problem Description',
+    btnCancel: 'Cancel',
+    btnCSubmit: 'Register E-Complaint Ticket',
+    msgCSuccess: 'successfully registered and disposed to division',
+    rmaSelect: 'Select Complaint Ticket Requiring Disposition',
+    rmaNo: 'Official RMA Number',
+    rmaDn: 'Financial Debit Note Number',
+    rmaNotes: 'QC Technical Investigation Notes & Solution Agreement',
+    btnRma: 'Issue RMA & Resolve Complaint',
+    msgRmaSuccess: 'Complaint Ticket successfully resolved. RMA',
+    msgRmaSuccessDn: 'and Debit Note',
+    msgRmaSuccessEnd: 'officially issued.',
+    apInv: 'Supplier Invoice Number',
+    apPo: 'Purchase Order (PO) Reference',
+    apSupp: 'Vendor / Supplier Selection',
+    apDpp: 'Taxable Base (DPP IDR)',
+    apDue: 'Payment Due Date',
+    apPpn: 'VAT 11%:',
+    apTotal: 'Total Billing: IDR',
+    btnAp: 'Record AP Voucher',
+    msgApSuccess: 'Account Payable (AP) Invoice',
+    msgApSuccessFrom: 'from',
+    msgApSuccessValue: 'valued at IDR',
+    msgApSuccessEnd: 'successfully recorded.',
+    arRec: 'AR Receipt Number',
+    arInvRef: 'Sales Invoice Reference Number',
+    arCust: 'Customer Company Name',
+    arAmount: 'Incoming Payment Amount (IDR)',
+    arMethod: 'Payment Method',
+    arRef: 'Bank Transaction Ref No',
+    btnAr: 'Save AR Receipt',
+    msgArSuccess: 'Account Receivable (AR) Receipt',
+    msgArSuccessFrom: 'from',
+    msgArSuccessValue: 'valued at IDR',
+    msgArSuccessEnd: 'successfully reconciled.',
+    catOptions: {
+      ng: 'Quality / Technical NG (Quality)',
+      doc: 'Mismatched Document (Tax/DO)',
+      qty: 'Quantity Discrepancy (Over/Under)',
+      color: 'Color / Visual Deviation',
+      size: 'Size Deviation (Width/Length)',
+      delay: 'Delivery Delay'
+    },
+    solOptions: {
+      rep: 'Goods Replacement',
+      dn: 'Debit Note Issuance (Bill Deduction)',
+      rev: 'Invoice/Tax Document Revision',
+      meet: 'Clarification & Technical Meeting'
+    },
+    deptOptions: {
+      qc: 'QC (Quality Deviation)',
+      mkt: 'Marketing (Commercial/Price)',
+      log: 'Logistics (Delivery & Fleet)'
+    }
+  }
+};
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -10,6 +151,9 @@ interface Props {
 }
 
 export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'complaint' }) => {
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language] || CONTENT.id;
+
   const [activeTab, setActiveTab] = useState<'complaint' | 'ap' | 'ar' | 'rma'>(defaultTab);
   const currentUser = useAppStore((state) => state.currentUser);
   const customers = useAppStore((state) => state.customers);
@@ -77,7 +221,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
     };
 
     appStore.addEComplaint(newCmp);
-    setSuccessMessage(`Tiket E-Complaint ${complaintTicket} berhasil didaftarkan dan didisposisikan ke divisi ${complaintDept}.`);
+    setSuccessMessage(`Tiket E-Complaint ${complaintTicket} ${t.msgCSuccess} ${complaintDept}.`);
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -89,7 +233,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
     if (!selectedComplaintId) return;
 
     appStore.resolveEComplaint(selectedComplaintId, rmaNumber.trim(), debitNoteNumber.trim());
-    setSuccessMessage(`Tiket Komplain berhasil diselesaikan. RMA ${rmaNumber} dan Debit Note ${debitNoteNumber} resmi diterbitkan.`);
+    setSuccessMessage(`${t.msgRmaSuccess} ${rmaNumber} ${t.msgRmaSuccessDn} ${debitNoteNumber} ${t.msgRmaSuccessEnd}`);
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -117,7 +261,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
     };
 
     appStore.addVendorInvoice(newAp);
-    setSuccessMessage(`Faktur Hutang (AP) ${apInvoiceNo} dari ${apSupplier} senilai IDR ${total.toLocaleString()} berhasil dicatat.`);
+    setSuccessMessage(`${t.msgApSuccess} ${apInvoiceNo} ${t.msgApSuccessFrom} ${apSupplier} ${t.msgApSuccessValue} ${total.toLocaleString()} ${t.msgApSuccessEnd}`);
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -142,7 +286,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
     };
 
     appStore.addArPayment(newAr);
-    setSuccessMessage(`Penerimaan Piutang (AR) ${arReceiptNo} dari ${arCustomer} senilai IDR ${arAmount.toLocaleString()} berhasil direkonsiliasi.`);
+    setSuccessMessage(`${t.msgArSuccess} ${arReceiptNo} ${t.msgArSuccessFrom} ${arCustomer} ${t.msgArSuccessValue} ${arAmount.toLocaleString()} ${t.msgArSuccessEnd}`);
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -157,10 +301,10 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
           <div>
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-indigo-600" />
-              <span>Formulir Keuangan & Rekonsiliasi Komplain (Finance & E-Complaint)</span>
+              <span>{t.title}</span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              E-Complaint Pelanggan (DO/Invoice Ref), Disposisi RMA/Debit Note, Faktur Hutang AP, & Penerimaan Piutang AR
+              {t.desc}
             </p>
           </div>
           <button
@@ -182,7 +326,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
             }`}
           >
             <AlertCircle className="w-4 h-4" />
-            <span>1. Tiket E-Complaint</span>
+            <span>{t.tabComplaint}</span>
           </button>
           <button
             onClick={() => setActiveTab('rma')}
@@ -193,7 +337,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
             }`}
           >
             <FileCheck className="w-4 h-4" />
-            <span>2. Disposisi RMA & Debit Note</span>
+            <span>{t.tabRma}</span>
           </button>
           <button
             onClick={() => setActiveTab('ap')}
@@ -204,7 +348,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
             }`}
           >
             <Receipt className="w-4 h-4" />
-            <span>3. Faktur Hutang (AP)</span>
+            <span>{t.tabAp}</span>
           </button>
           <button
             onClick={() => setActiveTab('ar')}
@@ -215,7 +359,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
             }`}
           >
             <DollarSign className="w-4 h-4" />
-            <span>4. Penerimaan Piutang (AR)</span>
+            <span>{t.tabAr}</span>
           </button>
         </div>
 
@@ -233,7 +377,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
             <form onSubmit={handleComplaintSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Tiket E-Complaint</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cTicket}</label>
                   <input
                     type="text"
                     required
@@ -243,7 +387,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Perusahaan Pelanggan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cCust}</label>
                   <select
                     value={complaintCustomer}
                     onChange={(e) => setComplaintCustomer(e.target.value)}
@@ -260,7 +404,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Referensi DO / Surat Jalan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cDoRef}</label>
                   <input
                     type="text"
                     required
@@ -270,7 +414,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Faktur Penjualan (Invoice Ref)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cInvRef}</label>
                   <input
                     type="text"
                     required
@@ -283,49 +427,49 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kategori Ketidaksesuaian</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cCat}</label>
                   <select
                     value={complaintCategory}
                     onChange={(e) => setComplaintCategory(e.target.value as any)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   >
-                    <option value="UNSUITABLE_QUALITY">Kualitas / NG Teknis (Quality)</option>
-                    <option value="UNSUITABLE_DOCUMENT">Dokumen Tidak Sesuai (Pajak/SJ)</option>
-                    <option value="UNSUITABLE_QUANTITY">Selisih Kuantitas Kurang/Lebih</option>
-                    <option value="UNSUITABLE_COLOR">Penyimpangan Warna / Visual</option>
-                    <option value="UNSUITABLE_SIZE">Penyimpangan Ukuran (Lebar/Panjang)</option>
-                    <option value="DELIVERY_DELAY">Keterlambatan Pengiriman (Delay)</option>
+                    <option value="UNSUITABLE_QUALITY">{t.catOptions.ng}</option>
+                    <option value="UNSUITABLE_DOCUMENT">{t.catOptions.doc}</option>
+                    <option value="UNSUITABLE_QUANTITY">{t.catOptions.qty}</option>
+                    <option value="UNSUITABLE_COLOR">{t.catOptions.color}</option>
+                    <option value="UNSUITABLE_SIZE">{t.catOptions.size}</option>
+                    <option value="DELIVERY_DELAY">{t.catOptions.delay}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tuntutan Solusi Pelanggan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cSol}</label>
                   <select
                     value={complaintDemandedSolution}
                     onChange={(e) => setComplaintDemandedSolution(e.target.value as any)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   >
-                    <option value="REPLACE_GOODS">Penggantian Barang (Replace)</option>
-                    <option value="DEBIT_NOTE">Penerbitan Debit Note (Potong Tagihan)</option>
-                    <option value="REVISE_DOCUMENT">Revisi Dokumen Faktur/Pajak</option>
-                    <option value="MEETING_DISCUSSION">Klarifikasi & Meeting Teknis</option>
+                    <option value="REPLACE_GOODS">{t.solOptions.rep}</option>
+                    <option value="DEBIT_NOTE">{t.solOptions.dn}</option>
+                    <option value="REVISE_DOCUMENT">{t.solOptions.rev}</option>
+                    <option value="MEETING_DISCUSSION">{t.solOptions.meet}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Divisi Penanggung Jawab</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cDept}</label>
                   <select
                     value={complaintDept}
                     onChange={(e) => setComplaintDept(e.target.value as any)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-bold"
                   >
-                    <option value="QC">QC (Penyimpangan Kualitas)</option>
-                    <option value="MARKETING">Marketing (Komersial/Harga)</option>
-                    <option value="LOGISTICS">Logistik (Pengiriman & Armada)</option>
+                    <option value="QC">{t.deptOptions.qc}</option>
+                    <option value="MARKETING">{t.deptOptions.mkt}</option>
+                    <option value="LOGISTICS">{t.deptOptions.log}</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Uraian Detail Masalah Komplain</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.cDesc}</label>
                 <textarea
                   rows={2}
                   required
@@ -341,13 +485,13 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
-                  Daftarkan Tiket E-Complaint
+                  {t.btnCSubmit}
                 </button>
               </div>
             </form>
@@ -358,7 +502,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
             <form onSubmit={handleRmaSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Pilih Tiket Komplain yang Memerlukan Disposisi
+                  {t.rmaSelect}
                 </label>
                 <select
                   value={selectedComplaintId}
@@ -377,7 +521,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor RMA Resmi (Return Merchandise)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.rmaNo}</label>
                   <input
                     type="text"
                     required
@@ -387,7 +531,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Debit Note Finansial</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.rmaDn}</label>
                   <input
                     type="text"
                     required
@@ -400,7 +544,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Catatan Investigasi Teknis QC & Kesepakatan Solusi
+                  {t.rmaNotes}
                 </label>
                 <textarea
                   rows={3}
@@ -417,13 +561,13 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
-                  Terbitkan RMA & Selesaikan Komplain
+                  {t.btnRma}
                 </button>
               </div>
             </form>
@@ -434,7 +578,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
             <form onSubmit={handleApSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Faktur Supplier</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.apInv}</label>
                   <input
                     type="text"
                     required
@@ -444,7 +588,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Referensi Purchase Order (PO)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.apPo}</label>
                   <input
                     type="text"
                     required
@@ -456,7 +600,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Pilihan Vendor / Supplier</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.apSupp}</label>
                 <select
                   value={apSupplier}
                   onChange={(e) => setApSupplier(e.target.value)}
@@ -472,7 +616,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Dasar Pengenaan Pajak (DPP IDR)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.apDpp}</label>
                   <input
                     type="number"
                     required
@@ -482,7 +626,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Jatuh Tempo Pembayaran</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.apDue}</label>
                   <input
                     type="date"
                     required
@@ -494,8 +638,8 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
               </div>
 
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
-                <span>PPN 11%: <strong>IDR {Math.round(apDpp * 0.11).toLocaleString()}</strong></span>
-                <span className="font-bold text-indigo-700">Total Tagihan: IDR {Math.round(apDpp * 1.11).toLocaleString()}</span>
+                <span>{t.apPpn} <strong>IDR {Math.round(apDpp * 0.11).toLocaleString()}</strong></span>
+                <span className="font-bold text-indigo-700">{t.apTotal} {Math.round(apDpp * 1.11).toLocaleString()}</span>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -504,13 +648,13 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
-                  Catat Voucher Hutang (AP)
+                  {t.btnAp}
                 </button>
               </div>
             </form>
@@ -521,7 +665,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
             <form onSubmit={handleArSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Bukti Penerimaan (AR Receipt)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.arRec}</label>
                   <input
                     type="text"
                     required
@@ -531,7 +675,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Referensi Faktur Penjualan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.arInvRef}</label>
                   <input
                     type="text"
                     required
@@ -543,7 +687,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nama Perusahaan Pelanggan</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.arCust}</label>
                 <select
                   value={arCustomer}
                   onChange={(e) => setArCustomer(e.target.value)}
@@ -559,7 +703,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nominal Pembayaran Masuk (IDR)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.arAmount}</label>
                   <input
                     type="number"
                     required
@@ -569,7 +713,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Metode Pembayaran</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.arMethod}</label>
                   <select
                     value={arMethod}
                     onChange={(e) => setArMethod(e.target.value as any)}
@@ -581,7 +725,7 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Ref / No Transaksi Bank</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.arRef}</label>
                   <input
                     type="text"
                     required
@@ -598,13 +742,13 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   onClick={onClose}
                   className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
                 >
-                  Batal
+                  {t.btnCancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
-                  Simpan Penerimaan Piutang (AR)
+                  {t.btnAr}
                 </button>
               </div>
             </form>

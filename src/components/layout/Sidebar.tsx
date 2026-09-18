@@ -23,6 +23,75 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { canManageUsers, getTierBadge } from '../../utils/rbac';
 import { useRBAC } from '../../hooks/useRBAC';
 
+const CONTENT = {
+  id: {
+    navMenu: 'Menu Navigasi',
+    modules: 'Modul Operasional',
+    admin: 'Administrasi',
+    adminSub: 'RBAC',
+    manageUsers: 'Akun Pegawai & RBAC',
+    manageUsersSub: 'Hak Akses Level 0-3',
+    tools: 'Alat Lapangan',
+    scanner: 'Scanner Barcode PWA',
+    scannerSub: 'Pabrik & Gudang',
+    scannerSub2: 'Pabrik & Gudang Manufaktur',
+    audit: 'Audit Trail Kepatuhan',
+    auditSub: 'Enkripsi SHA-256',
+    auditSub2: 'Enkripsi Log SHA-256',
+    signOut: 'Sign Out',
+    signOutMobile: 'Keluar Portal',
+    mobileTitle: 'Modul Operasional ERP',
+    mobileAdmin: 'Administrasi & Akses',
+    moduleNames: {
+      finance: 'Finance & Analytics',
+      financeSub: '13-Rumus Sales Invoice',
+      qc: 'Production & QC Hold',
+      qcSub: 'Shop-Floor Lockout & COA',
+      procurement: 'Supply Chain & EXIM',
+      procurementSub: 'Pabean BC 2.3/2.7/4.0',
+      sales: 'Sales & E-Tracking',
+      salesSub: 'Gating Margin & Barcode',
+      master_data: 'Master Data (MDM)',
+      masterDataSub: 'Zebra LOT & Barcode Label',
+      hrd: 'HRD & Fasilitas',
+      hrdSub: 'Armada & GPS Visit Sales',
+    }
+  },
+  en: {
+    navMenu: 'Navigation Menu',
+    modules: 'Operational Modules',
+    admin: 'Administration',
+    adminSub: 'RBAC',
+    manageUsers: 'Employee Accounts & RBAC',
+    manageUsersSub: 'Access Rights Level 0-3',
+    tools: 'Field Tools',
+    scanner: 'PWA Barcode Scanner',
+    scannerSub: 'Factory & Warehouse',
+    scannerSub2: 'Manufacturing Factory & Warehouse',
+    audit: 'Compliance Audit Trail',
+    auditSub: 'SHA-256 Encryption',
+    auditSub2: 'SHA-256 Log Encryption',
+    signOut: 'Sign Out',
+    signOutMobile: 'Sign Out of Portal',
+    mobileTitle: 'ERP Operational Modules',
+    mobileAdmin: 'Administration & Access',
+    moduleNames: {
+      finance: 'Finance & Analytics',
+      financeSub: '13-Formula Sales Invoice',
+      qc: 'Production & QC Hold',
+      qcSub: 'Shop-Floor Lockout & COA',
+      procurement: 'Supply Chain & EXIM',
+      procurementSub: 'Customs BC 2.3/2.7/4.0',
+      sales: 'Sales & E-Tracking',
+      salesSub: 'Margin Gating & Barcode',
+      master_data: 'Master Data (MDM)',
+      masterDataSub: 'Zebra LOT & Barcode Label',
+      hrd: 'HR & Facilities',
+      hrdSub: 'Fleet & Sales GPS Visit',
+    }
+  }
+};
+
 export const Sidebar: React.FC = () => {
   const activeModule = useAppStore((state) => state.activeModule);
   const authUser = useAuthStore((state) => state.user);
@@ -31,6 +100,8 @@ export const Sidebar: React.FC = () => {
   const quotations = useAppStore((state) => state.quotations);
   const isSidebarCollapsed = useAppStore((state) => state.isSidebarCollapsed);
   const isMobileSidebarOpen = useAppStore((state) => state.isMobileSidebarOpen);
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language];
   const { canAccessModule, canAccessAdminUsers, canAccessTool } = useRBAC();
 
   // Count active QC Hold batches
@@ -50,8 +121,8 @@ export const Sidebar: React.FC = () => {
     {
       id: 'finance',
       code: 'Core 6',
-      label: 'Finance & Analytics',
-      sublabel: '13-Rumus Sales Invoice',
+      label: t.moduleNames.finance,
+      sublabel: t.moduleNames.financeSub,
       icon: Calculator,
       shortcut: 'Alt+6',
       color: 'text-emerald-600',
@@ -59,8 +130,8 @@ export const Sidebar: React.FC = () => {
     {
       id: 'qc',
       code: 'Core 4',
-      label: 'Production & QC Hold',
-      sublabel: 'Shop-Floor Lockout & COA',
+      label: t.moduleNames.qc,
+      sublabel: t.moduleNames.qcSub,
       icon: ShieldCheck,
       shortcut: 'Alt+4',
       badge: activeQcHoldCount > 0 ? `${activeQcHoldCount} HOLD` : undefined,
@@ -70,8 +141,8 @@ export const Sidebar: React.FC = () => {
     {
       id: 'procurement',
       code: 'Core 3',
-      label: 'Supply Chain & EXIM',
-      sublabel: 'Pabean BC 2.3/2.7/4.0',
+      label: t.moduleNames.procurement,
+      sublabel: t.moduleNames.procurementSub,
       icon: Truck,
       shortcut: 'Alt+3',
       color: 'text-indigo-600',
@@ -79,8 +150,8 @@ export const Sidebar: React.FC = () => {
     {
       id: 'sales',
       code: 'Core 5',
-      label: 'Sales & E-Tracking',
-      sublabel: 'Gating Margin & Barcode',
+      label: t.moduleNames.sales,
+      sublabel: t.moduleNames.salesSub,
       icon: FileSpreadsheet,
       shortcut: 'Alt+5',
       badge: pendingCostControlCount > 0 ? `${pendingCostControlCount} Gated` : undefined,
@@ -90,8 +161,8 @@ export const Sidebar: React.FC = () => {
     {
       id: 'master_data',
       code: 'Core 2',
-      label: 'Master Data (MDM)',
-      sublabel: 'Zebra LOT & Barcode Label',
+      label: t.moduleNames.master_data,
+      sublabel: t.moduleNames.masterDataSub,
       icon: Boxes,
       shortcut: 'Alt+2',
       color: 'text-sky-600',
@@ -99,8 +170,8 @@ export const Sidebar: React.FC = () => {
     {
       id: 'hrd',
       code: 'Core 1',
-      label: 'HRD & Fasilitas',
-      sublabel: 'Armada & GPS Visit Sales',
+      label: t.moduleNames.hrd,
+      sublabel: t.moduleNames.hrdSub,
       icon: Users,
       shortcut: 'Alt+1',
       color: 'text-violet-600',
@@ -137,7 +208,7 @@ export const Sidebar: React.FC = () => {
           {!isSidebarCollapsed ? (
             <>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-2">
-                Menu Navigasi
+                {t.navMenu}
               </span>
               <button
                 id="sidebar-collapse-btn"
@@ -170,7 +241,7 @@ export const Sidebar: React.FC = () => {
           <div>
             {!isSidebarCollapsed && (
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1.5">
-                Modul Operasional
+                {t.modules}
               </div>
             )}
             <nav className="space-y-1">
@@ -239,8 +310,8 @@ export const Sidebar: React.FC = () => {
             <div className="pt-2 border-t border-slate-100">
               {!isSidebarCollapsed && (
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1 flex items-center justify-between">
-                  <span>Administrasi</span>
-                  <span className="text-[9px] text-purple-600 font-bold">RBAC</span>
+                  <span>{t.admin}</span>
+                  <span className="text-[9px] text-purple-600 font-bold">{t.adminSub}</span>
                 </div>
               )}
               <button
@@ -270,7 +341,7 @@ export const Sidebar: React.FC = () => {
                   {!isSidebarCollapsed && (
                     <div className="min-w-0">
                       <div className="text-xs flex items-center gap-1.5 leading-tight min-w-0">
-                        <span>Akun Pegawai & RBAC</span>
+                        <span>{t.manageUsers}</span>
                         {isUserAdmin && (
                           <span className="text-[9px] px-1 py-0.5 rounded-full font-bold uppercase bg-purple-500 text-white">
                             Admin
@@ -282,7 +353,7 @@ export const Sidebar: React.FC = () => {
                           activeModule === 'users' ? 'text-white/80' : 'text-slate-400'
                         }`}
                       >
-                        Hak Akses Level 0-3
+                        {t.manageUsersSub}
                       </div>
                     </div>
                   )}
@@ -296,7 +367,7 @@ export const Sidebar: React.FC = () => {
             <div className="pt-2 border-t border-slate-100">
               {!isSidebarCollapsed && (
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">
-                  Alat Lapangan
+                  {t.tools}
                 </div>
               )}
               <div className="space-y-1">
@@ -315,8 +386,8 @@ export const Sidebar: React.FC = () => {
                       </div>
                       {!isSidebarCollapsed && (
                         <div className="min-w-0">
-                          <div className="font-semibold truncate leading-tight text-xs">Scanner Barcode</div>
-                          <div className="text-[10px] text-slate-400 truncate leading-tight">Pabrik & Gudang</div>
+                          <div className="font-semibold truncate leading-tight text-xs">{t.scanner}</div>
+                          <div className="text-[10px] text-slate-400 truncate leading-tight">{t.scannerSub}</div>
                         </div>
                       )}
                     </div>
@@ -338,8 +409,8 @@ export const Sidebar: React.FC = () => {
                       </div>
                       {!isSidebarCollapsed && (
                         <div className="min-w-0">
-                          <div className="font-semibold truncate leading-tight text-xs">Audit Trail</div>
-                          <div className="text-[10px] text-slate-400 truncate leading-tight">Enkripsi SHA-256</div>
+                          <div className="font-semibold truncate leading-tight text-xs">{t.audit}</div>
+                          <div className="text-[10px] text-slate-400 truncate leading-tight">{t.auditSub}</div>
                         </div>
                       )}
                     </div>
@@ -380,7 +451,7 @@ export const Sidebar: React.FC = () => {
                   className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  Sign Out
+                  {t.signOut}
                 </button>
                 <button
                   onClick={() => appStore.setKeyboardShortcutsOpen(true)}
@@ -452,7 +523,7 @@ export const Sidebar: React.FC = () => {
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
             <div>
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-                Modul Operasional ERP
+                {t.mobileTitle}
               </div>
               <nav className="space-y-1">
                 {modules.map((m) => {
@@ -498,7 +569,7 @@ export const Sidebar: React.FC = () => {
             {canAccessAdminUsers() && (
               <div className="pt-2 border-t border-slate-100">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-                  Administrasi & Akses
+                  {t.mobileAdmin}
                 </div>
                 <button
                   onClick={() => handleSelectModule('users')}
@@ -513,8 +584,8 @@ export const Sidebar: React.FC = () => {
                       <UserPlus className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="font-bold">Akun Pegawai & RBAC</div>
-                      <div className="text-[10px] text-slate-400">Hak Akses Level 0-3</div>
+                      <div className="font-bold">{t.manageUsers}</div>
+                      <div className="text-[10px] text-slate-400">{t.manageUsersSub}</div>
                     </div>
                   </div>
                 </button>
@@ -525,7 +596,7 @@ export const Sidebar: React.FC = () => {
             {(canAccessTool('barcode') || canAccessTool('audit')) && (
               <div className="pt-2 border-t border-slate-100">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-                  Alat Lapangan
+                  {t.tools}
                 </div>
                 <div className="space-y-1">
                   {canAccessTool('barcode') && (
@@ -540,8 +611,8 @@ export const Sidebar: React.FC = () => {
                         <ScanLine className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="font-bold">Scanner Barcode PWA</div>
-                        <div className="text-[10px] text-slate-400">Pabrik & Gudang Manufaktur</div>
+                        <div className="font-bold">{t.scanner}</div>
+                        <div className="text-[10px] text-slate-400">{t.scannerSub2}</div>
                       </div>
                     </button>
                   )}
@@ -558,8 +629,8 @@ export const Sidebar: React.FC = () => {
                         <History className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="font-bold">Audit Trail Kepatuhan</div>
-                        <div className="text-[10px] text-slate-400">Enkripsi Log SHA-256</div>
+                        <div className="font-bold">{t.audit}</div>
+                        <div className="text-[10px] text-slate-400">{t.auditSub2}</div>
                       </div>
                     </button>
                   )}
@@ -579,7 +650,7 @@ export const Sidebar: React.FC = () => {
               className="w-full py-2 px-3 rounded-xl border border-slate-200 hover:border-rose-300 text-slate-600 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold flex items-center justify-center gap-2"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>Keluar Portal</span>
+              <span>{t.signOutMobile}</span>
             </button>
           </div>
         </aside>

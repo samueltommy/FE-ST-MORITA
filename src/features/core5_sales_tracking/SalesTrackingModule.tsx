@@ -20,7 +20,71 @@ import { FinancialMask } from '../../components/ui/FinancialMask';
 import { Can } from '../../components/rbac/Can';
 import { SalesFormsModal } from '../../components/forms/SalesFormsModal';
 
+const CONTENT = {
+  id: {
+    title: 'Sales Order, Cost Control Gating & Barcode E-Tracking',
+    desc: 'Persetujuan penawaran harga 2-tahap (Gating Cost Control) & visual timeline pelacakan pengiriman barcode',
+    btnForm: 'Form Penjualan & DO',
+    tabQuotation: 'Quotation Gating Cost Control',
+    tabTracking: 'Timeline E-Tracking Barcode',
+    gatingRule: 'Ketentuan Gating Margin PT St. Morita Group:',
+    gatingDesc: 'Setiap draft Quotation yang diajukan oleh Sales Executive secara otomatis dikunci sistem hingga Cost Control memvalidasi kalkulasi HPP dan menyetujui batas minimum gross margin (≥ 18.0%).',
+    quoteList: 'Daftar Penawaran Harga (Quotation) & Status Gating',
+    approvedOff: '✓ APPROVED OFFICIAL',
+    pendingCC: 'PENDING COST CONTROL',
+    grossMargin: 'Gross Margin:',
+    salesRep: 'Sales Rep:',
+    submitted: 'Diajukan:',
+    waitCC: 'Menunggu Approval Cost Control',
+    approveBtn: 'Approve Margin & Unlock Official Quotation',
+    approvedBy: 'Disetujui:',
+    selectTracking: 'Pilih Pesanan Pengiriman:',
+    trackingRealtime: 'Pelacakan Pesanan Real-Time',
+    lotBarcode: 'No. LOT / Barcode',
+    step: 'Step',
+    location: 'Lokasi:',
+    operator: 'Operator:',
+    eta: 'Estimasi Tiba (ETA Klien):',
+    refreshGps: 'Refresh GPS Pengiriman',
+    noTracking: 'Belum ada data pengiriman aktif.',
+    alertGps: 'Status GPS armada pesanan',
+    alertGpsEnd: 'terkonfirmasi aktif.',
+  },
+  en: {
+    title: 'Sales Order, Cost Control Gating & Barcode E-Tracking',
+    desc: '2-stage quotation approval (Cost Control Gating) & barcode delivery tracking visual timeline',
+    btnForm: 'Sales & DO Forms',
+    tabQuotation: 'Quotation Gating Cost Control',
+    tabTracking: 'Barcode E-Tracking Timeline',
+    gatingRule: 'PT St. Morita Group Margin Gating Rules:',
+    gatingDesc: 'Every draft Quotation submitted by Sales Executives is automatically locked by the system until Cost Control validates the COGS calculation and approves the minimum gross margin limit (≥ 18.0%).',
+    quoteList: 'Price Quotation List & Gating Status',
+    approvedOff: '✓ APPROVED OFFICIAL',
+    pendingCC: 'PENDING COST CONTROL',
+    grossMargin: 'Gross Margin:',
+    salesRep: 'Sales Rep:',
+    submitted: 'Submitted:',
+    waitCC: 'Waiting for Cost Control Approval',
+    approveBtn: 'Approve Margin & Unlock Official Quotation',
+    approvedBy: 'Approved by:',
+    selectTracking: 'Select Delivery Order:',
+    trackingRealtime: 'Real-Time Order Tracking',
+    lotBarcode: 'LOT / Barcode No.',
+    step: 'Step',
+    location: 'Location:',
+    operator: 'Operator:',
+    eta: 'Estimated Time of Arrival (ETA):',
+    refreshGps: 'Refresh Delivery GPS',
+    noTracking: 'No active delivery tracking data.',
+    alertGps: 'Fleet GPS status for order',
+    alertGpsEnd: 'is confirmed active.',
+  }
+};
+
 export const SalesTrackingModule: React.FC = () => {
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language] || CONTENT.id;
+
   const quotations = useAppStore((state) => state.quotations);
   const trackingOrders = useAppStore((state) => state.salesTrackingOrders);
   const currentUser = useAppStore((state) => state.currentUser);
@@ -49,10 +113,10 @@ export const SalesTrackingModule: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Sales Order, Cost Control Gating & Barcode E-Tracking
+              {t.title}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
-              Persetujuan penawaran harga 2-tahap (Gating Cost Control) & visual timeline pelacakan pengiriman barcode
+              {t.desc}
             </p>
           </div>
           
@@ -65,7 +129,7 @@ export const SalesTrackingModule: React.FC = () => {
               className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Form Penjualan & DO</span>
+              <span>{t.btnForm}</span>
             </button>
           </div>
         </div>
@@ -80,7 +144,7 @@ export const SalesTrackingModule: React.FC = () => {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
             }`}
           >
-            Quotation Gating Cost Control
+            {t.tabQuotation}
           </button>
           <button
             onClick={() => setActiveTab('e_tracking')}
@@ -91,7 +155,7 @@ export const SalesTrackingModule: React.FC = () => {
             }`}
           >
             <Barcode className="w-4 h-4" />
-            <span>Timeline E-Tracking Barcode</span>
+            <span>{t.tabTracking}</span>
           </button>
         </div>
       </div>
@@ -102,16 +166,16 @@ export const SalesTrackingModule: React.FC = () => {
           <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-300 flex items-start gap-3">
             <ShieldAlert className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
             <div>
-              <strong className="font-bold">Ketentuan Gating Margin PT St. Morita Group:</strong>
+              <strong className="font-bold">{t.gatingRule}</strong>
               <div className="text-[11px] mt-0.5 opacity-90">
-                Setiap draft Quotation yang diajukan oleh Sales Executive secara otomatis dikunci sistem hingga Cost Control memvalidasi kalkulasi HPP dan menyetujui batas minimum gross margin (≥ 18.0%).
+                {t.gatingDesc}
               </div>
             </div>
           </div>
 
           <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3">
             <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              Daftar Penawaran Harga (Quotation) & Status Gating
+              {t.quoteList}
             </h3>
 
             <div className="space-y-3">
@@ -141,7 +205,7 @@ export const SalesTrackingModule: React.FC = () => {
                                 : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-black animate-pulse'
                             }`}
                           >
-                            {q.status === 'APPROVED' || (q.status as string) === 'APPROVED_OFFICIAL' ? '✓ APPROVED OFFICIAL' : 'PENDING COST CONTROL'}
+                            {q.status === 'APPROVED' || (q.status as string) === 'APPROVED_OFFICIAL' ? t.approvedOff : t.pendingCC}
                           </span>
                         </div>
                         <div className="text-sm font-bold text-slate-900 dark:text-white mt-1">
@@ -155,7 +219,7 @@ export const SalesTrackingModule: React.FC = () => {
                           <FinancialMask value={q.totalValue || (q.targetPrice * q.quantity) || 0} className="font-bold" />
                         </div>
                         <div className="flex items-center justify-end gap-1 mt-0.5">
-                          <span className="text-slate-400 text-[11px]">Gross Margin:</span>
+                          <span className="text-slate-400 text-[11px]">{t.grossMargin}</span>
                           <span
                             className={`font-mono font-bold ${
                               isLowMargin ? 'text-rose-600' : 'text-emerald-600'
@@ -175,7 +239,7 @@ export const SalesTrackingModule: React.FC = () => {
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400">
                       <div>
-                        Sales Rep: <strong>{q.salesRep || q.salesRepresentative}</strong> • Diajukan: {q.submittedAt || q.createdDate}
+                        {t.salesRep} <strong>{q.salesRep || q.salesRepresentative}</strong> • {t.submitted} {q.submittedAt || q.createdDate}
                       </div>
 
                       {isPending ? (
@@ -184,7 +248,7 @@ export const SalesTrackingModule: React.FC = () => {
                           perform="cost_control:margin:approve"
                           fallback={
                             <span className="text-amber-600 font-semibold italic">
-                              Menunggu Approval Cost Control
+                              {t.waitCC}
                             </span>
                           }
                         >
@@ -192,13 +256,13 @@ export const SalesTrackingModule: React.FC = () => {
                             onClick={() => handleApproveMargin(q.id)}
                             className="px-4 py-1.5 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs shadow-xs"
                           >
-                            Approve Margin & Unlock Official Quotation
+                            {t.approveBtn}
                           </button>
                         </Can>
                       ) : (
                         <div className="text-emerald-600 font-bold flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Disetujui: {q.approvedBy || 'Cost Control & Direksi'}</span>
+                          <span>{t.approvedBy} {q.approvedBy || 'Cost Control & Direksi'}</span>
                         </div>
                       )}
                     </div>
@@ -216,7 +280,7 @@ export const SalesTrackingModule: React.FC = () => {
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 text-amber-500" />
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                Pilih Pesanan Pengiriman:
+                {t.selectTracking}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -241,7 +305,7 @@ export const SalesTrackingModule: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                 <div>
                   <div className="text-xs font-bold text-slate-400 uppercase">
-                    Pelacakan Pesanan Real-Time
+                    {t.trackingRealtime}
                   </div>
                   <h3 className="text-base font-black text-slate-900 dark:text-white">
                     {activeTracking.customerName}
@@ -254,7 +318,7 @@ export const SalesTrackingModule: React.FC = () => {
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
                   <Barcode className="w-8 h-8 text-slate-800 dark:text-white" />
                   <div>
-                    <div className="text-[10px] text-slate-400 uppercase font-bold">No. LOT / Barcode</div>
+                    <div className="text-[10px] text-slate-400 uppercase font-bold">{t.lotBarcode}</div>
                     <div className="text-xs font-mono font-bold text-slate-900 dark:text-white">
                       {activeTracking.barcode || `899${activeTracking.ioNumber?.replace(/\D/g, '') || '002849182'}`}
                     </div>
@@ -282,7 +346,7 @@ export const SalesTrackingModule: React.FC = () => {
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-[10px] uppercase tracking-wider text-slate-400">
-                          Step 0{idx + 1}
+                          {t.step} 0{idx + 1}
                         </span>
                         {step.completed ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -300,11 +364,11 @@ export const SalesTrackingModule: React.FC = () => {
                       </div>
 
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Lokasi: <strong className="text-slate-700 dark:text-slate-200">{step.location}</strong>
+                        {t.location} <strong className="text-slate-700 dark:text-slate-200">{step.location}</strong>
                       </div>
 
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Operator: {step.operator}
+                        {t.operator} {step.operator}
                       </div>
                     </div>
                   ))}
@@ -314,20 +378,20 @@ export const SalesTrackingModule: React.FC = () => {
               <div className="p-3.5 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-200 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Truck className="w-4 h-4 text-blue-600" />
-                  <span>Estimasi Tiba (ETA Klien): <strong>{activeTracking.eta || 'Hari ini, 17:00 WIB'}</strong></span>
+                  <span>{t.eta} <strong>{activeTracking.eta || 'Hari ini, 17:00 WIB'}</strong></span>
                 </div>
                 <button
-                  onClick={() => alert(`Status GPS armada pesanan ${activeTracking.soNumber || activeTracking.ioNumber} terkonfirmasi aktif.`)}
+                  onClick={() => alert(`${t.alertGps} ${activeTracking.soNumber || activeTracking.ioNumber} ${t.alertGpsEnd}`)}
                   className="font-bold text-blue-600 hover:text-blue-700 underline cursor-pointer"
                 >
-                  Refresh GPS Pengiriman
+                  {t.refreshGps}
                 </button>
               </div>
             </div>
           ) : (
             <div className="p-12 text-center rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900">
               <Package className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-              <p className="text-xs text-slate-500">Belum ada data pengiriman aktif.</p>
+              <p className="text-xs text-slate-500">{t.noTracking}</p>
             </div>
           )}
         </div>

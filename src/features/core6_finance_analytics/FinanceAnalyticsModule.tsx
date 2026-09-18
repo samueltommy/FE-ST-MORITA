@@ -34,7 +34,141 @@ import { checkPermission } from '../../utils/rbac';
 import { Can } from '../../components/rbac/Can';
 import { FinanceFormsModal } from '../../components/forms/FinanceFormsModal';
 
+const CONTENT = {
+  id: {
+    title: 'Finance & Sales Invoice Multi-DO',
+    desc: 'Konsolidasi multi-surat jalan (DO), 13 formula perpajakan (PPN 11%, PPh 23), biaya freight & audit profitabilitas',
+    btnForm: 'Formulir Finance & Klaim',
+    btnPrint: 'Cetak Faktur',
+    kpiSubtotal: 'Subtotal Nilai Barang',
+    doSelected: 'Surat Jalan (DO) terpilih',
+    kpiDpp: 'Dasar Pengenaan Pajak (DPP)',
+    ppn11: 'PPN 11%:',
+    kpiTotal: 'Total Tagihan Bersih',
+    kpiMargin: 'Safeguard Gross Margin',
+    rbacProtected: 'Terproteksi RBAC (Finance Level)',
+    marginMin: 'Min:',
+    marginOk: '✓ Lolos Standar Profitabilitas',
+    marginLow: '⚠ Di Bawah Floor Margin!',
+    tableTitle: 'Pilih Surat Jalan (Delivery Order Multi-DO)',
+    tableSelected: 'Dipilih',
+    tableDesc: 'Centang DO untuk dikonsolidasi menjadi satu faktur komersial',
+    btnSelectAll: 'Pilih Semua DO',
+    btnUnselectAll: 'Batal Pilih Semua',
+    colDo: 'No. Surat Jalan (DO)',
+    colCustItem: 'Customer & Item',
+    colQty: 'Kuantitas',
+    colPrice: 'Harga Satuan',
+    colTotal: 'Total Bruto',
+    colFleet: 'Armada',
+    multiItem: 'Multi-Item Order',
+    logisticConsolidation: 'Logistik:',
+    doConsolidated: 'DO dikonsolidasi dalam satu penagihan.',
+    subtotal: 'Subtotal:',
+    calcTitle: 'Kalkulator Faktur Multi-Formula',
+    calcDesc: 'Pilih skema kalkulasi penagihan resmi ST. Morita Industries',
+    formulas: '13 Formula',
+    selectFormula: 'Pilih Rumus Faktur Penjualan',
+    activeParams: 'Parameter Variabel Rumus Aktif',
+    paramFreight: 'Biaya Ongkos Angkut Truk (Freight):',
+    paramDp: 'Nilai Uang Muka (Down Payment):',
+    paramRetention: 'Persentase Retensi Mutu:',
+    paramMargin: 'Batas Bawah Margin Minimum:',
+    paramReturn: 'Potongan Nota Retur Cacat:',
+    paramForex: 'Kurs KMK / JISDOR:',
+    usdValue: 'Nilai USD:',
+    breakdownSubtotal: 'Subtotal Nilai Barang:',
+    breakdownDiscount: 'Potongan Diskon / Rebat:',
+    breakdownFreight: 'Ongkos Angkut Ekspedisi:',
+    breakdownDp: 'Potongan Uang Muka (DP):',
+    breakdownReturn: 'Kredit Nota Retur Cacat:',
+    breakdownDpp: 'Dasar Pengenaan Pajak (DPP):',
+    breakdownPpn: 'PPN 11% (Faktur Pajak):',
+    breakdownPph23: 'Potongan PPh 23 (2% Jasa Slit):',
+    breakdownRetention: 'Retensi Mutu Ditahan (5%):',
+    totalNetInvoice: 'TOTAL FAKTUR BERSIH:',
+    btnGenerate: 'Generate Faktur & Faktur Pajak Resmi',
+    modalInvoiceTitle: 'FAKTUR PENJUALAN KOMERSIAL',
+    modalInvoiceDesc: 'Divisi Manufaktur Adhesive Tapes & Industrial Converting',
+    modalStatus: 'STATUS: RESMI DISETUJUI',
+    modalFormula: 'Skema Formula Terpilih:',
+    modalMethod: 'Metode:',
+    modalColDo: 'No. DO',
+    modalColDesc: 'Deskripsi Produk',
+    modalTotalPayable: 'TOTAL HARUS DIBAYAR:',
+    modalBtnClose: 'Tutup',
+    modalBtnPrint: 'Cetak Faktur (Print / PDF)',
+  },
+  en: {
+    title: 'Finance & Sales Invoice Multi-DO',
+    desc: 'Multi-Delivery Order (DO) consolidation, 13 tax formulas (VAT 11%, WHT 23), freight costs & profitability audit',
+    btnForm: 'Finance & Claim Forms',
+    btnPrint: 'Print Invoice',
+    kpiSubtotal: 'Goods Subtotal',
+    doSelected: 'Delivery Orders (DO) selected',
+    kpiDpp: 'Taxable Base (DPP)',
+    ppn11: 'VAT 11%:',
+    kpiTotal: 'Total Net Payable',
+    kpiMargin: 'Gross Margin Safeguard',
+    rbacProtected: 'RBAC Protected (Finance Level)',
+    marginMin: 'Min:',
+    marginOk: '✓ Passed Profitability Standard',
+    marginLow: '⚠ Below Floor Margin!',
+    tableTitle: 'Select Delivery Order (Multi-DO)',
+    tableSelected: 'Selected',
+    tableDesc: 'Check DOs to consolidate into a single commercial invoice',
+    btnSelectAll: 'Select All DOs',
+    btnUnselectAll: 'Deselect All',
+    colDo: 'DO Number',
+    colCustItem: 'Customer & Item',
+    colQty: 'Quantity',
+    colPrice: 'Unit Price',
+    colTotal: 'Gross Total',
+    colFleet: 'Fleet',
+    multiItem: 'Multi-Item Order',
+    logisticConsolidation: 'Logistics:',
+    doConsolidated: 'DOs consolidated in one billing.',
+    subtotal: 'Subtotal:',
+    calcTitle: 'Multi-Formula Invoice Calculator',
+    calcDesc: 'Select ST. Morita Industries official billing calculation scheme',
+    formulas: '13 Formulas',
+    selectFormula: 'Select Sales Invoice Formula',
+    activeParams: 'Active Formula Variable Parameters',
+    paramFreight: 'Truck Freight Cost:',
+    paramDp: 'Down Payment Amount:',
+    paramRetention: 'Quality Retention Percentage:',
+    paramMargin: 'Minimum Margin Floor:',
+    paramReturn: 'Defective Return Note Deduction:',
+    paramForex: 'KMK / JISDOR Exchange Rate:',
+    usdValue: 'USD Value:',
+    breakdownSubtotal: 'Goods Subtotal Value:',
+    breakdownDiscount: 'Discount / Rebate Deduction:',
+    breakdownFreight: 'Expedition Freight Cost:',
+    breakdownDp: 'Down Payment (DP) Deduction:',
+    breakdownReturn: 'Defective Return Note Credit:',
+    breakdownDpp: 'Taxable Base (DPP):',
+    breakdownPpn: 'VAT 11% (Tax Invoice):',
+    breakdownPph23: 'WHT 23 Deduction (2% Slit Service):',
+    breakdownRetention: 'Withheld Quality Retention (5%):',
+    totalNetInvoice: 'TOTAL NET INVOICE:',
+    btnGenerate: 'Generate Official Commercial & Tax Invoice',
+    modalInvoiceTitle: 'COMMERCIAL SALES INVOICE',
+    modalInvoiceDesc: 'Adhesive Tapes & Industrial Converting Manufacturing Division',
+    modalStatus: 'STATUS: OFFICIALLY APPROVED',
+    modalFormula: 'Selected Formula Scheme:',
+    modalMethod: 'Method:',
+    modalColDo: 'DO No.',
+    modalColDesc: 'Product Description',
+    modalTotalPayable: 'TOTAL PAYABLE AMOUNT:',
+    modalBtnClose: 'Close',
+    modalBtnPrint: 'Print Invoice (Print / PDF)',
+  }
+};
+
 export const FinanceAnalyticsModule: React.FC = () => {
+  const language = useAppStore((state) => state.language);
+  const t = CONTENT[language] || CONTENT.id;
+
   const deliveryOrders = useAppStore((state) => state.deliveryOrders);
   const currentUser = useAppStore((state) => state.currentUser);
   const isHighDensity = useAppStore((state) => state.isHighDensity);
@@ -86,10 +220,10 @@ export const FinanceAnalyticsModule: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs mb-6">
         <div className="flex-1">
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Finance & Sales Invoice Multi-DO
+            {t.title}
           </h1>
           <p className="text-sm text-slate-500 mt-1.5">
-            Konsolidasi multi-surat jalan (DO), 13 formula perpajakan (PPN 11%, PPh 23), biaya freight & audit profitabilitas
+            {t.desc}
           </p>
         </div>
 
@@ -103,7 +237,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
             className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-800 text-sm font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Formulir Finance & Klaim</span>
+            <span>{t.btnForm}</span>
           </button>
           <button
             onClick={() => setShowPrintInvoiceModal(true)}
@@ -115,7 +249,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
             }`}
           >
             <Printer className="w-4 h-4" />
-            <span>Cetak Faktur</span>
+            <span>{t.btnPrint}</span>
           </button>
         </div>
       </div>
@@ -124,7 +258,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Subtotal Nilai Barang</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.kpiSubtotal}</span>
             <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
               <Receipt className="w-4 h-4" />
             </div>
@@ -133,13 +267,13 @@ export const FinanceAnalyticsModule: React.FC = () => {
             {<FinancialMask value={calculationResult.subtotalGoods} />}
           </div>
           <div className="text-xs text-slate-500 mt-1">
-            {selectedDos.length} Surat Jalan (DO) terpilih
+            {selectedDos.length} {t.doSelected}
           </div>
         </div>
 
         <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Dasar Pengenaan Pajak (DPP)</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.kpiDpp}</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <Coins className="w-4 h-4" />
             </div>
@@ -148,13 +282,13 @@ export const FinanceAnalyticsModule: React.FC = () => {
             {<FinancialMask value={calculationResult.taxableBaseDpp} />}
           </div>
           <div className="text-xs text-emerald-600 mt-1 font-semibold">
-            PPN 11%: {<FinancialMask value={calculationResult.ppnAmount} />}
+            {t.ppn11} {<FinancialMask value={calculationResult.ppnAmount} />}
           </div>
         </div>
 
         <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Tagihan Bersih</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.kpiTotal}</span>
             <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
@@ -170,7 +304,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
         {/* Gross Margin Safeguard Metric - Protected by RBAC */}
         <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Safeguard Gross Margin</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.kpiMargin}</span>
             <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
               <Percent className="w-4 h-4" />
             </div>
@@ -181,7 +315,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
             fallback={
               <div className="mt-3 text-xs text-slate-400 flex items-center gap-1.5 italic">
                 <Lock className="w-3.5 h-3.5 text-slate-400" />
-                <span>Terproteksi RBAC (Finance Level)</span>
+                <span>{t.rbacProtected}</span>
               </div>
             }
           >
@@ -194,14 +328,14 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 {calculationResult.estimatedMarginPercent}%
               </span>
               <span className="text-xs text-slate-400">
-                (Min: {customParams.minimumMarginPercent}%)
+                ({t.marginMin} {customParams.minimumMarginPercent}%)
               </span>
             </div>
             <div className="text-xs mt-1">
               {calculationResult.marginCheckPassed ? (
-                <span className="text-emerald-600 font-bold">✓ Lolos Standar Profitabilitas</span>
+                <span className="text-emerald-600 font-bold">{t.marginOk}</span>
               ) : (
-                <span className="text-rose-600 font-bold">⚠ Di Bawah Floor Margin!</span>
+                <span className="text-rose-600 font-bold">{t.marginLow}</span>
               )}
             </div>
           </Can>
@@ -216,13 +350,13 @@ export const FinanceAnalyticsModule: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
                 <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <span>Pilih Surat Jalan (Delivery Order Multi-DO)</span>
+                  <span>{t.tableTitle}</span>
                   <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">
-                    {selectedDos.length} / {deliveryOrders.length} Dipilih
+                    {selectedDos.length} / {deliveryOrders.length} {t.tableSelected}
                   </span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Centang DO untuk dikonsolidasi menjadi satu faktur komersial
+                  {t.tableDesc}
                 </p>
               </div>
 
@@ -231,7 +365,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 cursor-pointer self-start sm:self-auto"
               >
                 {allSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                <span>{allSelected ? 'Batal Pilih Semua' : 'Pilih Semua DO'}</span>
+                <span>{allSelected ? t.btnUnselectAll : t.btnSelectAll}</span>
               </button>
             </div>
 
@@ -249,12 +383,12 @@ export const FinanceAnalyticsModule: React.FC = () => {
                         )}
                       </button>
                     </th>
-                    <th className="py-3 px-3 font-bold">No. Surat Jalan (DO)</th>
-                    <th className="py-3 px-3 font-bold">Customer & Item</th>
-                    <th className="py-3 px-3 font-bold text-right">Kuantitas</th>
-                    <th className="py-3 px-3 font-bold text-right">Harga Satuan</th>
-                    <th className="py-3 px-3 font-bold text-right">Total Bruto</th>
-                    <th className="py-3 px-3 font-bold text-center">Armada</th>
+                    <th className="py-3 px-3 font-bold">{t.colDo}</th>
+                    <th className="py-3 px-3 font-bold">{t.colCustItem}</th>
+                    <th className="py-3 px-3 font-bold text-right">{t.colQty}</th>
+                    <th className="py-3 px-3 font-bold text-right">{t.colPrice}</th>
+                    <th className="py-3 px-3 font-bold text-right">{t.colTotal}</th>
+                    <th className="py-3 px-3 font-bold text-center">{t.colFleet}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -286,7 +420,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                           {d.customerName}
                         </div>
                         <div className="text-xs text-slate-500 truncate max-w-[180px]">
-                          {d.itemName || (d.items && d.items[0]?.itemName) || 'Multi-Item Order'}
+                          {d.itemName || (d.items && d.items[0]?.itemName) || t.multiItem}
                         </div>
                       </td>
                       <td className="py-3 px-3 text-right font-bold font-mono">
@@ -313,11 +447,11 @@ export const FinanceAnalyticsModule: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4 text-blue-600" />
                 <span>
-                  Logistik: <strong>{selectedDos.length} DO</strong> dikonsolidasi dalam satu penagihan.
+                  {t.logisticConsolidation} <strong>{selectedDos.length} DO</strong> {t.doConsolidated}
                 </span>
               </div>
               <span className="font-mono font-bold text-slate-900 text-sm">
-                Subtotal: {<FinancialMask value={calculationResult.subtotalGoods} />}
+                {t.subtotal} {<FinancialMask value={calculationResult.subtotalGoods} />}
               </span>
             </div>
           </div>
@@ -330,21 +464,21 @@ export const FinanceAnalyticsModule: React.FC = () => {
               <div>
                 <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
                   <Calculator className="w-4 h-4 text-emerald-600" />
-                  <span>Kalkulator Faktur Multi-Formula</span>
+                  <span>{t.calcTitle}</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Pilih skema kalkulasi penagihan resmi ST. Morita Industries
+                  {t.calcDesc}
                 </p>
               </div>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
-                13 Formula
+                {t.formulas}
               </span>
             </div>
 
             {/* Formula Selector Dropdown */}
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                Pilih Rumus Faktur Penjualan
+                {t.selectFormula}
               </label>
               <select
                 id="invoice-formula-selector"
@@ -374,14 +508,14 @@ export const FinanceAnalyticsModule: React.FC = () => {
             {/* Dynamic Formula Parameter Adjuster */}
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
               <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                Parameter Variabel Rumus Aktif
+                {t.activeParams}
               </div>
 
               {/* Conditional Controls based on formula */}
               {selectedFormulaId === 'FORMULA_2_FREIGHT_ADDED' && (
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-600">Biaya Ongkos Angkut Truk (Freight):</span>
+                    <span className="text-slate-600">{t.paramFreight}</span>
                     <span className="font-mono font-bold">{<FinancialMask value={customParams.freightCost || 0} />}</span>
                   </div>
                   <input
@@ -401,7 +535,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               {selectedFormulaId === 'FORMULA_5_DP_DEDUCTION' && (
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-600">Nilai Uang Muka (Down Payment):</span>
+                    <span className="text-slate-600">{t.paramDp}</span>
                     <span className="font-mono font-bold">{<FinancialMask value={customParams.downPaymentAmount || 0} />}</span>
                   </div>
                   <input
@@ -421,7 +555,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               {selectedFormulaId === 'FORMULA_6_RETENTION_GUARANTEE' && (
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-600">Persentase Retensi Mutu:</span>
+                    <span className="text-slate-600">{t.paramRetention}</span>
                     <span className="font-mono font-bold">{customParams.retentionPercent}%</span>
                   </div>
                   <input
@@ -441,7 +575,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               {selectedFormulaId === 'FORMULA_11_COST_CONTROL_SAFEGUARD' && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-600">Batas Bawah Margin Minimum:</span>
+                    <span className="text-slate-600">{t.paramMargin}</span>
                     <span className="font-mono font-bold">{customParams.minimumMarginPercent}%</span>
                   </div>
                   <input
@@ -461,7 +595,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               {selectedFormulaId === 'FORMULA_13_RETURN_NOTE_OFFSET' && (
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-600">Potongan Nota Retur Cacat:</span>
+                    <span className="text-slate-600">{t.paramReturn}</span>
                     <span className="font-mono font-bold">{<FinancialMask value={customParams.returnNoteAmount || 0} />}</span>
                   </div>
                   <input
@@ -481,11 +615,11 @@ export const FinanceAnalyticsModule: React.FC = () => {
               {selectedFormulaId === 'FORMULA_12_FOREX_CURRENCY' && (
                 <div className="text-xs space-y-1 font-mono">
                   <div className="flex justify-between text-slate-600">
-                    <span>Kurs KMK / JISDOR:</span>
+                    <span>{t.paramForex}</span>
                     <span className="font-bold">1 USD = Rp {customParams.exchangeRate?.toLocaleString()}</span>
                   </div>
                   <div className="text-xs text-slate-500">
-                    Nilai USD: {formatUSD(calculationResult.finalPayableAmount / (customParams.exchangeRate || 16250))}
+                    {t.usdValue} {formatUSD(calculationResult.finalPayableAmount / (customParams.exchangeRate || 16250))}
                   </div>
                 </div>
               )}
@@ -494,7 +628,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
             {/* Calculated Breakdown Line-Items */}
             <div className="divide-y divide-slate-100 text-xs">
               <div className="py-2 flex justify-between">
-                <span className="text-slate-600">Subtotal Nilai Barang:</span>
+                <span className="text-slate-600">{t.breakdownSubtotal}</span>
                 <span className="font-mono font-bold text-slate-900">
                   {<FinancialMask value={calculationResult.subtotalGoods} />}
                 </span>
@@ -502,7 +636,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
               {calculationResult.discountOrRebate > 0 && (
                 <div className="py-2 flex justify-between text-emerald-600">
-                  <span>Potongan Diskon / Rebat:</span>
+                  <span>{t.breakdownDiscount}</span>
                   <span className="font-mono font-bold">
                     - {<FinancialMask value={calculationResult.discountOrRebate} />}
                   </span>
@@ -511,7 +645,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
               {calculationResult.freightAmount > 0 && (
                 <div className="py-2 flex justify-between text-blue-600">
-                  <span>Ongkos Angkut Ekspedisi:</span>
+                  <span>{t.breakdownFreight}</span>
                   <span className="font-mono font-bold">
                     + {<FinancialMask value={calculationResult.freightAmount} />}
                   </span>
@@ -520,7 +654,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
               {calculationResult.downPaymentDeduction > 0 && (
                 <div className="py-2 flex justify-between text-amber-600">
-                  <span>Potongan Uang Muka (DP):</span>
+                  <span>{t.breakdownDp}</span>
                   <span className="font-mono font-bold">
                     - {<FinancialMask value={calculationResult.downPaymentDeduction} />}
                   </span>
@@ -529,7 +663,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
               {calculationResult.returnCreditOffset > 0 && (
                 <div className="py-2 flex justify-between text-rose-600">
-                  <span>Kredit Nota Retur Cacat:</span>
+                  <span>{t.breakdownReturn}</span>
                   <span className="font-mono font-bold">
                     - {<FinancialMask value={calculationResult.returnCreditOffset} />}
                   </span>
@@ -537,12 +671,12 @@ export const FinanceAnalyticsModule: React.FC = () => {
               )}
 
               <div className="py-2.5 flex justify-between bg-slate-50 px-2.5 rounded-lg font-semibold text-slate-800">
-                <span>Dasar Pengenaan Pajak (DPP):</span>
+                <span>{t.breakdownDpp}</span>
                 <span className="font-mono">{<FinancialMask value={calculationResult.taxableBaseDpp} />}</span>
               </div>
 
               <div className="py-2 flex justify-between text-slate-700">
-                <span>PPN 11% (Faktur Pajak):</span>
+                <span>{t.breakdownPpn}</span>
                 <span className="font-mono font-bold text-blue-600">
                   + {<FinancialMask value={calculationResult.ppnAmount} />}
                 </span>
@@ -550,7 +684,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
               {calculationResult.pph23Amount > 0 && (
                 <div className="py-2 flex justify-between text-amber-600">
-                  <span>Potongan PPh 23 (2% Jasa Slit):</span>
+                  <span>{t.breakdownPph23}</span>
                   <span className="font-mono font-bold">
                     - {<FinancialMask value={calculationResult.pph23Amount} />}
                   </span>
@@ -559,7 +693,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
               {calculationResult.retentionWithheld > 0 && (
                 <div className="py-2 flex justify-between text-amber-600">
-                  <span>Retensi Mutu Ditahan (5%):</span>
+                  <span>{t.breakdownRetention}</span>
                   <span className="font-mono font-bold">
                     - {<FinancialMask value={calculationResult.retentionWithheld} />}
                   </span>
@@ -568,7 +702,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
               {/* Total Payable */}
               <div className="py-3.5 flex justify-between items-center text-sm font-black pt-3 border-t-2 border-slate-200">
-                <span className="text-slate-900">TOTAL FAKTUR BERSIH:</span>
+                <span className="text-slate-900">{t.totalNetInvoice}</span>
                 <span className="text-lg font-mono text-emerald-600">
                   {<FinancialMask value={calculationResult.finalPayableAmount} />}
                 </span>
@@ -581,7 +715,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
             >
               <FileCheck2 className="w-4 h-4" />
-              <span>Generate Faktur & Faktur Pajak Resmi</span>
+              <span>{t.btnGenerate}</span>
             </button>
           </div>
         </div>
@@ -595,13 +729,13 @@ export const FinanceAnalyticsModule: React.FC = () => {
             <div className="flex justify-between items-start border-b border-slate-200 pb-4">
               <div>
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  FAKTUR PENJUALAN KOMERSIAL
+                  {t.modalInvoiceTitle}
                 </div>
                 <h3 className="text-lg font-black text-slate-900">
                   ST. Morita Industries
                 </h3>
                 <div className="text-xs text-slate-500">
-                  Divisi Manufaktur Adhesive Tapes & Industrial Converting
+                  {t.modalInvoiceDesc}
                 </div>
               </div>
               <div className="text-right font-mono text-xs">
@@ -609,18 +743,18 @@ export const FinanceAnalyticsModule: React.FC = () => {
                   INV/SM/{new Date().getFullYear()}/09/0819
                 </div>
                 <div className="text-slate-500">Tgl: {new Date().toLocaleDateString('id-ID')}</div>
-                <div className="text-emerald-600 font-bold">STATUS: RESMI DISETUJUI</div>
+                <div className="text-emerald-600 font-bold">{t.modalStatus}</div>
               </div>
             </div>
 
             {/* Formula Meta */}
             <div className="p-3.5 rounded-xl bg-slate-50 text-xs flex justify-between items-center border border-slate-200">
               <div>
-                <span className="text-slate-500">Skema Formula Terpilih: </span>
+                <span className="text-slate-500">{t.modalFormula} </span>
                 <strong className="text-slate-900">{calculationResult.formulaName}</strong>
               </div>
               <div className="font-mono text-slate-600 font-semibold">
-                Metode: {calculationResult.formulaId}
+                {t.modalMethod} {calculationResult.formulaId}
               </div>
             </div>
 
@@ -629,10 +763,10 @@ export const FinanceAnalyticsModule: React.FC = () => {
               <table className="w-full text-left">
                 <thead className="bg-slate-50 text-slate-700 border-b border-slate-200">
                   <tr>
-                    <th className="p-2.5 font-bold">No. DO</th>
-                    <th className="p-2.5 font-bold">Deskripsi Produk</th>
-                    <th className="p-2.5 text-right font-bold">Qty</th>
-                    <th className="p-2.5 text-right font-bold">Harga Satuan</th>
+                    <th className="p-2.5 font-bold">{t.modalColDo}</th>
+                    <th className="p-2.5 font-bold">{t.modalColDesc}</th>
+                    <th className="p-2.5 text-right font-bold">{t.colQty}</th>
+                    <th className="p-2.5 text-right font-bold">{t.colPrice}</th>
                     <th className="p-2.5 text-right font-bold">Total</th>
                   </tr>
                 </thead>
@@ -653,15 +787,15 @@ export const FinanceAnalyticsModule: React.FC = () => {
             {/* Total summary breakdown */}
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
               <div className="flex justify-between text-slate-600">
-                <span>Dasar Pengenaan Pajak (DPP):</span>
+                <span>{t.breakdownDpp}</span>
                 <span className="font-mono font-bold text-slate-800">{<FinancialMask value={calculationResult.taxableBaseDpp} />}</span>
               </div>
               <div className="flex justify-between text-slate-600">
-                <span>PPN 11%:</span>
+                <span>{t.ppn11}</span>
                 <span className="font-mono font-bold text-blue-600">{<FinancialMask value={calculationResult.ppnAmount} />}</span>
               </div>
               <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-200">
-                <span>TOTAL HARUS DIBAYAR:</span>
+                <span>{t.modalTotalPayable}</span>
                 <span className="font-mono text-emerald-600">
                   {<FinancialMask value={calculationResult.finalPayableAmount} />}
                 </span>
@@ -674,7 +808,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 onClick={() => setShowPrintInvoiceModal(false)}
                 className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
               >
-                Tutup
+                {t.modalBtnClose}
               </button>
               <button
                 onClick={() => {
@@ -683,7 +817,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <Printer className="w-4 h-4" />
-                <span>Cetak Faktur (Print / PDF)</span>
+                <span>{t.modalBtnPrint}</span>
               </button>
             </div>
           </div>
