@@ -23,10 +23,69 @@ import {
   UserX,
   X,
   LogIn,
+  Loader2,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { PermissionClaim, RoleTier, UserProfile, UserRole } from '../../types';
 import { ROLE_DEFINITIONS, getTierBadge, canManageUsers } from '../../utils/rbac';
+import { useAuthStore } from '../../store/useAuthStore';
+import { createEmployeeApi } from '../../services/hrdService';
+import type { CreateEmployeePayload } from '../../services/hrdService';
+
+// Mapping dari UserRole (FE) → user_level enum (BE)
+const ROLE_TO_USER_LEVEL: Record<UserRole, CreateEmployeePayload['user_level']> = {
+  SUPER_ADMIN:        'L0_SUPER_ADMIN',
+  DIREKSI:            'L1_DIREKSI',
+  HRD_MANAGER:        'L2_MANAGER',
+  PPIC_MANAGER:       'L2_MANAGER',
+  PURCHASING_MANAGER: 'L2_MANAGER',
+  QC_MANAGER:         'L2_MANAGER',
+  SALES_MANAGER:      'L2_MANAGER',
+  COST_CONTROL:       'L2_MANAGER',
+  WAREHOUSE_MANAGER:  'L2_MANAGER',
+  FINANCE_MANAGER:    'L2_MANAGER',
+  OPERATOR_PROD:      'L3_STAFF',
+  QC_INSPECTOR:       'L3_STAFF',
+  SALES_EXEC:         'L3_STAFF',
+  WAREHOUSE:          'L3_STAFF',
+  PURCHASING:         'L3_STAFF',
+  FINANCE_ACCT:       'L3_STAFF',
+  HRD_STAFF:          'L3_STAFF',
+  PPIC_PLANNER:       'L3_STAFF',
+};
+
+const getDerivedRole = (level: string, department: string): UserRole => {
+  if (level === 'L0_SUPER_ADMIN') return 'SUPER_ADMIN';
+  if (level === 'L1_DIREKSI') return 'DIREKSI';
+  
+  if (level === 'L2_MANAGER') {
+    switch (department) {
+      case 'FINANCE': return 'FINANCE_MANAGER';
+      case 'HRD': return 'HRD_MANAGER';
+      case 'PPIC': return 'PPIC_MANAGER';
+      case 'QC': return 'QC_MANAGER';
+      case 'SALES': return 'SALES_MANAGER';
+      case 'WAREHOUSE': return 'WAREHOUSE_MANAGER';
+      case 'EXTERNAL_PORTAL': return 'PURCHASING_MANAGER';
+      case 'RND': return 'QC_MANAGER';
+      default: return 'HRD_MANAGER';
+    }
+  }
+
+  if (level === 'L4_EXTERNAL') return 'PURCHASING';
+
+  switch (department) {
+    case 'FINANCE': return 'FINANCE_ACCT';
+    case 'HRD': return 'HRD_STAFF';
+    case 'PPIC': return 'OPERATOR_PROD';
+    case 'QC': return 'QC_INSPECTOR';
+    case 'SALES': return 'SALES_EXEC';
+    case 'WAREHOUSE': return 'WAREHOUSE';
+    case 'EXTERNAL_PORTAL': return 'PURCHASING';
+    case 'RND': return 'QC_INSPECTOR';
+    default: return 'OPERATOR_PROD';
+  }
+};
 
 export const UserManagementModule: React.FC = () => {
   const users = useAppStore((state) => state.users);
@@ -37,70 +96,107 @@ export const UserManagementModule: React.FC = () => {
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('ALL');
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('ALL');
 
-  // Form State for Creating New Employee Account
+  // ─── Form State — matches exact BE EmployeeCreate schema ─────
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [newNik, setNewNik] = useState(`NIK-2026-${String(users.length + 1).padStart(3, '0')}`);
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newDepartment, setNewDepartment] = useState('Produksi Slitting & Coating Line 2');
-  const [newPlantLocation, setNewPlantLocation] = useState('Plant 1 - Production Floor');
-  const [newPhone, setNewPhone] = useState('+62 812-');
-  const [newRole, setNewRole] = useState<UserRole>('OPERATOR_PROD');
-  const [newPassword, setNewPassword] = useState('MoritaPass2026!');
-  const [newStatus, setNewStatus] = useState<'ACTIVE' | 'SUSPENDED'>('ACTIVE');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
   const [formSuccessMessage, setFormSuccessMessage] = useState('');
+
+  // Required fields
+  const [fNik, setFNik]                     = useState(`EMP-${new Date().getFullYear()}-001`);
+  const [fFullName, setFFullName]           = useState('');
+  const [fEmail, setFEmail]                 = useState('');
+  const [fPhone, setFPhone]                 = useState('+62 ');
+  const [fEmploymentStatus, setFEmploymentStatus] = useState<CreateEmployeePayload['employment_status']>('PERMANENT');
+  const [fJoinDate, setFJoinDate]           = useState(new Date().toISOString().split('T')[0]);
+  const [fUsername, setFUsername]           = useState('');
+  const [fPassword, setFPassword]           = useState('');
+  const [fUserLevel, setFUserLevel]         = useState<CreateEmployeePayload['user_level']>('L3_STAFF');
+  const [fKtp, setFKtp]                     = useState(''); // 16-digit KTP number
+  const [fSalary, setFSalary]               = useState<number | ''>('');
+
+  // Optional fields
+  const [fDepartment, setFDepartment]       = useState('PPIC');
+  
+  // Derived Role
+  const derivedRole = getDerivedRole(fUserLevel, fDepartment);
+  const [fBankName, setFBankName]           = useState('');
+  const [fBankAccount, setFBankAccount]     = useState('');
 
   // Inspect Permissions Modal State
   const [inspectUser, setInspectUser] = useState<UserProfile | null>(null);
 
+  const authToken = useAuthStore((state) => state.token);
   const isAuthorized = canManageUsers(currentUser);
 
-  // Auto-fill suggested email when name changes
+  // Auto-fill email & username when full_name changes
   const handleNameChange = (val: string) => {
-    setNewName(val);
+    setFFullName(val);
     if (val.trim()) {
-      const clean = val.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim().split(' ');
-      const suggested = clean.length > 1 ? `${clean[0]}.${clean[clean.length - 1]}` : clean[0];
-      setNewEmail(`${suggested}@stmorita.co.id`);
+      const parts = val.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim().split(' ');
+      const slug = parts.length > 1 ? `${parts[0]}.${parts[parts.length - 1]}` : parts[0];
+      setFEmail(`${slug}@stmorita.co.id`);
+      setFUsername(slug.replace(/\./g, '_'));
     }
   };
 
-  // Submit New Employee Form
-  const handleCreateAccount = (e: React.FormEvent) => {
+
+
+  const resetForm = () => {
+    setFNik(`EMP-${new Date().getFullYear()}-001`);
+    setFFullName(''); setFEmail(''); setFPhone('+62'); setFUsername(''); setFPassword('');
+    setFKtp(''); setFSalary(''); setFBankName(''); setFBankAccount('');
+    setFUserLevel('L3_STAFF');
+    setFEmploymentStatus('PERMANENT');
+    setFJoinDate(new Date().toISOString().split('T')[0]);
+    setFDepartment('PPIC');
+    setFormError('');
+  };
+
+  // Submit — calls real BE API
+  const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim() || !newEmail.trim()) return;
+    if (!fFullName.trim() || !fEmail.trim() || !fUsername.trim() || !fPassword.trim()) return;
+    if (fKtp.length !== 16) { setFormError('Nomor KTP harus tepat 16 digit.'); return; }
+    if (!fSalary || Number(fSalary) <= 0) { setFormError('Gaji pokok harus diisi dan lebih dari 0.'); return; }
+    if (fPassword.length < 8) { setFormError('Password minimal 8 karakter.'); return; }
 
-    const roleMeta = ROLE_DEFINITIONS[newRole];
-    const defaultAvatar = `https://images.unsplash.com/photo-${
-      1500000000000 + Math.floor(Math.random() * 100000000)
-    }?w=150&auto=format&fit=crop&q=80`;
+    const payload: CreateEmployeePayload = {
+      nik: fNik.trim(),
+      full_name: fFullName.trim(),
+      email: fEmail.trim(),
+      phone_number: fPhone.trim(),
+      employment_status: fEmploymentStatus,
+      join_date: fJoinDate,
+      username: fUsername.trim(),
+      password: fPassword,
+      role_id: derivedRole,     // Derived automatically
+      user_level: fUserLevel,
+      identity_card_number: fKtp.trim(),
+      basic_salary: Number(fSalary),
+      department: fDepartment || null,
+      bank_name: fBankName || null,
+      bank_account_number: fBankAccount || null,
+    };
 
-    const created = appStore.createUser({
-      nik: newNik.trim() || `NIK-2026-${String(users.length + 1).padStart(3, '0')}`,
-      name: newName.trim(),
-      email: newEmail.trim(),
-      role: newRole,
-      tier: roleMeta.tier,
-      department: newDepartment,
-      plantLocation: newPlantLocation,
-      phoneNumber: newPhone,
-      avatar: defaultAvatar,
-      permissions: roleMeta.permissions,
-      status: newStatus,
-      joinedDate: new Date().toISOString().split('T')[0],
-    });
-
-    setFormSuccessMessage(`Akun pegawai untuk "${created.name}" berhasil dibuat dan terdaftar dalam sistem RBAC.`);
-    // Reset Form
-    setNewName('');
-    setNewEmail('');
-    setNewPhone('+62 812-');
-    setNewNik(`NIK-2026-${String(users.length + 2).padStart(3, '0')}`);
-    setIsFormOpen(false);
-
-    setTimeout(() => {
-      setFormSuccessMessage('');
-    }, 6000);
+    setIsSubmitting(true);
+    setFormError('');
+    try {
+      await createEmployeeApi(payload);
+      setFormSuccessMessage(`Akun pegawai untuk "${fFullName}" berhasil dibuat di Keycloak dengan role ${derivedRole} (${fUserLevel}).`);
+      resetForm();
+      setIsFormOpen(false);
+      setTimeout(() => setFormSuccessMessage(''), 8000);
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail
+        || err?.response?.data?.message
+        || (Array.isArray(err?.response?.data?.detail) ? JSON.stringify(err.response.data.detail) : null)
+        || err?.message
+        || 'Gagal membuat akun. Cek kembali data yang dimasukkan.';
+      setFormError(typeof detail === 'string' ? detail : JSON.stringify(detail));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Filtered Users
@@ -221,7 +317,7 @@ export const UserManagementModule: React.FC = () => {
         </div>
       </div>
 
-      {/* FORM: Create New Employee Account (Collapsible) */}
+      {/* FORM: Buat Akun Pegawai Baru — Sinkron dengan BE EmployeeCreate schema */}
       {isFormOpen && isAuthorized && (
         <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800/80 shadow-xl animate-in fade-in duration-150">
           <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
@@ -231,251 +327,200 @@ export const UserManagementModule: React.FC = () => {
                 <span>Formulir Pembuatan Akun Pegawai Baru ST. Morita Industries</span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Kredensial login akan diterbitkan dengan otorisasi hak akses sesuai tingkatan RBAC
+                Data akan disimpan ke database <strong>dan</strong> akun Keycloak akan dibuat otomatis dengan role & group yang sesuai.
               </p>
             </div>
-            <button
-              onClick={() => setIsFormOpen(false)}
-              className="text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-            >
+            <button onClick={() => { setIsFormOpen(false); resetForm(); }} className="text-xs font-bold text-slate-400 hover:text-slate-600">
               Batal
             </button>
           </div>
 
-          <form onSubmit={handleCreateAccount} className="space-y-4 pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* NIK */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Nomor Induk Karyawan (NIK / NIP) *
-                </label>
-                <input
-                  type="text"
-                  value={newNik}
-                  onChange={(e) => setNewNik(e.target.value)}
-                  required
-                  placeholder="NIK-2026-..."
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              {/* Nama Lengkap */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Nama Lengkap Pegawai (Beserta Gelar) *
-                </label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  required
-                  placeholder="Contoh: Rian Pratama, S.T."
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              {/* Email Resmi */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Email Resmi Perusahaan (@stmorita.co.id) *
-                </label>
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  required
-                  placeholder="nama.pegawai@stmorita.co.id"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"
-                />
-              </div>
+          {/* Error alert */}
+          {formError && (
+            <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+              <div><span className="font-bold">Error: </span>{formError}</div>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Departemen */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Departemen Penempatan
-                </label>
-                <select
-                  value={newDepartment}
-                  onChange={(e) => setNewDepartment(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="Produksi Slitting & Coating Line 2">Produksi Slitting & Coating (Plant Utama)</option>
-                  <option value="Quality Assurance & QC Lab">Quality Assurance & QC Testing Lab</option>
-                  <option value="Procurement & Bea Cukai (EXIM)">Procurement & Bea Cukai (Kawasan Berikat)</option>
-                  <option value="PPIC & Production Control">PPIC & Production Control</option>
-                  <option value="Logistics & Raw Material Warehouse">Logistics & Raw Material Warehouse</option>
-                  <option value="Commercial Sales & Business Development">Commercial Sales & Business Development</option>
-                  <option value="Finance, Tax & Cost Accounting">Finance, Tax & Cost Accounting</option>
-                  <option value="Human Resources & General Affairs">Human Resources & General Affairs (HRD)</option>
-                  <option value="Executive IT & Systems">Executive IT & Systems</option>
-                  <option value="Board of Directors">Board of Directors & Executive Suite</option>
-                </select>
-              </div>
+          <form onSubmit={handleCreateAccount} className="space-y-5 pt-4">
 
-              {/* Lokasi Fasilitas Kerja */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Lokasi Kerja Spesifik Pabrik
-                </label>
-                <input
-                  type="text"
-                  value={newPlantLocation}
-                  onChange={(e) => setNewPlantLocation(e.target.value)}
-                  placeholder="Plant 1 / Plant 2 / Gate 2 / Kantor Direksi"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              {/* No Telepon */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Nomor Kontak / WhatsApp
-                </label>
-                <input
-                  type="text"
-                  value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value)}
-                  placeholder="+62 8..."
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"
-                />
-              </div>
-            </div>
-
-            {/* Role & RBAC Tier Selection */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 space-y-3">
-              <div className="flex items-center justify-between">
+            {/* ── Row 1: Identitas Dasar ── */}
+            <div>
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">① Identitas Pegawai</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-900 dark:text-white">
-                    Pilih Peran Fungsional & Tingkatan RBAC (Role Assignment)
-                  </label>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Sistem akan secara otomatis menetapkan hak klaim izin, data masking, dan otoritas approval
-                  </p>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">NIK Karyawan * <span className="font-normal text-slate-400">(format: EMP-YYYY-NNN)</span></label>
+                  <input type="text" value={fNik} onChange={e => setFNik(e.target.value)} required
+                    pattern="^EMP-\d{4}-\d{3,4}$" title="Format: EMP-2026-001"
+                    placeholder="EMP-2026-001"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
-                {ROLE_DEFINITIONS[newRole] && (
-                  <span
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-                      getTierBadge(ROLE_DEFINITIONS[newRole].tier).badgeClass
-                    }`}
-                  >
-                    {ROLE_DEFINITIONS[newRole].tierName}
-                  </span>
-                )}
-              </div>
-
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value as UserRole)}
-                className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
-                <optgroup label="Level 0: Super Admin">
-                  <option value="SUPER_ADMIN">Level 0: Super Admin / System Architect (Full IT & Account Access)</option>
-                </optgroup>
-                <optgroup label="Level 1: Direksi & C-Level (Executive)">
-                  <option value="DIREKSI">Level 1: Direksi / Board of Directors (Full Read-All, P&L, Override)</option>
-                </optgroup>
-                <optgroup label="Level 2: Admin Bidang / Manager Departemen">
-                  <option value="HRD_MANAGER">Level 2: HRD & GA Manager (Kelola Akun, Cuti, Armada Pabrik)</option>
-                  <option value="PPIC_MANAGER">Level 2: PPIC & Plant Planning Manager (Persetujuan PR & SPK)</option>
-                  <option value="PURCHASING_MANAGER">Level 2: Procurement & EXIM Manager (Approval PO & Bea Cukai)</option>
-                  <option value="QC_MANAGER">Level 2: QC Manager (Override & Release QC Hold, Terbitkan COA)</option>
-                  <option value="COST_CONTROL">Level 2: Cost Control Specialist (Gating Margin & Audit Biaya HPP)</option>
-                  <option value="SALES_MANAGER">Level 2: Commercial Sales Manager (Approval Quotation & Order)</option>
-                  <option value="WAREHOUSE_MANAGER">Level 2: Warehouse & Logistics Manager (Otorisasi DO & Stock)</option>
-                  <option value="FINANCE_MANAGER">Level 2: Finance & Accounting Manager (Post 13-Rumus Invoice & AR/AP)</option>
-                </optgroup>
-                <optgroup label="Level 3: Staff & Operator Lapangan (Data Masked)">
-                  <option value="OPERATOR_PROD">Level 3: Operator Mesin Slitting/Coating (Eksekusi SPK, Scan Output)</option>
-                  <option value="QC_INSPECTOR">Level 3: QC Inspector Shift A (Input Uji Lab, Lock QC Hold, No Override)</option>
-                  <option value="SALES_EXEC">Level 3: Sales Executive (Draft Quotation, Log GPS Visit)</option>
-                  <option value="WAREHOUSE">Level 3: Warehouse Staff (Scan Barcode LOG, Staging & Cetak Label)</option>
-                  <option value="PURCHASING">Level 3: Purchasing Staff (Input Draft PR & PO Supplier)</option>
-                  <option value="FINANCE_ACCT">Level 3: Finance Staff / Billing Clerk (Draft Multi-DO Invoice)</option>
-                  <option value="HRD_STAFF">Level 3: HRD & GA Staff (Input Absensi & Jadwal Kendaraan)</option>
-                  <option value="PPIC_PLANNER">Level 3: PPIC Planner Staff (Cek Stok & Draft SPK)</option>
-                </optgroup>
-              </select>
-
-              {/* Role description & permission claims preview */}
-              <div className="text-xs p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Deskripsi Otoritas:</span>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap *</label>
+                  <input type="text" value={fFullName} onChange={e => handleNameChange(e.target.value)} required minLength={2} maxLength={200}
+                    placeholder="Contoh: Rian Pratama, S.T."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
-                <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
-                  {ROLE_DEFINITIONS[newRole]?.description}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Email Resmi *</label>
+                  <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)} required
+                    placeholder="nama@stmorita.co.id"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
-
-                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1 flex-wrap">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">
-                    Hak Akses ({ROLE_DEFINITIONS[newRole]?.permissions.length} Klaim):
-                  </span>
-                  {ROLE_DEFINITIONS[newRole]?.permissions.map((perm) => (
-                    <span
-                      key={perm}
-                      className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
-                    >
-                      {perm}
-                    </span>
-                  ))}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">No. KTP (16 digit) *</label>
+                  <input type="text" value={fKtp} onChange={e => setFKtp(e.target.value.replace(/\D/g, '').slice(0,16))} required
+                    minLength={16} maxLength={16} inputMode="numeric"
+                    placeholder="16 digit Nomor KTP"
+                    className={`w-full px-3 py-2 rounded-xl bg-slate-50 border text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none ${fKtp.length > 0 && fKtp.length !== 16 ? 'border-rose-400' : 'border-slate-300'}`} />
+                  {fKtp.length > 0 && fKtp.length !== 16 && <p className="text-[10px] text-rose-500 mt-0.5">{fKtp.length}/16 digit</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">No. Telepon / WA *</label>
+                  <input type="text" value={fPhone} onChange={e => setFPhone(e.target.value)} required maxLength={20}
+                    placeholder="+62 8xx-xxxx-xxxx"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Tanggal Bergabung *</label>
+                  <input type="date" value={fJoinDate} onChange={e => setFJoinDate(e.target.value)} required
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
               </div>
             </div>
 
-            {/* Password & Initial Status */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Kata Sandi Sementara (Initial Password) *
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                  <div className="text-[10px] text-slate-400 mt-1">
-                    Pegawai akan diminta mengganti sandi pada saat sesi login pertama kali.
+            {/* ── Row 2: Status & Penempatan ── */}
+            <div>
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">② Status Kepegawaian & Penempatan</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Status Kepegawaian *</label>
+                  <select value={fEmploymentStatus} onChange={e => setFEmploymentStatus(e.target.value as any)} required
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold">
+                    <option value="PERMANENT">PERMANENT — Karyawan Tetap</option>
+                    <option value="CONTRACT">CONTRACT — Karyawan Kontrak (PKWT)</option>
+                    <option value="PROBATION">PROBATION — Masa Percobaan</option>
+                    <option value="INTERNSHIP">INTERNSHIP — Magang / PKL</option>
+                    <option value="RESIGNED">RESIGNED — Sudah Mengundurkan Diri</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Departemen Penempatan</label>
+                  <select value={fDepartment} onChange={e => setFDepartment(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="EXTERNAL_PORTAL">Procurement & Bea Cukai (EXIM)</option>
+                    <option value="FINANCE">Finance, Tax & Cost Accounting</option>
+                    <option value="HRD">Human Resources & GA</option>
+                    <option value="PPIC">PPIC & Production Control</option>
+                    <option value="QC">Quality Assurance & QC Lab</option>
+                    <option value="RND">R&D / Executive IT</option>
+                    <option value="SALES">Commercial Sales & BD</option>
+                    <option value="WAREHOUSE">Logistics & Warehouse</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Gaji Pokok (IDR) *</label>
+                  <input type="number" value={fSalary} onChange={e => setFSalary(e.target.value === '' ? '' : Number(e.target.value))} required
+                    min={1} step={500000} placeholder="Contoh: 5000000"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Row 3: Akun Login & RBAC ── */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">③ Akun Login & Hak Akses Keycloak (RBAC)</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Username Login *</label>
+                  <input type="text" value={fUsername} onChange={e => setFUsername(e.target.value)} required minLength={3} maxLength={100}
+                    placeholder="Contoh: rian_pratama"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Password Sementara * <span className="font-normal text-slate-400">(min. 8 karakter)</span></label>
+                  <input type="text" value={fPassword} onChange={e => setFPassword(e.target.value)} required minLength={8}
+                    placeholder="Password awal — pegawai akan diminta ganti saat login pertama"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                {/* user_level */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Level Akses (user_level) *
+                  </label>
+                  <select value={fUserLevel} onChange={e => setFUserLevel(e.target.value as any)} required
+                    className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="L0_SUPER_ADMIN">L0 — Super Admin</option>
+                    <option value="L1_DIREKSI">L1 — Direksi / Executive</option>
+                    <option value="L2_MANAGER">L2 — Manager / Admin Bidang</option>
+                    <option value="L3_STAFF">L3 — Staff / Operator</option>
+                    <option value="L4_EXTERNAL">L4 — External / Mitra</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Role Preview */}
+              {ROLE_DEFINITIONS[derivedRole] && (
+                <div className="text-xs p-3 rounded-lg bg-blue-50/50 border border-blue-200">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Preview Peran Fungsional Otomatis — {ROLE_DEFINITIONS[derivedRole].label}</span>
+                    </div>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${getTierBadge(ROLE_DEFINITIONS[derivedRole].tier).badgeClass}`}>
+                      {fUserLevel}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mb-2">
+                    Peran fungsional ini ditentukan secara otomatis berdasarkan kombinasi Departemen dan Level Akses yang Anda pilih.
+                    <br/><br/>
+                    {ROLE_DEFINITIONS[derivedRole].description}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {ROLE_DEFINITIONS[derivedRole].permissions.map(p => (
+                      <span key={p} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">{p}</span>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Status Akun
-                </label>
-                <select
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value as 'ACTIVE' | 'SUSPENDED')}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold"
-                >
-                  <option value="ACTIVE">AKTIF (Dapat Langsung Mengakses Portal)</option>
-                  <option value="SUSPENDED">DITANGGUHKAN (Akses Sementara Ditutup)</option>
-                </select>
+            {/* ── Row 4: Informasi Bank (Opsional) ── */}
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">④ Informasi Rekening Bank <span className="font-normal normal-case">(opsional)</span></p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Bank</label>
+                  <input type="text" value={fBankName} onChange={e => setFBankName(e.target.value)} maxLength={50}
+                    placeholder="Contoh: BCA, BNI, Mandiri, BRI"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">No. Rekening</label>
+                  <input type="text" value={fBankAccount} onChange={e => setFBankAccount(e.target.value)} maxLength={30}
+                    placeholder="Nomor rekening"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                </div>
               </div>
             </div>
 
-            {/* Submit buttons */}
-            <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setIsFormOpen(false)}
-                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                id="submit-create-employee-btn"
-                type="submit"
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all cursor-pointer"
-              >
-                <UserCheck className="w-4 h-4" />
-                <span>Daftarkan Pegawai & Terbitkan Hak Akses</span>
-              </button>
+            {/* Submit */}
+            <div className="pt-3 flex items-center justify-between border-t border-slate-200">
+              <p className="text-[10px] text-slate-400">* Field wajib diisi. Akun Keycloak akan dibuat otomatis.</p>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => { setIsFormOpen(false); resetForm(); }}
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+                  Batal
+                </button>
+                <button id="submit-create-employee-btn" type="submit" disabled={isSubmitting}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all">
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
+                  <span>{isSubmitting ? 'Mendaftarkan ke Keycloak...' : 'Daftarkan Pegawai & Terbitkan Hak Akses'}</span>
+                </button>
+              </div>
             </div>
           </form>
         </div>

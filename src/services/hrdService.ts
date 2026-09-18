@@ -26,33 +26,40 @@ export async function getEmployeesApi(
 /**
  * Create a new employee.
  * Backend will automatically:
- * - Create a Keycloak account
- * - Assign Role (based on user_level / role_id)
- * - Assign Group (based on department)
+ * - Create a Keycloak user account
+ * - Assign Role to Keycloak (based on role_id = Keycloak role name like 'SUPER_ADMIN')
+ * - Assign Group to Keycloak (based on department)
+ *
+ * NOTE: All fields MUST be snake_case to match the FastAPI EmployeeCreate schema.
  */
 export interface CreateEmployeePayload {
-  nik: string;
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  employmentStatus: string;
-  joinDate: string;
-  department: string;
-  userLevel: string;
-  username: string;
-  password: string;
-  roleId: string;
-  identityCardNumber: string;
-  basicSalary: number;
-  bankName?: string;
-  bankAccountNumber?: string;
+  // Required fields — exact snake_case as per BE EmployeeCreate schema
+  nik: string;                  // Pattern: ^EMP-\d{4}-\d{3,4}$
+  full_name: string;            // minLength: 2, maxLength: 200
+  email: string;                // format: email
+  phone_number: string;         // maxLength: 20
+  employment_status: 'PERMANENT' | 'CONTRACT' | 'PROBATION' | 'INTERNSHIP' | 'RESIGNED';
+  join_date: string;            // format: date (YYYY-MM-DD)
+  username: string;             // minLength: 3, maxLength: 100
+  password: string;             // minLength: 8
+  role_id: string;              // Keycloak role name e.g. 'SUPER_ADMIN', 'HRD_MANAGER'
+  user_level: 'L0_SUPER_ADMIN' | 'L1_DIREKSI' | 'L2_MANAGER' | 'L3_STAFF' | 'L4_EXTERNAL';
+  identity_card_number: string; // exactly 16 chars (KTP/NIK KTP)
+  basic_salary: number;         // > 0, IDR
+
+  // Optional fields
+  department?: string | null;
+  bank_name?: string | null;         // maxLength: 50
+  bank_account_number?: string | null; // maxLength: 30
 }
 
 export async function createEmployeeApi(
   data: CreateEmployeePayload
 ): Promise<Employee> {
+  // Data is already in snake_case — send directly
   const response = await apiClient.post('/hrd/employees', data);
-  return response.data as Employee;
+  // Handle both {data: ...} and direct response formats
+  return (response.data?.data || response.data) as Employee;
 }
 
 /**
