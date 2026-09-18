@@ -8,6 +8,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
+import { appStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
 
 interface CompleteProfilePageProps {
@@ -22,19 +23,15 @@ export const CompleteProfilePage: React.FC<CompleteProfilePageProps> = ({ onNavi
   const [lastName, setLastName] = useState('');
   const [showPw, setShowPw] = useState(false);
   
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const completeProfile = useAuthStore((state) => state.completeProfile);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage('');
-    setSuccessMessage('');
 
     if (!username.trim() || !password.trim() || !email.trim() || !firstName.trim() || !lastName.trim()) {
-      setErrorMessage('Semua kolom wajib diisi.');
+      appStore.showToast('Semua kolom wajib diisi.', 'error');
       return;
     }
 
@@ -49,13 +46,13 @@ export const CompleteProfilePage: React.FC<CompleteProfilePageProps> = ({ onNavi
     setIsSubmitting(false);
 
     if (result.success) {
-      setSuccessMessage('Profil berhasil dilengkapi! Mengalihkan ke halaman Masuk...');
+      appStore.showToast('Profil berhasil dilengkapi! Mengalihkan ke halaman Masuk...', 'success');
       sessionStorage.removeItem('samhance_complete_profile_username');
       setTimeout(() => {
         onNavigate?.('login');
       }, 2000);
     } else {
-      setErrorMessage(result.errorMessage || 'Gagal menyimpan profil. Periksa kembali data Anda.');
+      appStore.showToast(result.errorMessage || 'Gagal menyimpan profil. Periksa kembali data Anda.', 'error');
     }
   };
 
@@ -76,20 +73,6 @@ export const CompleteProfilePage: React.FC<CompleteProfilePageProps> = ({ onNavi
               Akun Anda belum memiliki data penting (Email, Nama). Silakan lengkapi untuk melanjutkan.
             </p>
           </div>
-
-          {/* Messages */}
-          {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-          {successMessage && (
-            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{successMessage}</span>
-            </div>
-          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3">

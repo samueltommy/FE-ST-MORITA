@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ShieldCheck,
 } from 'lucide-react';
+import { appStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
 
 interface ActivationPageProps {
@@ -23,29 +24,25 @@ export const ActivationPage: React.FC<ActivationPageProps> = ({ onNavigate }) =>
   const [showTempPw, setShowTempPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const activate = useAuthStore((state) => state.activate);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage('');
-    setSuccessMessage('');
 
     if (!username.trim() || !tempPassword.trim() || !newPassword.trim()) {
-      setErrorMessage('Semua kolom wajib diisi.');
+      appStore.showToast('Semua kolom wajib diisi.', 'error');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorMessage('Konfirmasi sandi baru tidak cocok.');
+      appStore.showToast('Konfirmasi sandi baru tidak cocok.', 'error');
       return;
     }
 
     if (newPassword.length < 8) {
-      setErrorMessage('Sandi baru minimal 8 karakter.');
+      appStore.showToast('Sandi baru minimal 8 karakter.', 'error');
       return;
     }
 
@@ -54,13 +51,13 @@ export const ActivationPage: React.FC<ActivationPageProps> = ({ onNavigate }) =>
     setIsSubmitting(false);
 
     if (result.success) {
-      setSuccessMessage('Aktivasi berhasil! Mengalihkan ke halaman Masuk...');
+      appStore.showToast('Aktivasi berhasil! Mengalihkan ke halaman Masuk...', 'success');
       sessionStorage.removeItem('samhance_activation_username');
       setTimeout(() => {
         onNavigate?.('login');
       }, 2000);
     } else {
-      setErrorMessage(result.errorMessage || 'Aktivasi gagal. Periksa kembali data Anda.');
+      appStore.showToast(result.errorMessage || 'Aktivasi gagal. Periksa kembali data Anda.', 'error');
     }
   };
 
@@ -81,20 +78,6 @@ export const ActivationPage: React.FC<ActivationPageProps> = ({ onNavigate }) =>
               Ganti sandi sementara dengan sandi permanen Anda
             </p>
           </div>
-
-          {/* Messages */}
-          {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-          {successMessage && (
-            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{successMessage}</span>
-            </div>
-          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3">

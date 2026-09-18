@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Mail, ArrowLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mail, ArrowLeft } from 'lucide-react';
+import { appStore } from '../../store/useAppStore';
 import { forgotPasswordApi } from '../../services/authService';
 
 interface ForgotPasswordPageProps {
@@ -8,27 +9,23 @@ interface ForgotPasswordPageProps {
 
 export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ onNavigate }) => {
   const [email, setEmail] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage('');
-    setSuccessMessage('');
 
     if (!email.trim()) {
-      setErrorMessage('Email wajib diisi.');
+      appStore.showToast('Email wajib diisi.', 'error');
       return;
     }
 
     setIsSubmitting(true);
     try {
       await forgotPasswordApi(email.trim());
-      setSuccessMessage('Instruksi reset sandi telah dikirim ke email Anda. Silakan periksa inbox.');
+      appStore.showToast('Instruksi reset sandi telah dikirim ke email Anda. Silakan periksa inbox.', 'success');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string; message?: string } } };
-      setErrorMessage(err?.response?.data?.detail || err?.response?.data?.message || 'Gagal mengirim email reset. Periksa kembali alamat email.');
+      appStore.showToast(err?.response?.data?.detail || err?.response?.data?.message || 'Gagal mengirim email reset. Periksa kembali alamat email.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -49,19 +46,6 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ onNaviga
               Masukkan email terdaftar untuk menerima instruksi reset sandi
             </p>
           </div>
-
-          {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-          {successMessage && (
-            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{successMessage}</span>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

@@ -19,6 +19,7 @@ import { CommandPalette } from './components/shared/CommandPalette';
 import { BarcodeScannerModal } from './components/shared/BarcodeScannerModal';
 import { AuditLogsDrawer } from './components/shared/AuditLogsDrawer';
 import { KeyboardShortcutsModal } from './components/shared/KeyboardShortcutsModal';
+import { ToastNotification } from './components/shared/ToastNotification';
 import { useRBAC } from './hooks/useRBAC';
 import { Lock } from 'lucide-react';
 
@@ -175,18 +176,27 @@ export default function App() {
 
   // ─── Unauthenticated: Show Auth Pages ──────────────────────
   if (!isAuthenticated) {
-    switch (authPage) {
-      case 'activation':
-        return <ActivationPage onNavigate={setAuthPage} />;
-      case 'forgot-password':
-        return <ForgotPasswordPage onNavigate={setAuthPage} />;
-      case 'reset-password':
-        return <ResetPasswordPage onNavigate={setAuthPage} />;
-      case 'complete-profile':
-        return <CompleteProfilePage onNavigate={setAuthPage} />;
-      default:
-        return <LoginPage onNavigate={setAuthPage} />;
-    }
+    const renderAuthPage = () => {
+      switch (authPage) {
+        case 'activation':
+          return <ActivationPage onNavigate={setAuthPage} />;
+        case 'forgot-password':
+          return <ForgotPasswordPage onNavigate={setAuthPage} />;
+        case 'reset-password':
+          return <ResetPasswordPage onNavigate={setAuthPage} />;
+        case 'complete-profile':
+          return <CompleteProfilePage onNavigate={setAuthPage} />;
+        default:
+          return <LoginPage onNavigate={setAuthPage} />;
+      }
+    };
+
+    return (
+      <>
+        <ToastNotification />
+        {renderAuthPage()}
+      </>
+    );
   }
 
   // ─── Authenticated: Main Application Layout ────────────────
@@ -230,6 +240,7 @@ export default function App() {
       </div>
 
       {/* Global Modals & Drawers */}
+      <ToastNotification />
       <CommandPalette />
       <BarcodeScannerModal />
       <AuditLogsDrawer />

@@ -854,6 +854,13 @@ export interface AppState {
   isSidebarCollapsed: boolean;
   isMobileSidebarOpen: boolean;
   
+  // Toast Notification
+  toast: {
+    message: string;
+    type: 'error' | 'success' | 'info';
+    visible: boolean;
+  };
+  
   // Datasets
   users: UserProfile[];
   items: MasterItem[];
@@ -891,6 +898,7 @@ let globalState: AppState = {
   isAuditLogsOpen: false,
   isSidebarCollapsed: typeof window !== 'undefined' ? localStorage.getItem('stmorita_sidebar_collapsed') === 'true' : false,
   isMobileSidebarOpen: false,
+  toast: { message: '', type: 'info', visible: false },
   users: INITIAL_REGISTERED_USERS,
   items: INITIAL_ITEMS,
   qcRecords: INITIAL_QC_RECORDS,
@@ -1180,6 +1188,21 @@ export const appStore = {
 
   toggleMobileSidebar: () => {
     updateGlobalState((prev) => ({ ...prev, isMobileSidebarOpen: !prev.isMobileSidebarOpen }));
+  },
+
+  // Toast Actions
+  showToast: (message: string, type: 'error' | 'success' | 'info' = 'info') => {
+    updateGlobalState((prev) => ({
+      ...prev,
+      toast: { message, type, visible: true },
+    }));
+  },
+
+  hideToast: () => {
+    updateGlobalState((prev) => ({
+      ...prev,
+      toast: { ...prev.toast, visible: false },
+    }));
   },
 
   // QC Actions

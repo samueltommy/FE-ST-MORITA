@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { appStore } from '../../store/useAppStore';
 import { resetPasswordApi } from '../../services/authService';
 
 interface ResetPasswordPageProps {
@@ -12,37 +13,33 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage('');
-    setSuccessMessage('');
-
     if (!token.trim()) {
-      setErrorMessage('Token reset wajib diisi.');
+      appStore.showToast('Token reset wajib diisi.', 'error');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorMessage('Konfirmasi sandi tidak cocok.');
+      appStore.showToast('Konfirmasi sandi tidak cocok.', 'error');
       return;
     }
 
     if (newPassword.length < 8) {
-      setErrorMessage('Sandi baru minimal 8 karakter.');
+      appStore.showToast('Sandi baru minimal 8 karakter.', 'error');
       return;
     }
 
     setIsSubmitting(true);
     try {
       await resetPasswordApi(token.trim(), newPassword);
-      setSuccessMessage('Sandi berhasil direset! Silakan masuk dengan sandi baru.');
+      appStore.showToast('Sandi berhasil direset! Silakan masuk dengan sandi baru.', 'success');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string; message?: string } } };
-      setErrorMessage(err?.response?.data?.detail || err?.response?.data?.message || 'Reset sandi gagal. Token mungkin sudah kedaluwarsa.');
+      appStore.showToast(err?.response?.data?.detail || err?.response?.data?.message || 'Reset sandi gagal. Token mungkin sudah kedaluwarsa.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -63,19 +60,6 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
               Masukkan token reset dan sandi baru Anda
             </p>
           </div>
-
-          {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-          {successMessage && (
-            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{successMessage}</span>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -114,15 +98,24 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">Konfirmasi Sandi Baru</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Ulangi sandi baru"
-                required
-                autoComplete="new-password"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all font-mono"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Ulangi sandi baru"
+                  required
+                  autoComplete="new-password"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all pr-10 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <button
