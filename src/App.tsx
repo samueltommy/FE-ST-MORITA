@@ -60,6 +60,13 @@ export default function App() {
     initialize();
   }, [initialize]);
 
+  // Ensure authPage resets to login on logout
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setAuthPage('login');
+    }
+  }, [isAuthenticated]);
+
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

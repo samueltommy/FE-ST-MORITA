@@ -34,30 +34,30 @@ import type { CreateEmployeePayload } from '../../services/hrdService';
 
 // Mapping dari UserRole (FE) → user_level enum (BE)
 const ROLE_TO_USER_LEVEL: Record<UserRole, CreateEmployeePayload['user_level']> = {
-  SUPER_ADMIN:        'L0_SUPER_ADMIN',
-  DIREKSI:            'L1_DIREKSI',
-  HRD_MANAGER:        'L2_MANAGER',
-  PPIC_MANAGER:       'L2_MANAGER',
+  SUPER_ADMIN: 'L0_SUPER_ADMIN',
+  DIREKSI: 'L1_DIREKSI',
+  HRD_MANAGER: 'L2_MANAGER',
+  PPIC_MANAGER: 'L2_MANAGER',
   PURCHASING_MANAGER: 'L2_MANAGER',
-  QC_MANAGER:         'L2_MANAGER',
-  SALES_MANAGER:      'L2_MANAGER',
-  COST_CONTROL:       'L2_MANAGER',
-  WAREHOUSE_MANAGER:  'L2_MANAGER',
-  FINANCE_MANAGER:    'L2_MANAGER',
-  OPERATOR_PROD:      'L3_STAFF',
-  QC_INSPECTOR:       'L3_STAFF',
-  SALES_EXEC:         'L3_STAFF',
-  WAREHOUSE:          'L3_STAFF',
-  PURCHASING:         'L3_STAFF',
-  FINANCE_ACCT:       'L3_STAFF',
-  HRD_STAFF:          'L3_STAFF',
-  PPIC_PLANNER:       'L3_STAFF',
+  QC_MANAGER: 'L2_MANAGER',
+  SALES_MANAGER: 'L2_MANAGER',
+  COST_CONTROL: 'L2_MANAGER',
+  WAREHOUSE_MANAGER: 'L2_MANAGER',
+  FINANCE_MANAGER: 'L2_MANAGER',
+  OPERATOR_PROD: 'L3_STAFF',
+  QC_INSPECTOR: 'L3_STAFF',
+  SALES_EXEC: 'L3_STAFF',
+  WAREHOUSE: 'L3_STAFF',
+  PURCHASING: 'L3_STAFF',
+  FINANCE_ACCT: 'L3_STAFF',
+  HRD_STAFF: 'L3_STAFF',
+  PPIC_PLANNER: 'L3_STAFF',
 };
 
 const getDerivedRole = (level: string, department: string): UserRole => {
   if (level === 'L0_SUPER_ADMIN') return 'SUPER_ADMIN';
   if (level === 'L1_DIREKSI') return 'DIREKSI';
-  
+
   if (level === 'L2_MANAGER') {
     switch (department) {
       case 'FINANCE': return 'FINANCE_MANAGER';
@@ -103,25 +103,25 @@ export const UserManagementModule: React.FC = () => {
   const [formSuccessMessage, setFormSuccessMessage] = useState('');
 
   // Required fields
-  const [fNik, setFNik]                     = useState(`EMP-${new Date().getFullYear()}-001`);
-  const [fFullName, setFFullName]           = useState('');
-  const [fEmail, setFEmail]                 = useState('');
-  const [fPhone, setFPhone]                 = useState('+62 ');
+  const [fNik, setFNik] = useState(`EMP-${new Date().getFullYear()}-001`);
+  const [fFullName, setFFullName] = useState('');
+  const [fEmail, setFEmail] = useState('');
+  const [fPhone, setFPhone] = useState('+62 ');
   const [fEmploymentStatus, setFEmploymentStatus] = useState<CreateEmployeePayload['employment_status']>('PERMANENT');
-  const [fJoinDate, setFJoinDate]           = useState(new Date().toISOString().split('T')[0]);
-  const [fUsername, setFUsername]           = useState('');
-  const [fPassword, setFPassword]           = useState('');
-  const [fUserLevel, setFUserLevel]         = useState<CreateEmployeePayload['user_level']>('L3_STAFF');
-  const [fKtp, setFKtp]                     = useState(''); // 16-digit KTP number
-  const [fSalary, setFSalary]               = useState<number | ''>('');
+  const [fJoinDate, setFJoinDate] = useState(new Date().toISOString().split('T')[0]);
+  const [fUsername, setFUsername] = useState('');
+  const [fPassword, setFPassword] = useState('');
+  const [fUserLevel, setFUserLevel] = useState<CreateEmployeePayload['user_level']>('L3_STAFF');
+  const [fKtp, setFKtp] = useState(''); // 16-digit KTP number
+  const [fSalary, setFSalary] = useState<number | ''>('');
 
   // Optional fields
-  const [fDepartment, setFDepartment]       = useState('PPIC');
-  
+  const [fDepartment, setFDepartment] = useState('PPIC');
+
   // Derived Role
   const derivedRole = getDerivedRole(fUserLevel, fDepartment);
-  const [fBankName, setFBankName]           = useState('');
-  const [fBankAccount, setFBankAccount]     = useState('');
+  const [fBankName, setFBankName] = useState('');
+  const [fBankAccount, setFBankAccount] = useState('');
 
   // Inspect Permissions Modal State
   const [inspectUser, setInspectUser] = useState<UserProfile | null>(null);
@@ -183,7 +183,7 @@ export const UserManagementModule: React.FC = () => {
     setFormError('');
     try {
       await createEmployeeApi(payload);
-      setFormSuccessMessage(`Akun pegawai untuk "${fFullName}" berhasil dibuat di Keycloak dengan role ${derivedRole} (${fUserLevel}).`);
+      setFormSuccessMessage(`Akun pegawai untuk "${fFullName}" berhasil dibuat dengan role ${derivedRole} (${fUserLevel}).`);
       resetForm();
       setIsFormOpen(false);
       setTimeout(() => setFormSuccessMessage(''), 8000);
@@ -237,7 +237,7 @@ export const UserManagementModule: React.FC = () => {
               Pusat pembuatan akun karyawan baru PT ST. Morita Industries, penugasan tingkatan peran (Level 0 - Level 3), dan audit keamanan akses
             </p>
           </div>
-          
+
           <div className="flex items-center gap-2 shrink-0">
             {isAuthorized && (
               <button
@@ -327,7 +327,7 @@ export const UserManagementModule: React.FC = () => {
                 <span>Formulir Pembuatan Akun Pegawai Baru ST. Morita Industries</span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Data akan disimpan ke database <strong>dan</strong> akun Keycloak akan dibuat otomatis dengan role & group yang sesuai.
+                Data akan disimpan ke database <strong>dan</strong> akun akan dibuat otomatis dengan role & group yang sesuai.
               </p>
             </div>
             <button onClick={() => { setIsFormOpen(false); resetForm(); }} className="text-xs font-bold text-slate-400 hover:text-slate-600">
@@ -370,7 +370,7 @@ export const UserManagementModule: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">No. KTP (16 digit) *</label>
-                  <input type="text" value={fKtp} onChange={e => setFKtp(e.target.value.replace(/\D/g, '').slice(0,16))} required
+                  <input type="text" value={fKtp} onChange={e => setFKtp(e.target.value.replace(/\D/g, '').slice(0, 16))} required
                     minLength={16} maxLength={16} inputMode="numeric"
                     placeholder="16 digit Nomor KTP"
                     className={`w-full px-3 py-2 rounded-xl bg-slate-50 border text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none ${fKtp.length > 0 && fKtp.length !== 16 ? 'border-rose-400' : 'border-slate-300'}`} />
@@ -430,7 +430,7 @@ export const UserManagementModule: React.FC = () => {
 
             {/* ── Row 3: Akun Login & RBAC ── */}
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
-              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">③ Akun Login & Hak Akses Keycloak (RBAC)</p>
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">③ Akun Login & Hak Akses (RBAC)</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Username Login *</label>
@@ -476,7 +476,7 @@ export const UserManagementModule: React.FC = () => {
                   </div>
                   <p className="text-[11px] text-slate-500 mb-2">
                     Peran fungsional ini ditentukan secara otomatis berdasarkan kombinasi Departemen dan Level Akses yang Anda pilih.
-                    <br/><br/>
+                    <br /><br />
                     {ROLE_DEFINITIONS[derivedRole].description}
                   </p>
                   <div className="flex flex-wrap gap-1">
@@ -509,7 +509,7 @@ export const UserManagementModule: React.FC = () => {
 
             {/* Submit */}
             <div className="pt-3 flex items-center justify-between border-t border-slate-200">
-              <p className="text-[10px] text-slate-400">* Field wajib diisi. Akun Keycloak akan dibuat otomatis.</p>
+              <p className="text-[10px] text-slate-400">* Field wajib diisi. Akun akan dibuat otomatis.</p>
               <div className="flex items-center gap-3">
                 <button type="button" onClick={() => { setIsFormOpen(false); resetForm(); }}
                   className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors">
@@ -518,7 +518,7 @@ export const UserManagementModule: React.FC = () => {
                 <button id="submit-create-employee-btn" type="submit" disabled={isSubmitting}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all">
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
-                  <span>{isSubmitting ? 'Mendaftarkan ke Keycloak...' : 'Daftarkan Pegawai & Terbitkan Hak Akses'}</span>
+                  <span>{isSubmitting ? 'Mendaftarkan...' : 'Daftarkan Pegawai & Terbitkan Hak Akses'}</span>
                 </button>
               </div>
             </div>
@@ -550,51 +550,46 @@ export const UserManagementModule: React.FC = () => {
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0 text-xs">
             <button
               onClick={() => setSelectedTierFilter('ALL')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
-                selectedTierFilter === 'ALL'
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${selectedTierFilter === 'ALL'
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
+                }`}
             >
               Semua ({totalCount})
             </button>
             <button
               onClick={() => setSelectedTierFilter('1')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
-                selectedTierFilter === '1'
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${selectedTierFilter === '1'
                   ? 'bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
+                }`}
             >
               L1 Direksi ({l1Count})
             </button>
             <button
               onClick={() => setSelectedTierFilter('0')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
-                selectedTierFilter === '0'
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${selectedTierFilter === '0'
                   ? 'bg-purple-100 dark:bg-purple-950 text-purple-900 dark:text-purple-200 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
+                }`}
             >
               L0 Admin ({l0Count})
             </button>
             <button
               onClick={() => setSelectedTierFilter('2')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
-                selectedTierFilter === '2'
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${selectedTierFilter === '2'
                   ? 'bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-200 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
+                }`}
             >
               L2 Manager ({l2Count})
             </button>
             <button
               onClick={() => setSelectedTierFilter('3')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
-                selectedTierFilter === '3'
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${selectedTierFilter === '3'
                   ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
+                }`}
             >
               L3 Staff ({l3Count})
             </button>
@@ -631,9 +626,8 @@ export const UserManagementModule: React.FC = () => {
                   return (
                     <tr
                       key={user.id}
-                      className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors ${
-                        isCurrent ? 'bg-blue-50/40 dark:bg-blue-950/20' : ''
-                      }`}
+                      className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors ${isCurrent ? 'bg-blue-50/40 dark:bg-blue-950/20' : ''
+                        }`}
                     >
                       {/* Name, NIK, Photo */}
                       <td className="py-3 px-4">
@@ -700,16 +694,14 @@ export const UserManagementModule: React.FC = () => {
                       {/* Status */}
                       <td className="py-3 px-4">
                         <span
-                          className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                            user.status === 'ACTIVE'
+                          className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full ${user.status === 'ACTIVE'
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                               : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                          }`}
+                            }`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              user.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'
-                            }`}
+                            className={`w-1.5 h-1.5 rounded-full ${user.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'
+                              }`}
                           />
                           {user.status === 'ACTIVE' ? 'AKTIF' : 'SUSPENDED'}
                         </span>
@@ -731,11 +723,10 @@ export const UserManagementModule: React.FC = () => {
                           {isAuthorized && (
                             <button
                               onClick={() => appStore.toggleUserStatus(user.id)}
-                              className={`p-1.5 rounded-lg transition-colors ${
-                                user.status === 'ACTIVE'
+                              className={`p-1.5 rounded-lg transition-colors ${user.status === 'ACTIVE'
                                   ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50'
                                   : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50'
-                              }`}
+                                }`}
                               title={user.status === 'ACTIVE' ? 'Tangguhkan Akun' : 'Aktifkan Akun'}
                             >
                               {user.status === 'ACTIVE' ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
@@ -789,9 +780,8 @@ export const UserManagementModule: React.FC = () => {
                 </div>
               </div>
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  getTierBadge(inspectUser.tier).badgeClass
-                }`}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getTierBadge(inspectUser.tier).badgeClass
+                  }`}
               >
                 Level {inspectUser.tier}
               </span>

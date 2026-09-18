@@ -49,9 +49,11 @@ export const CompleteProfilePage: React.FC<CompleteProfilePageProps> = ({ onNavi
     setIsSubmitting(false);
 
     if (result.success) {
-      setSuccessMessage('Profil berhasil dilengkapi! Mengalihkan ke dashboard...');
+      setSuccessMessage('Profil berhasil dilengkapi! Mengalihkan ke halaman Masuk...');
       sessionStorage.removeItem('samhance_complete_profile_username');
-      // Auth store auto-logs in after successful update
+      setTimeout(() => {
+        onNavigate?.('login');
+      }, 2000);
     } else {
       setErrorMessage(result.errorMessage || 'Gagal menyimpan profil. Periksa kembali data Anda.');
     }

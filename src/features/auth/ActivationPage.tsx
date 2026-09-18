@@ -54,9 +54,11 @@ export const ActivationPage: React.FC<ActivationPageProps> = ({ onNavigate }) =>
     setIsSubmitting(false);
 
     if (result.success) {
-      setSuccessMessage('Aktivasi berhasil! Mengalihkan ke dashboard...');
+      setSuccessMessage('Aktivasi berhasil! Mengalihkan ke halaman Masuk...');
       sessionStorage.removeItem('samhance_activation_username');
-      // Auth store auto-logs in after successful activation
+      setTimeout(() => {
+        onNavigate?.('login');
+      }, 2000);
     } else {
       setErrorMessage(result.errorMessage || 'Aktivasi gagal. Periksa kembali data Anda.');
     }

@@ -79,7 +79,7 @@ function parseTier(userLevel: string | null | undefined): RoleTier {
 }
 
 // ─── Helper: Map backend role_id/user_level to frontend UserRole ─
-function parseRole(roleId: string | null | undefined, userLevel: string | null | undefined): UserRole {
+function parseRole(roleId: string | null | undefined, userLevel: string | null | undefined, department: string | null | undefined): UserRole {
   // Try exact match with roleId first (case-insensitive)
   if (roleId) {
     const upperRoleId = roleId.toUpperCase().trim();
@@ -89,8 +89,37 @@ function parseRole(roleId: string | null | undefined, userLevel: string | null |
     if (stripped in ROLE_DEFINITIONS) return stripped as UserRole;
   }
 
-  // Fallback based on normalized userLevel
   const normalized = normalizeUserLevel(userLevel || '').toUpperCase();
+  const isManager = normalized.startsWith('L2') || normalized === 'MANAGER';
+
+  // Fallback based on department
+  const dept = (department || '').toUpperCase();
+  if (dept.includes('FINANCE') || dept.includes('AKUNTANSI') || dept.includes('ACCOUNTING') || dept.includes('COST')) {
+    return isManager ? 'FINANCE_MANAGER' : 'FINANCE_ACCT';
+  }
+  if (dept.includes('SALES') || dept.includes('MARKETING') || dept.includes('COMMERCIAL') || dept.includes('EXTERNAL_PORTAL')) {
+    return isManager ? 'SALES_MANAGER' : 'SALES_EXEC';
+  }
+  if (dept.includes('QC') || dept.includes('QA') || dept.includes('QUALITY')) {
+    return isManager ? 'QC_MANAGER' : 'QC_INSPECTOR';
+  }
+  if (dept.includes('PPIC') || dept.includes('PLANNING')) {
+    return isManager ? 'PPIC_MANAGER' : 'PPIC_PLANNER';
+  }
+  if (dept.includes('PROCUREMENT') || dept.includes('PURCHASING') || dept.includes('EXIM') || dept.includes('PEMBELIAN')) {
+    return isManager ? 'PURCHASING_MANAGER' : 'PURCHASING';
+  }
+  if (dept.includes('WAREHOUSE') || dept.includes('GUDANG') || dept.includes('LOGISTIK') || dept.includes('LOGISTICS')) {
+    return isManager ? 'WAREHOUSE_MANAGER' : 'WAREHOUSE';
+  }
+  if (dept.includes('PRODUKSI') || dept.includes('PRODUCTION') || dept.includes('PABRIK') || dept.includes('OPERATOR')) {
+    return isManager ? 'PPIC_MANAGER' : 'OPERATOR_PROD';
+  }
+  if (dept.includes('HRD') || dept.includes('GA') || dept.includes('UMUM') || dept.includes('HR')) {
+    return isManager ? 'HRD_MANAGER' : 'HRD_STAFF';
+  }
+
+  // Fallback based on normalized userLevel
   if (normalized.startsWith('L0') || normalized === 'SUPER_ADMIN' || normalized === 'IT_ADMIN') return 'SUPER_ADMIN';
   if (normalized.startsWith('L1') || normalized === 'DIREKSI') return 'DIREKSI';
 
@@ -163,9 +192,17 @@ function mapMeToAuthUser(me: Record<string, unknown>, tokenRoles: string[] = [],
     }
   }
 
-  // --- Step 3: Derive tier and role ---
+  // --- Step 3: Derive tier, department and role ---
   const tier = parseTier(userLevel);
-  const role = parseRole(roleId, userLevel);
+
+  // Resolve department early so we can use it for role fallback
+  const rawDept = String(me.department || '').trim();
+  const finalDept =
+    rawDept && rawDept.toUpperCase() !== 'UMUM' && rawDept.toUpperCase() !== 'TIDAK ADA'
+      ? rawDept
+      : tokenDept || rawDept;
+
+  const role = parseRole(roleId, userLevel, finalDept || me.user_level as string);
 
   // --- Step 4: Resolve permissions ---
   const rawPerms = parsePermissions(me.permissions as string[]);
@@ -177,19 +214,15 @@ function mapMeToAuthUser(me: Record<string, unknown>, tokenRoles: string[] = [],
       ? rawPerms
       : (ROLE_DEFINITIONS[role]?.permissions || []);  // fallback to role definition if backend sends empty
 
-  // --- Step 5: Resolve department ---
-  const rawDept = String(me.department || '').trim();
-  const finalDept =
-    rawDept && rawDept.toUpperCase() !== 'UMUM' && rawDept.toUpperCase() !== 'TIDAK ADA'
-      ? rawDept
-      : tokenDept || ROLE_DEFINITIONS[role]?.department || rawDept;
+  // Fallback if finalDept is still empty
+  const ultimateDept = finalDept || ROLE_DEFINITIONS[role]?.department || 'General';
 
   return {
     id: String(me.id || me.keycloakId || me.keycloak_id || me.keycloak_user_id || ''),
     username: String(me.username || ''),
     email: String(me.email || ''),
     fullName: rawFullName,
-    department: finalDept,
+    department: ultimateDept,
     userLevel,
     roleId,
     permissions: finalPerms,
@@ -202,7 +235,7 @@ function mapMeToAuthUser(me: Record<string, unknown>, tokenRoles: string[] = [],
     tier,
     name: rawFullName,
     avatar: '',
-    plantLocation: finalDept || 'Main Plant',
+    plantLocation: ultimateDept || 'Main Plant',
     status: 'ACTIVE',
     joinedDate: String(me.joinDate || me.join_date || ''),
   };
@@ -297,13 +330,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   activate: async (username, tempPassword, newPassword) => {
     set({ isLoading: true });
     try {
-      const data = await activateApi(username, tempPassword, newPassword);
-      const token = data.accessToken;
-      if (token) {
-        localStorage.setItem(TOKEN_KEY, token);
-        set({ token });
-        await get().fetchMe();
-      }
+      await activateApi(username, tempPassword, newPassword);
       set({ isLoading: false });
       return { success: true };
     } catch (error: unknown) {
@@ -334,13 +361,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   completeProfile: async (payload) => {
     set({ isLoading: true });
     try {
-      const data = await completeProfileApi(payload);
-      const token = data.accessToken;
-      if (token) {
-        localStorage.setItem(TOKEN_KEY, token);
-        set({ token });
-        await get().fetchMe();
-      }
+      await completeProfileApi(payload);
       set({ isLoading: false });
       return { success: true };
     } catch (error: unknown) {
