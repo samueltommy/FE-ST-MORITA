@@ -69,19 +69,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 flex flex-col justify-between p-3 sm:p-4 lg:p-6 relative selection:bg-blue-600 selection:text-white">
+    <div className="h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 flex flex-col justify-between p-4 sm:p-6 lg:p-6 relative selection:bg-blue-600 selection:text-white">
       {/* Subtle Corporate Ambient Background for Light Mode */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(37,99,235,0.08),rgba(255,255,255,0))] pointer-events-none" />
       <div className="absolute top-1/3 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Top Header with Authentic ST. Morita Logo */}
-      <header className="w-full max-w-7xl mx-auto flex items-center justify-between pt-1 pb-2 z-10 shrink-0">
+      <header className="w-full max-w-7xl mx-auto flex items-center justify-between pt-2 pb-4 lg:pt-1 lg:pb-2 z-10 shrink-0">
         <div className="flex items-center gap-3">
           {/* Authentic ST. Morita Brand Mark */}
-          <div className="flex items-center gap-2.5">
-            <div className="relative w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 via-blue-600 to-sky-500 p-0.5 shadow-sm shadow-blue-600/20 flex items-center justify-center">
-              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+          <div className="flex items-center gap-3 lg:gap-2.5">
+            <div className="relative w-10 h-10 lg:w-8 lg:h-8 rounded-lg bg-gradient-to-tr from-blue-700 via-blue-600 to-sky-500 p-0.5 shadow-sm shadow-blue-600/20 flex items-center justify-center">
+              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 lg:w-5 lg:h-5">
                 {/* Outer adhesive tape ring */}
                 <circle cx="24" cy="24" r="19" stroke="white" strokeWidth="2.5" strokeOpacity="0.4" strokeDasharray="3 3" />
                 <path
@@ -101,13 +101,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               </svg>
             </div>
             <div>
-              <div className="text-base font-black tracking-tight text-slate-900 flex items-center gap-1.5 leading-none">
+              <div className="text-lg lg:text-base font-black tracking-tight text-slate-900 flex items-center gap-1.5 leading-none">
                 <span>ST. MORITA</span>
-                <span className="text-[9px] font-semibold tracking-widest text-blue-600 uppercase">
+                <span className="text-[10px] lg:text-[9px] font-semibold tracking-widest text-blue-600 uppercase">
                   INDUSTRIES
                 </span>
               </div>
-              <div className="text-[9px] text-slate-500 font-medium tracking-wide mt-0.5">
+              <div className="text-[10px] lg:text-[9px] text-slate-500 font-medium tracking-wide mt-1 lg:mt-0.5">
                 Adhesives & Industrial Tapes Manufacturing
               </div>
             </div>
@@ -116,9 +116,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
       </header>
 
       {/* Main Body */}
-      <main className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center my-auto z-10 flex-1 h-full">
-        {/* Left Column: Authentic Company Profile, Vision & Mission */}
-        <div className="lg:col-span-7 space-y-4">
+      <main className="w-full max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-6 lg:gap-10 items-center justify-center my-auto z-10 flex-1 h-full">
+        
+        {/* Company Profile (Hidden entirely on mobile to create a dedicated, clean login view) */}
+        <div className="hidden lg:block lg:col-span-7 space-y-4 w-full">
           <div className="space-y-2">
 
             <h1 className="text-2xl sm:text-3xl lg:text-[36px] font-extrabold tracking-tight text-slate-900 leading-tight">
@@ -131,8 +132,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             </p>
           </div>
 
-          {/* Visi & Misi Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Visi & Misi Cards - Hidden on very small screens to save space */}
+          <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Visi */}
             <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all">
               <div className="flex items-center gap-2 mb-2">
@@ -189,8 +190,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Right Column: Real Login Form */}
-        <div className="lg:col-span-5 w-full max-w-md mx-auto lg:max-w-none">
+        {/* Login Form */}
+        <div className="w-full max-w-md mx-auto lg:col-span-5 lg:max-w-none flex-shrink-0">
           <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xl shadow-slate-200/60 space-y-4">
             <div>
               <h3 className="text-xl font-bold text-slate-900 tracking-tight">Masuk ke Akun Anda</h3>
