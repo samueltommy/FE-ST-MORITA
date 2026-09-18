@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { loginApi, activateApi, getMeApi } from '../services/authService';
+import { loginApi, activateApi, getMeApi, completeProfileApi } from '../services/authService';
 import type { PermissionClaim, RoleTier, UserProfile, UserRole } from '../types';
 import { ROLE_DEFINITIONS } from '../utils/rbac';
 
@@ -31,7 +31,7 @@ export interface AuthUser {
 
 export type LoginResult =
   | { success: true }
-  | { success: false; requiresActivation: boolean; errorMessage: string };
+  | { success: false; requiresActivation: boolean; requiresProfileVerification: boolean; errorMessage: string };
 
 export interface AuthState {
   // State
@@ -44,6 +44,7 @@ export interface AuthState {
   // Actions
   login: (username: string, password: string) => Promise<LoginResult>;
   activate: (username: string, tempPassword: string, newPassword: string) => Promise<{ success: boolean; errorMessage?: string }>;
+  completeProfile: (payload: { username: string; password?: string; email: string; firstName: string; lastName: string }) => Promise<{ success: boolean; errorMessage?: string }>;
   fetchMe: () => Promise<boolean>;
   logout: () => void;
   initialize: () => Promise<void>;
@@ -230,7 +231,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const token = data.accessToken;
       if (!token) {
         set({ isLoading: false });
-        return { success: false, requiresActivation: false, errorMessage: 'Server tidak mengembalikan token akses.' };
+        return { success: false, requiresActivation: false, requiresProfileVerification: false, errorMessage: 'Server tidak mengembalikan token akses.' };
       }
 
       // Persist token
@@ -244,12 +245,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (fetched) {
         return { success: true };
       }
-      return { success: false, requiresActivation: false, errorMessage: 'Gagal memuat profil pengguna.' };
+      return { success: false, requiresActivation: false, requiresProfileVerification: false, errorMessage: 'Gagal memuat profil pengguna.' };
     } catch (error: unknown) {
       set({ isLoading: false });
       const err = error as { response?: { data?: { code?: string; detail?: string; message?: string }; status?: number }; message?: string };
       const errorData = err?.response?.data;
-      const code = errorData?.code || '';
+      const code = errorData?.code || (errorData?.detail as any)?.code || '';
       
       let detailStr = 'Login gagal. Periksa username dan password.';
       if (errorData?.detail) {
@@ -267,11 +268,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const detail = detailStr;
 
       // Detect temp password scenario
-      if (code === 'KEYCLOAK_AUTH_ERROR' || err?.response?.status === 400) {
-        return { success: false, requiresActivation: true, errorMessage: detail };
+      const isActivationRequired = 
+        code === 'KEYCLOAK_AUTH_ERROR' || 
+        code === 'ACCOUNT_NOT_ACTIVATED' ||
+        err?.response?.status === 400 || 
+        detail.toLowerCase().includes('update_password');
+
+      const isProfileVerificationRequired = 
+        code === 'PROFILE_NOT_VERIFIED' ||
+        (detail.toLowerCase().includes('account is not fully set up') && !isActivationRequired);
+
+      if (isProfileVerificationRequired) {
+        return { success: false, requiresActivation: false, requiresProfileVerification: true, errorMessage: detail };
       }
 
-      return { success: false, requiresActivation: false, errorMessage: detail };
+      if (isActivationRequired) {
+        return { success: false, requiresActivation: true, requiresProfileVerification: false, errorMessage: detail };
+      }
+
+      return { success: false, requiresActivation: false, requiresProfileVerification: false, errorMessage: detail };
     }
   },
 
@@ -293,9 +308,60 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { success: true };
     } catch (error: unknown) {
       set({ isLoading: false });
-      const err = error as { response?: { data?: { detail?: string; message?: string } } };
-      const detail = err?.response?.data?.detail || err?.response?.data?.message || 'Aktivasi gagal.';
-      return { success: false, errorMessage: detail };
+      const err = error as { response?: { data?: { detail?: string | { message?: string }; message?: string } }; message?: string };
+      const errorData = err?.response?.data;
+      
+      let detailStr = 'Aktivasi gagal.';
+      if (errorData?.detail) {
+        detailStr = typeof errorData.detail === 'string' 
+          ? errorData.detail 
+          : (errorData.detail as any).message || JSON.stringify(errorData.detail);
+      } else if (errorData?.message) {
+        detailStr = typeof errorData.message === 'string'
+          ? errorData.message
+          : JSON.stringify(errorData.message);
+      } else if (err?.message) {
+        detailStr = err.message;
+      }
+      
+      return { success: false, errorMessage: detailStr };
+    }
+  },
+
+  /**
+   * Complete user profile and automatically login.
+   */
+  completeProfile: async (payload) => {
+    set({ isLoading: true });
+    try {
+      const data = await completeProfileApi(payload);
+      const token = data.accessToken;
+      if (token) {
+        localStorage.setItem(TOKEN_KEY, token);
+        set({ token });
+        await get().fetchMe();
+      }
+      set({ isLoading: false });
+      return { success: true };
+    } catch (error: unknown) {
+      set({ isLoading: false });
+      const err = error as { response?: { data?: { detail?: string | { message?: string }; message?: string } }; message?: string };
+      const errorData = err?.response?.data;
+      
+      let detailStr = 'Gagal menyimpan profil.';
+      if (errorData?.detail) {
+        detailStr = typeof errorData.detail === 'string' 
+          ? errorData.detail 
+          : (errorData.detail as any).message || JSON.stringify(errorData.detail);
+      } else if (errorData?.message) {
+        detailStr = typeof errorData.message === 'string'
+          ? errorData.message
+          : JSON.stringify(errorData.message);
+      } else if (err?.message) {
+        detailStr = err.message;
+      }
+      
+      return { success: false, errorMessage: detailStr };
     }
   },
 

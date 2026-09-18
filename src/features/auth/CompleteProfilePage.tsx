@@ -1,63 +1,59 @@
 import React, { useState } from 'react';
 import {
-  KeyRound,
+  UserCircle,
   Eye,
   EyeOff,
   ArrowRight,
   ArrowLeft,
   AlertCircle,
   CheckCircle2,
-  ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
-interface ActivationPageProps {
-  onNavigate?: (page: 'login' | 'activation' | 'forgot-password' | 'reset-password') => void;
+interface CompleteProfilePageProps {
+  onNavigate?: (page: 'login' | 'activation' | 'forgot-password' | 'reset-password' | 'complete-profile') => void;
 }
 
-export const ActivationPage: React.FC<ActivationPageProps> = ({ onNavigate }) => {
-  const [username, setUsername] = useState(() => sessionStorage.getItem('samhance_activation_username') || '');
-  const [tempPassword, setTempPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showTempPw, setShowTempPw] = useState(false);
-  const [showNewPw, setShowNewPw] = useState(false);
+export const CompleteProfilePage: React.FC<CompleteProfilePageProps> = ({ onNavigate }) => {
+  const [username, setUsername] = useState(() => sessionStorage.getItem('samhance_complete_profile_username') || '');
+  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const activate = useAuthStore((state) => state.activate);
+  const completeProfile = useAuthStore((state) => state.completeProfile);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
 
-    if (!username.trim() || !tempPassword.trim() || !newPassword.trim()) {
+    if (!username.trim() || !password.trim() || !email.trim() || !firstName.trim() || !lastName.trim()) {
       setErrorMessage('Semua kolom wajib diisi.');
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      setErrorMessage('Konfirmasi sandi baru tidak cocok.');
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setErrorMessage('Sandi baru minimal 8 karakter.');
-      return;
-    }
-
     setIsSubmitting(true);
-    const result = await activate(username.trim(), tempPassword, newPassword);
+    const result = await completeProfile({
+      username: username.trim(),
+      password,
+      email: email.trim(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim()
+    });
     setIsSubmitting(false);
 
     if (result.success) {
-      setSuccessMessage('Aktivasi berhasil! Mengalihkan ke dashboard...');
-      sessionStorage.removeItem('samhance_activation_username');
-      // Auth store auto-logs in after successful activation
+      setSuccessMessage('Profil berhasil dilengkapi! Mengalihkan ke dashboard...');
+      sessionStorage.removeItem('samhance_complete_profile_username');
+      // Auth store auto-logs in after successful update
     } else {
-      setErrorMessage(result.errorMessage || 'Aktivasi gagal. Periksa kembali data Anda.');
+      setErrorMessage(result.errorMessage || 'Gagal menyimpan profil. Periksa kembali data Anda.');
     }
   };
 
@@ -71,11 +67,11 @@ export const ActivationPage: React.FC<ActivationPageProps> = ({ onNavigate }) =>
           {/* Header */}
           <div className="text-center">
             <div className="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-sky-500 flex items-center justify-center mb-3 shadow-lg shadow-blue-600/20">
-              <ShieldCheck className="w-6 h-6 text-white" />
+              <UserCircle className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 tracking-tight">Aktivasi Akun</h3>
+            <h3 className="text-xl font-bold text-slate-900 tracking-tight">Lengkapi Profil Anda</h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Ganti sandi sementara dengan sandi permanen Anda
+              Akun Anda belum memiliki data penting (Email, Nama). Silakan lengkapi untuk melanjutkan.
             </p>
           </div>
 
@@ -108,73 +104,75 @@ export const ActivationPage: React.FC<ActivationPageProps> = ({ onNavigate }) =>
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Sandi Sementara</label>
-              <div className="relative">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Depan</label>
                 <input
-                  type={showTempPw ? 'text' : 'password'}
-                  value={tempPassword}
-                  onChange={(e) => setTempPassword(e.target.value)}
-                  placeholder="Sandi yang diberikan admin"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="First name"
                   required
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all pr-10 font-mono"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowTempPw(!showTempPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                >
-                  {showTempPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Belakang</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last name"
+                  required
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Sandi Baru</label>
-              <div className="relative">
-                <input
-                  type={showNewPw ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Minimal 8 karakter"
-                  required
-                  autoComplete="new-password"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all pr-10 font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPw(!showNewPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                >
-                  {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Konfirmasi Sandi Baru</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Email</label>
               <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Ulangi sandi baru"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="alamat@email.com"
                 required
-                autoComplete="new-password"
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all font-mono"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi (Untuk Verifikasi)</label>
+              <div className="relative">
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Masukkan kata sandi Anda saat ini"
+                  required
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all pr-10 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                >
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3 mt-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <KeyRound className="w-4 h-4" />
-                  <span>Aktivasi & Masuk</span>
+                  <span>Simpan & Lanjutkan</span>
+                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
@@ -188,7 +186,7 @@ export const ActivationPage: React.FC<ActivationPageProps> = ({ onNavigate }) =>
               className="w-full flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-blue-700 transition-colors py-2 cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Kembali ke halaman Masuk</span>
+              <span>Batal dan kembali ke halaman Masuk</span>
             </button>
           </div>
         </div>

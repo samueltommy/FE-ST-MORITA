@@ -43,6 +43,21 @@ export async function getMeApi(): Promise<UserMe> {
 }
 
 /**
+ * Complete profile for accounts that lack mandatory fields (email, firstName, lastName).
+ * The backend will use these to update the profile and then login the user.
+ */
+export async function completeProfileApi(
+  payload: { username: string; password?: string; email: string; firstName: string; lastName: string }
+): Promise<LoginResponse> {
+  const response = await apiClient.post('/auth/complete-profile', payload, {
+    headers: {
+      'X-Skip-Snake-Case': 'true'
+    }
+  });
+  return (response.data?.data || response.data) as LoginResponse;
+}
+
+/**
  * Change password from the profile page (authenticated user).
  */
 export async function changePasswordApi(

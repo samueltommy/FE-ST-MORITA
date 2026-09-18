@@ -26,7 +26,9 @@ apiClient.interceptors.request.use((config) => {
   }
 
   // Convert camelCase (React) → snake_case (FastAPI) automatically
-  if (config.data && typeof config.data === 'object' && !(config.data instanceof FormData)) {
+  if (config.headers?.['X-Skip-Snake-Case']) {
+    delete config.headers['X-Skip-Snake-Case'];
+  } else if (config.data && typeof config.data === 'object' && !(config.data instanceof FormData)) {
     config.data = snakecaseKeys(config.data, { deep: true });
   }
 
@@ -49,12 +51,17 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid → clear and redirect to login
-      localStorage.removeItem('samhance_access_token');
-      // We don't import the store here to avoid circular deps.
-      // The auth store will detect the missing token on next check.
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+      // Do not trigger session expiry for login attempts
+      if (error.config && error.config.url && error.config.url.includes('/auth/login')) {
+        return Promise.reject(error);
+      }
+
+      // Token expired or invalid → clear and dispatch event for popup
+      if (localStorage.getItem('samhance_access_token')) {
+        localStorage.removeItem('samhance_access_token');
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:expired'));
+        }
       }
     }
     return Promise.reject(error);

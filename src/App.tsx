@@ -14,6 +14,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { ActivationPage } from './features/auth/ActivationPage';
 import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
+import { CompleteProfilePage } from './features/auth/CompleteProfilePage';
 import { CommandPalette } from './components/shared/CommandPalette';
 import { BarcodeScannerModal } from './components/shared/BarcodeScannerModal';
 import { AuditLogsDrawer } from './components/shared/AuditLogsDrawer';
@@ -21,7 +22,7 @@ import { KeyboardShortcutsModal } from './components/shared/KeyboardShortcutsMod
 import { useRBAC } from './hooks/useRBAC';
 import { Lock } from 'lucide-react';
 
-type AuthPage = 'login' | 'activation' | 'forgot-password' | 'reset-password';
+type AuthPage = 'login' | 'activation' | 'forgot-password' | 'reset-password' | 'complete-profile';
 
 export default function App() {
   const activeModule = useAppStore((state) => state.activeModule);
@@ -35,11 +36,23 @@ export default function App() {
 
   // Auth page routing (for unauthenticated screens)
   const [authPage, setAuthPage] = useState<AuthPage>('login');
+  
+  // Session expiry modal state
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
 
   // Ensure light mode is consistently applied across the app
   useEffect(() => {
     document.documentElement.classList.remove('dark');
     document.documentElement.classList.add('light');
+  }, []);
+
+  // Listen for global auth:expired event from apiClient
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setIsSessionExpired(true);
+    };
+    window.addEventListener('auth:expired', handleSessionExpired);
+    return () => window.removeEventListener('auth:expired', handleSessionExpired);
   }, []);
 
   // Initialize auth on mount — check for persisted token & rehydrate session
@@ -162,6 +175,8 @@ export default function App() {
         return <ForgotPasswordPage onNavigate={setAuthPage} />;
       case 'reset-password':
         return <ResetPasswordPage onNavigate={setAuthPage} />;
+      case 'complete-profile':
+        return <CompleteProfilePage onNavigate={setAuthPage} />;
       default:
         return <LoginPage onNavigate={setAuthPage} />;
     }
@@ -212,6 +227,32 @@ export default function App() {
       <BarcodeScannerModal />
       <AuditLogsDrawer />
       <KeyboardShortcutsModal />
+
+      {/* Session Expired Modal */}
+      {isSessionExpired && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full space-y-5 border border-slate-200 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">Sesi Berakhir</h3>
+                <p className="text-sm text-slate-500 mt-1">Sesi login Anda telah kedaluwarsa atau tidak valid. Silakan masuk kembali untuk melanjutkan aktivitas Anda.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setIsSessionExpired(false);
+                useAuthStore.getState().logout();
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-bold shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+            >
+              Masuk Kembali
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

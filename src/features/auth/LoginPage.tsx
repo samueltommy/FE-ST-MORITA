@@ -14,7 +14,7 @@ import {
 import { useAuthStore } from '../../store/useAuthStore';
 
 interface LoginPageProps {
-  onNavigate?: (page: 'login' | 'activation' | 'forgot-password' | 'reset-password') => void;
+  onNavigate?: (page: 'login' | 'activation' | 'forgot-password' | 'reset-password' | 'complete-profile') => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
@@ -47,13 +47,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
     }
 
     // TypeScript narrowing: at this point result is the failure type
-    const failure = result as { success: false; requiresActivation: boolean; errorMessage: string };
+    const failure = result as { success: false; requiresActivation: boolean; requiresProfileVerification: boolean; errorMessage: string };
+
+    if (failure.requiresProfileVerification) {
+      sessionStorage.setItem('samhance_complete_profile_username', identifier.trim());
+      if (onNavigate) {
+        onNavigate('complete-profile');
+      }
+      return;
+    }
 
     if (failure.requiresActivation) {
-      // Temporary password detected → navigate to activation page
-      setErrorMessage('Akun Anda memerlukan aktivasi sandi pertama.');
+      // Temporary password detected → automatically navigate to activation page seamlessly
+      sessionStorage.setItem('samhance_activation_username', identifier.trim());
       if (onNavigate) {
-        setTimeout(() => onNavigate('activation'), 1500);
+        onNavigate('activation');
       }
       return;
     }
@@ -290,17 +298,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               </button>
             </form>
 
-            {/* Activation Link */}
-            <div className="pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => onNavigate?.('activation')}
-                className="w-full flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-blue-700 transition-colors py-2 cursor-pointer"
-              >
-                <KeyRound className="w-3.5 h-3.5" />
-                <span>Akun Baru? Aktivasi Sandi Pertama</span>
-              </button>
-            </div>
+
           </div>
         </div>
       </main>
