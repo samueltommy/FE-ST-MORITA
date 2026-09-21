@@ -53,6 +53,36 @@ export interface CreateEmployeePayload {
   bank_account_number?: string | null; // maxLength: 30
 }
 
+export type UpdateEmployeePayload = Partial<Omit<CreateEmployeePayload, 'username' | 'password'>>;
+
+export async function updateEmployeeApi(
+  employeeId: string,
+  data: UpdateEmployeePayload
+): Promise<Employee> {
+  const response = await apiClient.put('/hrd/employees/' + employeeId, data);
+  return (response.data?.data || response.data) as Employee;
+}
+
+export async function deleteEmployeeApi(
+  employeeId: string
+): Promise<void> {
+  await apiClient.delete('/hrd/employees/' + employeeId);
+}
+
+export async function suspendEmployeeApi(
+  employeeId: string,
+  isActive: boolean
+): Promise<void> {
+  await apiClient.patch('/hrd/employees/' + employeeId + '/status', { is_active: isActive });
+}
+
+export async function resetPasswordApi(
+  employeeId: string,
+  newPassword: string
+): Promise<void> {
+  await apiClient.post('/hrd/employees/' + employeeId + '/reset-password', { new_password: newPassword });
+}
+
 export async function createEmployeeApi(
   data: CreateEmployeePayload
 ): Promise<Employee> {

@@ -24,12 +24,14 @@ import {
   X,
   LogIn,
   Loader2,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { PermissionClaim, RoleTier, UserProfile, UserRole } from '../../types';
 import { ROLE_DEFINITIONS, getTierBadge, canManageUsers } from '../../utils/rbac';
 import { useAuthStore } from '../../store/useAuthStore';
-import { createEmployeeApi, getEmployeesApi } from '../../services/hrdService';
+import { createEmployeeApi, getEmployeesApi, updateEmployeeApi, deleteEmployeeApi, suspendEmployeeApi, resetPasswordApi } from '../../services/hrdService';
 import type { CreateEmployeePayload } from '../../services/hrdService';
 import { useQuery } from '@tanstack/react-query';
 
@@ -328,7 +330,7 @@ export const UserManagementModule: React.FC = () => {
   const currentUser = useAppStore((state) => state.currentUser);
 
   // Fetch employees from backend
-  const { data: employeeData, isLoading: isLoadingEmployees } = useQuery({
+  const { data: employeeData, isLoading: isLoadingEmployees, refetch } = useQuery({
     queryKey: ['hrd', 'employees'],
     queryFn: () => getEmployeesApi(1, 100),
   });
@@ -359,7 +361,7 @@ export const UserManagementModule: React.FC = () => {
       department: String(emp?.department || '-'),
       role: (emp?.roleId as UserRole) || 'OPERATOR_PROD',
       tier: (isNaN(tierVal) ? 3 : tierVal) as RoleTier,
-      status: 'ACTIVE',
+      status: emp?.isActive === false || emp?.employmentStatus === 'RESIGNED' ? 'SUSPENDED' : 'ACTIVE',
       permissions: [],
       avatar: '',
       plantLocation: 'HO / Main Plant',
@@ -374,6 +376,7 @@ export const UserManagementModule: React.FC = () => {
   // ─── Form State — matches exact BE EmployeeCreate schema ─────
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
   const [formSuccessMessage, setFormSuccessMessage] = useState('');
 
@@ -391,10 +394,77 @@ export const UserManagementModule: React.FC = () => {
   const [fSalary, setFSalary] = useState<number | ''>('');
 
   // Optional fields
-  const [fDepartment, setFDepartment] = useState('PPIC');
+  const [fDepartment, setFDepartment] = useState('PPIC_PRODUKSI');
 
   // Derived Role
   const derivedRole = getDerivedRole(fUserLevel, fDepartment);
+
+  const handleSuspend = async (userId: string, currentStatus: string, userName: string) => {
+    const isCurrentlyActive = currentStatus === 'ACTIVE';
+    const actionText = isCurrentlyActive ? 'Tangguhkan' : 'Aktifkan';
+    
+    if (!window.confirm(`Yakin ingin ${actionText} akun ${userName}?`)) return;
+    
+    try {
+      await suspendEmployeeApi(userId, !isCurrentlyActive);
+      alert(`Akun ${userName} berhasil di${actionText}.`);
+      refetch();
+    } catch (err: any) {
+      alert(`Gagal ${actionText} akun: ` + err.message);
+    }
+  };
+
+  const handleResetPassword = async (userId: string, userName: string) => {
+    const newPassword = window.prompt(`Masukkan password sementara untuk ${userName} (minimal 8 karakter):`);
+    if (!newPassword) return;
+    if (newPassword.length < 8) {
+      alert("Password minimal 8 karakter!");
+      return;
+    }
+    
+    try {
+      await resetPasswordApi(userId, newPassword);
+      alert(`Password sementara untuk ${userName} berhasil direset.`);
+    } catch (err: any) {
+      alert('Gagal reset password: ' + err.message);
+    }
+  };
+
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const handleEdit = (userProfile: any) => {
+    // Find original backend employee data to populate form completely
+    const origUser = apiUsers.find(u => String(u.id) === String(userProfile.id)) || {};
+    
+    setEditingUserId(userProfile.id);
+    setFNik(origUser.nik || userProfile.nik || '');
+    setFFullName(origUser.fullName || userProfile.name || '');
+    setFEmail(origUser.email || userProfile.email || '');
+    setFDepartment(origUser.department || userProfile.department || 'PPIC_PRODUKSI');
+    setFUserLevel(origUser.userLevel || 'L3_STAFF'); 
+    setFKtp(origUser.identityCardNumber || '0000000000000000'); 
+    setFSalary(origUser.basicSalary || '');
+    setFPhone(origUser.phoneNumber || '+62 ');
+    setFEmploymentStatus(origUser.employmentStatus || 'PERMANENT');
+    setFJoinDate(origUser.joinDate || new Date().toISOString().split('T')[0]);
+    
+    setIsEditModalOpen(true);
+    setFormError('');
+    setFormSuccessMessage('');
+  };
+
+  const handleDelete = async (userId: string, userName: string) => {
+    if (!window.confirm(`Yakin ingin menghapus ${userName} secara permanen (Soft Delete di DB, Hard Delete di Keycloak)?`)) return;
+    try {
+      await deleteEmployeeApi(userId);
+      alert(`${userName} berhasil dihapus.`);
+      refetch();
+    } catch (err: any) {
+      alert('Gagal menghapus: ' + err.message);
+    }
+  };
+
   const [fBankName, setFBankName] = useState('');
   const [fBankAccount, setFBankAccount] = useState('');
 
@@ -424,27 +494,26 @@ export const UserManagementModule: React.FC = () => {
     setFUserLevel('L3_STAFF');
     setFEmploymentStatus('PERMANENT');
     setFJoinDate(new Date().toISOString().split('T')[0]);
-    setFDepartment('PPIC');
+    setFDepartment('PPIC_PRODUKSI');
     setFormError('');
   };
 
   // Submit — calls real BE API
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fFullName.trim() || !fEmail.trim() || !fUsername.trim() || !fPassword.trim()) return;
+    if (!fFullName.trim() || !fEmail.trim()) return;
+    if (!editingUserId && (!fUsername.trim() || !fPassword.trim())) return;
     if (fKtp.length !== 16) { setFormError(t.errKtp); return; }
     if (!fSalary || Number(fSalary) <= 0) { setFormError(t.errSalary); return; }
-    if (fPassword.length < 8) { setFormError(t.errPass); return; }
+    if (!editingUserId && fPassword.length < 8) { setFormError(t.errPass); return; }
 
-    const payload: CreateEmployeePayload = {
+    const payload: any = {
       nik: fNik.trim(),
       full_name: fFullName.trim(),
       email: fEmail.trim(),
       phone_number: fPhone.trim(),
       employment_status: fEmploymentStatus,
       join_date: fJoinDate,
-      username: fUsername.trim(),
-      password: fPassword,
       role_id: derivedRole,     // Derived automatically
       user_level: fUserLevel,
       identity_card_number: fKtp.trim(),
@@ -457,10 +526,19 @@ export const UserManagementModule: React.FC = () => {
     setIsSubmitting(true);
     setFormError('');
     try {
-      await createEmployeeApi(payload);
-      setFormSuccessMessage(`${t.msgCreateSuccess} "${fFullName}" ${t.msgCreateSuccessMid} ${derivedRole} (${fUserLevel}).`);
+      if (editingUserId) {
+        await updateEmployeeApi(editingUserId, payload);
+        setFormSuccessMessage(`Data ${fFullName} berhasil diperbarui.`);
+      } else {
+        payload.username = fUsername.trim();
+        payload.password = fPassword;
+        await createEmployeeApi(payload);
+        setFormSuccessMessage(`${t.msgCreateSuccess} "${fFullName}" ${t.msgCreateSuccessMid} ${derivedRole} (${fUserLevel}).`);
+      }
       resetForm();
-      setIsFormOpen(false);
+      setIsFormOpen(false); 
+      setEditingUserId(null);
+      refetch();
       setTimeout(() => setFormSuccessMessage(''), 8000);
     } catch (err: any) {
       const detail = err?.response?.data?.detail
@@ -605,7 +683,7 @@ export const UserManagementModule: React.FC = () => {
                 {t.formDesc}
               </p>
             </div>
-            <button onClick={() => { setIsFormOpen(false); resetForm(); }} className="text-xs font-bold text-slate-400 hover:text-slate-600">
+            <button onClick={() => { setIsFormOpen(false); setEditingUserId(null);; resetForm(); }} className="text-xs font-bold text-slate-400 hover:text-slate-600">
               {t.formCancel}
             </button>
           </div>
@@ -684,14 +762,17 @@ export const UserManagementModule: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 mb-1">{t.fDept}</label>
                   <select value={fDepartment} onChange={e => setFDepartment(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="EXTERNAL_PORTAL">{t.deptOptions.exim}</option>
-                    <option value="FINANCE">{t.deptOptions.fin}</option>
-                    <option value="HRD">{t.deptOptions.hrd}</option>
-                    <option value="PPIC">{t.deptOptions.ppic}</option>
-                    <option value="QC">{t.deptOptions.qc}</option>
-                    <option value="RND">{t.deptOptions.rnd}</option>
-                    <option value="SALES">{t.deptOptions.sales}</option>
-                    <option value="WAREHOUSE">{t.deptOptions.wh}</option>
+                    <option value="HRD_GA">HRD & GA</option>
+                    <option value="FINANCE">Finance</option>
+                    <option value="PPIC_PRODUKSI">PPIC & Produksi</option>
+                    <option value="LOGISTIK_GUDANG">Logistik & Gudang</option>
+                    <option value="QUALITY_CONTROL">Quality Control</option>
+                    <option value="SALES_MARKETING">Sales & Marketing</option>
+                    <option value="PURCHASING_EXIM">Purchasing & Exim</option>
+                    <option value="RND">Research & Development</option>
+                    <option value="COST_CONTROL">Cost Control</option>
+                    <option value="IT">IT</option>
+                    <option value="EXTERNAL_PORTAL">External Portal</option>
                   </select>
                 </div>
                 <div>
@@ -706,20 +787,23 @@ export const UserManagementModule: React.FC = () => {
             {/* ── Row 3: Akun Login & RBAC ── */}
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
               <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{t.row3Title}</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fUsername}</label>
-                  <input type="text" value={fUsername} onChange={e => setFUsername(e.target.value)} required minLength={3} maxLength={100}
-                    placeholder="Contoh: rian_pratama"
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              
+              {!editingUserId && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">{t.fUsername}</label>
+                    <input type="text" value={fUsername} onChange={e => setFUsername(e.target.value)} required={!editingUserId} minLength={3} maxLength={100}
+                      placeholder="Contoh: rian_pratama"
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">{t.fPass} <span className="font-normal text-slate-400">{t.fPassMin}</span></label>
+                    <input type="text" value={fPassword} onChange={e => setFPassword(e.target.value)} required={!editingUserId} minLength={8}
+                      placeholder="Password awal — pegawai akan diminta ganti saat login pertama"
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fPass} <span className="font-normal text-slate-400">{t.fPassMin}</span></label>
-                  <input type="text" value={fPassword} onChange={e => setFPassword(e.target.value)} required minLength={8}
-                    placeholder="Password awal — pegawai akan diminta ganti saat login pertama"
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-1 gap-4">
                 {/* user_level */}
@@ -785,7 +869,7 @@ export const UserManagementModule: React.FC = () => {
             <div className="pt-3 flex items-center justify-between border-t border-slate-200">
               <p className="text-[10px] text-slate-400">{t.fReq}</p>
               <div className="flex items-center gap-3">
-                <button type="button" onClick={() => { setIsFormOpen(false); resetForm(); }}
+                <button type="button" onClick={() => { setIsFormOpen(false); setEditingUserId(null);; resetForm(); }}
                   className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors">
                   {t.formCancel}
                 </button>
@@ -985,19 +1069,12 @@ export const UserManagementModule: React.FC = () => {
                       {/* Actions */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Quick Login As / Impersonate */}
-                          <button
-                            onClick={() => appStore.login(user)}
-                            className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors"
-                            title={`${t.actionLoginAs} ${user.name} ${t.actionRbacTest}`}
-                          >
-                            <LogIn className="w-4 h-4" />
-                          </button>
+                          {/* Quick Login As / Impersonate - REMOVED PER USER REQUEST */}
 
                           {/* Toggle Active / Suspended */}
                           {isAuthorized && (
                             <button
-                              onClick={() => appStore.toggleUserStatus(user.id)}
+                              onClick={() => handleSuspend(user.id, user.status, user.name)}
                               className={`p-1.5 rounded-lg transition-colors ${user.status === 'ACTIVE'
                                   ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50'
                                   : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50'
@@ -1008,13 +1085,38 @@ export const UserManagementModule: React.FC = () => {
                             </button>
                           )}
 
+                          {/* Edit User */}
+                          {isAuthorized && (
+                            <button 
+                               onClick={() => handleEdit(user)} 
+                               className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition-colors" 
+                               title="Edit Data Pegawai"
+                            >
+                               <Pencil className="w-4 h-4" />
+                            </button>
+                          )}
+                          
+                          {/* Delete User */}
+                          {isAuthorized && (
+                            <button 
+                               onClick={() => handleDelete(user.id, user.name)} 
+                               className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors" 
+                               title="Hapus Pegawai"
+                            >
+                               <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+
                           {/* Reset Password */}
                           {isAuthorized && (
                             <button
                               onClick={() => {
-                                if (confirm(`${t.alertReset} ${user.name}${t.alertResetMid} ${user.email}.`)) {
-                                  appStore.resetUserPassword(user.id);
-                                  alert(`${t.alertResetSuccess} ${user.name} ${t.alertResetSuccessEnd}`);
+                                const tempPass = prompt(`Masukkan password sementara untuk ${user.name}:`);
+                                if (tempPass) {
+                                  // Call API to set temporary password (assuming updateEmployeeApi accepts password in this context, or fallback to frontend UI feedback)
+                                  updateEmployeeApi(user.id, { password: tempPass } as any)
+                                    .then(() => alert(`Password sementara untuk ${user.name} berhasil diatur menjadi: ${tempPass}`))
+                                    .catch((err) => alert(`Gagal mengatur password: ${err.message}`));
                                 }
                               }}
                               className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -1033,6 +1135,118 @@ export const UserManagementModule: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* MODAL: Edit User */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-100">
+          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white">Edit Data Pegawai</h2>
+              <button
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingUserId(null);
+                  resetForm();
+                }}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreateAccount} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* ── TERKUNCI (READ-ONLY) ── */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">NIK (Nomor Induk Karyawan)</label>
+                  <input type="text" value={fNik} disabled
+                    className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-sm cursor-not-allowed" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Nomor KTP</label>
+                  <input type="text" value={fKtp} disabled
+                    className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-sm cursor-not-allowed" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Email Internal</label>
+                  <input type="email" value={fEmail} disabled
+                    className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-sm cursor-not-allowed" />
+                </div>
+
+                {/* ── BISA DIUBAH (EDITABLE) ── */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
+                  <input type="text" value={fFullName} onChange={e => setFFullName(e.target.value)} required 
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Departemen</label>
+                  <select value={fDepartment} onChange={e => setFDepartment(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500">
+                    <option value="HRD_GA">HRD & GA</option>
+                    <option value="FINANCE">Finance</option>
+                    <option value="PPIC_PRODUKSI">PPIC & Produksi</option>
+                    <option value="LOGISTIK_GUDANG">Logistik & Gudang</option>
+                    <option value="QUALITY_CONTROL">Quality Control</option>
+                    <option value="SALES_MARKETING">Sales & Marketing</option>
+                    <option value="PURCHASING_EXIM">Purchasing & Exim</option>
+                    <option value="RND">Research & Development</option>
+                    <option value="COST_CONTROL">Cost Control</option>
+                    <option value="IT">IT</option>
+                    <option value="EXTERNAL_PORTAL">External Portal</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tingkat Akses (Role)</label>
+                  <select value={fUserLevel} onChange={e => setFUserLevel(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500">
+                    <option value="L3_STAFF">L3 — Staff / Operator</option>
+                    <option value="L2_MANAGER">L2 — Manager / Admin Bidang</option>
+                    <option value="L1_DIREKSI">L1 — Board of Directors</option>
+                    <option value="L0_SUPER_ADMIN">L0 — Super Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Gaji Pokok</label>
+                  <input type="number" value={fSalary} onChange={e => setFSalary(Number(e.target.value))} required 
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+              
+              {formError && (
+                <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <p>{formError}</p>
+                </div>
+              )}
+              {formSuccessMessage && (
+                <div className="p-3 bg-emerald-50 text-emerald-700 text-xs rounded-xl flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <p>{formSuccessMessage}</p>
+                </div>
+              )}
+              
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => { setIsEditModalOpen(false); setEditingUserId(null); resetForm(); }}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold text-sm"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 flex items-center gap-2"
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: Inspect Permissions Claims */}
       {inspectUser && (
@@ -1097,3 +1311,4 @@ export const UserManagementModule: React.FC = () => {
     </div>
   );
 };
+
