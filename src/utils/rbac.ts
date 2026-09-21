@@ -354,5 +354,12 @@ export function getTierBadge(tier: RoleTier): {
         borderClass: 'border-slate-400',
         pillText: 'L3 Staff',
       };
+    default:
+      return {
+        label: `Level ${tier}: External / Other`,
+        badgeClass: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700',
+        borderClass: 'border-slate-400',
+        pillText: `L${tier} User`,
+      };
   }
 }

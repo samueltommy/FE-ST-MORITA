@@ -82,6 +82,10 @@ export type EmployeeListResponse = z.infer<typeof EmployeeListResponseSchema>;
 /** Leave/time-off request */
 export const LeaveRequestApiSchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
+  employeeId: z.union([z.string(), z.number()]).optional().nullable(),
+  employeeName: z.string().optional().nullable(),
+  employeeNik: z.string().optional().nullable(),
+  department: z.string().optional().nullable(),
   requestType: z.string().optional().nullable(),
   startDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable(),

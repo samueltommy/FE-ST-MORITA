@@ -15,7 +15,9 @@ import {
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { VehicleBooking, SalesOutdoorVisit } from '../../types';
 import { Can } from '../../components/rbac/Can';
+import { useRBAC } from '../../hooks/useRBAC';
 import { HrdFormsModal } from '../../components/forms/HrdFormsModal';
+import { LeaveRequestsTab } from './LeaveRequestsTab';
 
 const CONTENT = {
   id: {
@@ -24,6 +26,7 @@ const CONTENT = {
     btnInput: 'Form Input HRD',
     tabFleet: 'Presensi & Armada Pabrik',
     tabGps: 'Log GPS Sales',
+    tabLeave: 'Pengajuan Cuti',
     kpi1Title: 'Total Karyawan Aktif',
     kpi1Desc: 'Fasilitas Plant 1 & 2',
     kpi1Value: '428 Orang',
@@ -58,6 +61,7 @@ const CONTENT = {
     btnInput: 'HRD Input Form',
     tabFleet: 'Attendance & Factory Fleet',
     tabGps: 'Sales GPS Log',
+    tabLeave: 'Leave Requests',
     kpi1Title: 'Total Active Employees',
     kpi1Desc: 'Plant 1 & 2 Facilities',
     kpi1Value: '428 People',
@@ -95,8 +99,10 @@ export const HrdModule: React.FC = () => {
   const vehicleBookings = useAppStore((state) => state.vehicleBookings);
   const salesVisits = useAppStore((state) => state.salesVisits);
   const currentUser = useAppStore((state) => state.currentUser);
+  const { isSuperAdmin, isExecutive, hasPermission } = useRBAC();
+  const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
 
-  const [activeTab, setActiveTab] = useState<'attendance_fleet' | 'sales_gps'>('attendance_fleet');
+  const [activeTab, setActiveTab] = useState<'attendance_fleet' | 'sales_gps' | 'leave_requests'>(isHrdAdmin ? 'attendance_fleet' : 'leave_requests');
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [formModalTab, setFormModalTab] = useState<'leave' | 'vehicle' | 'visit' | 'employee'>('leave');
 
@@ -116,10 +122,10 @@ export const HrdModule: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              {t.title}
+              {isHrdAdmin ? t.title : 'Pengajuan Cuti'}
             </h1>
             <p className="text-sm text-slate-500 mt-1.5">
-              {t.desc}
+              {isHrdAdmin ? t.desc : 'Kelola dan ajukan permohonan cuti atau izin Anda'}
             </p>
           </div>
           
@@ -129,38 +135,55 @@ export const HrdModule: React.FC = () => {
               className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>{t.btnInput}</span>
+              <span>{isHrdAdmin ? t.btnInput : 'Buat Pengajuan'}</span>
             </button>
           </div>
         </div>
 
         {/* Tab switchers */}
         <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 self-start overflow-x-auto max-w-full">
+          {isHrdAdmin && (
+            <>
+              <button
+                onClick={() => setActiveTab('attendance_fleet')}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${
+                  activeTab === 'attendance_fleet'
+                    ? 'bg-white text-violet-700 shadow-xs border border-slate-200'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                {t.tabFleet}
+              </button>
+              <button
+                onClick={() => setActiveTab('sales_gps')}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'sales_gps'
+                    ? 'bg-white text-violet-700 shadow-xs border border-slate-200'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <Navigation className="w-4 h-4" />
+                <span>{t.tabGps}</span>
+              </button>
+            </>
+          )}
           <button
-            onClick={() => setActiveTab('attendance_fleet')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${
-              activeTab === 'attendance_fleet'
-                ? 'bg-white text-violet-700 shadow-xs border border-slate-200'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-            }`}
-          >
-            {t.tabFleet}
-          </button>
-          <button
-            onClick={() => setActiveTab('sales_gps')}
+            onClick={() => setActiveTab('leave_requests')}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'sales_gps'
+              activeTab === 'leave_requests'
                 ? 'bg-white text-violet-700 shadow-xs border border-slate-200'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
-            <Navigation className="w-4 h-4" />
-            <span>{t.tabGps}</span>
+            <Calendar className="w-4 h-4" />
+            <span>{t.tabLeave}</span>
           </button>
         </div>
       </div>
 
-      {activeTab === 'attendance_fleet' ? (
+      {activeTab === 'leave_requests' ? (
+        <LeaveRequestsTab onOpenForm={() => openFormWithTab('leave')} />
+      ) : activeTab === 'attendance_fleet' && isHrdAdmin ? (
         <div className="space-y-6">
           {/* Attendance KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -268,7 +291,7 @@ export const HrdModule: React.FC = () => {
             </div>
           </div>
         </div>
-      ) : (
+      ) : isHrdAdmin ? (
         /* Sales Outdoor GPS Visit Logs */
         <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
@@ -318,7 +341,7 @@ export const HrdModule: React.FC = () => {
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* HRD Forms Modal */}
       <HrdFormsModal

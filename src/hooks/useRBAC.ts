@@ -81,7 +81,8 @@ export const useRBAC = () => {
       case 'master_data':
         return hasPrefix(['inventory:', 'barcode:', 'master:', 'warehouse:']);
       case 'hrd':
-        return hasPrefix(['hrd:']);
+        // ESS (Employee Self Service): Semua karyawan bisa mengakses modul HRD (misal: Cuti)
+        return true;
       case 'users':
         return canAccessAdminUsers();
       default:

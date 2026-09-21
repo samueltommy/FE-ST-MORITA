@@ -63,6 +63,16 @@ export async function createEmployeeApi(
 }
 
 /**
+ * Get list of leave requests.
+ * Backend filters automatically based on user role/level.
+ */
+export async function getLeaveRequestsApi(): Promise<LeaveRequestApi[]> {
+  const response = await apiClient.get('/hrd/requests');
+  // Handle both {data: [...]} and direct array responses
+  return (response.data?.data || response.data) as LeaveRequestApi[];
+}
+
+/**
  * Submit a leave/time-off request (by staff).
  */
 export interface SubmitLeavePayload {

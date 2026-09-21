@@ -2,6 +2,7 @@
 import axios from 'axios';
 import camelcaseKeys from 'camelcase-keys';
 import snakecaseKeys from 'snakecase-keys';
+import { toast } from 'sonner';
 
 /**
  * Axios API Client for SAMHANCE ERP Backend
@@ -62,6 +63,12 @@ apiClient.interceptors.response.use(
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('auth:expired'));
         }
+      }
+    } else if (error.response && error.response.status >= 400) {
+      // Global error handler for Bad Request (400) / Server Error (500)
+      const msg = error.response.data?.message || error.response.data?.detail || error.message || 'Terjadi kesalahan sistem';
+      if (typeof window !== 'undefined') {
+        toast.error(msg);
       }
     }
     return Promise.reject(error);

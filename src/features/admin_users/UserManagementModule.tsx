@@ -29,8 +29,9 @@ import { useAppStore, appStore } from '../../store/useAppStore';
 import { PermissionClaim, RoleTier, UserProfile, UserRole } from '../../types';
 import { ROLE_DEFINITIONS, getTierBadge, canManageUsers } from '../../utils/rbac';
 import { useAuthStore } from '../../store/useAuthStore';
-import { createEmployeeApi } from '../../services/hrdService';
+import { createEmployeeApi, getEmployeesApi } from '../../services/hrdService';
 import type { CreateEmployeePayload } from '../../services/hrdService';
+import { useQuery } from '@tanstack/react-query';
 
 const CONTENT = {
   id: {
@@ -324,8 +325,46 @@ export const UserManagementModule: React.FC = () => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
 
-  const users = useAppStore((state) => state.users);
   const currentUser = useAppStore((state) => state.currentUser);
+
+  // Fetch employees from backend
+  const { data: employeeData, isLoading: isLoadingEmployees } = useQuery({
+    queryKey: ['hrd', 'employees'],
+    queryFn: () => getEmployeesApi(1, 100),
+  });
+
+  // Safely extract array from various possible backend response formats
+  const rawData = employeeData as any;
+  const apiUsers: any[] = Array.isArray(rawData) 
+    ? rawData 
+    : Array.isArray(rawData?.data) 
+      ? rawData.data 
+      : Array.isArray(rawData?.employees) 
+        ? rawData.employees 
+        : [];
+
+  // Map API Employees to UI UserProfile defensively
+  const users: UserProfile[] = apiUsers.map((emp: any) => {
+    let tierVal = 3;
+    if (emp?.userLevel && typeof emp.userLevel === 'string') {
+      const match = emp.userLevel.match(/L(\d)/);
+      if (match) tierVal = parseInt(match[1], 10);
+    }
+    
+    return {
+      id: String(emp?.id || Math.random()),
+      name: String(emp?.fullName || emp?.username || '-'),
+      nik: String(emp?.nik || '-'),
+      email: String(emp?.email || '-'),
+      department: String(emp?.department || '-'),
+      role: (emp?.roleId as UserRole) || 'OPERATOR_PROD',
+      tier: (isNaN(tierVal) ? 3 : tierVal) as RoleTier,
+      status: 'ACTIVE',
+      permissions: [],
+      avatar: '',
+      plantLocation: 'HO / Main Plant',
+    };
+  });
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -783,6 +822,7 @@ export const UserManagementModule: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0 text-xs">
+            {isLoadingEmployees && <Loader2 className="w-4 h-4 animate-spin text-blue-500 mr-2" />}
             <button
               onClick={() => setSelectedTierFilter('ALL')}
               className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${selectedTierFilter === 'ALL'
@@ -868,7 +908,7 @@ export const UserManagementModule: React.FC = () => {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={user.avatar}
+                            src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
                             alt={user.name}
                             className="w-9 h-9 rounded-xl object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
                           />
@@ -1001,7 +1041,7 @@ export const UserManagementModule: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <img
-                  src={inspectUser.avatar}
+                  src={inspectUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(inspectUser.name)}&background=random`}
                   alt={inspectUser.name}
                   className="w-10 h-10 rounded-xl object-cover"
                 />

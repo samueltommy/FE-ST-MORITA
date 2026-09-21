@@ -3,6 +3,8 @@ import { X, Calendar, Clock, Car, MapPin, UserPlus, FileText, CheckCircle2, Shie
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { LeaveRequest, VehicleBooking, SalesOutdoorVisit } from '../../types';
 import { ROLE_DEFINITIONS } from '../../utils/rbac';
+import { useRBAC } from '../../hooks/useRBAC';
+import { submitLeaveRequestApi } from '../../services/hrdService';
 
 interface Props {
   isOpen: boolean;
@@ -165,12 +167,11 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
 
   const [activeTab, setActiveTab] = useState<'leave' | 'vehicle' | 'visit' | 'employee'>(defaultTab);
   const currentUser = useAppStore((state) => state.currentUser);
+  const { isSuperAdmin, isExecutive, hasPermission } = useRBAC();
+  const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Form 1: Leave Request state
-  const [leaveEmployeeName, setLeaveEmployeeName] = useState(currentUser.name);
-  const [leaveEmployeeNik, setLeaveEmployeeNik] = useState(currentUser.nik);
-  const [leaveDepartment, setLeaveDepartment] = useState(currentUser.department);
   const [leaveType, setLeaveType] = useState<LeaveRequest['leaveType']>('CUTI_TAHUNAN');
   const [leaveStartDate, setLeaveStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [leaveEndDate, setLeaveEndDate] = useState(new Date().toISOString().slice(0, 10));
@@ -204,30 +205,28 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
 
   if (!isOpen) return null;
 
-  const handleLeaveSubmit = (e: React.FormEvent) => {
+  const handleLeaveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!leaveReason.trim()) return;
 
-    const newLeave: LeaveRequest = {
-      id: `LV-${Date.now()}`,
-      employeeName: leaveEmployeeName.trim(),
-      employeeNik: leaveEmployeeNik.trim(),
-      department: leaveDepartment,
-      leaveType,
-      startDate: leaveStartDate,
-      endDate: leaveEndDate,
-      durationDays: Math.max(1, leaveDays),
-      reason: leaveReason.trim(),
-      status: 'PENDING_APPROVAL',
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
+    try {
+      await submitLeaveRequestApi({
+        requestType: leaveType,
+        startDate: leaveStartDate,
+        endDate: leaveEndDate,
+        reason: leaveReason.trim()
+      });
 
-    appStore.addLeaveRequest(newLeave);
-    setSuccessMessage(t.succLeave.replace('{type}', leaveType).replace('{name}', leaveEmployeeName));
-    setTimeout(() => {
-      setSuccessMessage(null);
-      onClose();
-    }, 1200);
+      setSuccessMessage(t.succLeave.replace('{type}', leaveType).replace('{name}', currentUser.name));
+      setTimeout(() => {
+        setSuccessMessage(null);
+        onClose();
+        // Trigger a custom event to tell LeaveRequestsTab to refresh
+        window.dispatchEvent(new Event('hrd:leave-submitted'));
+      }, 1200);
+    } catch (err: any) {
+      alert('Gagal mengajukan cuti: ' + (err?.response?.data?.message || err.message));
+    }
   };
 
   const handleVehicleSubmit = (e: React.FormEvent) => {
@@ -338,39 +337,46 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
             <Calendar className="w-4 h-4" />
             <span>{t.tabLeave}</span>
           </button>
-          <button
-            onClick={() => setActiveTab('vehicle')}
-            className={`px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
-              activeTab === 'vehicle'
-                ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Car className="w-4 h-4" />
-            <span>{t.tabVehicle}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('visit')}
-            className={`px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
-              activeTab === 'visit'
-                ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <MapPin className="w-4 h-4" />
-            <span>{t.tabVisit}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('employee')}
-            className={`px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
-              activeTab === 'employee'
-                ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>{t.tabEmployee}</span>
-          </button>
+          {isHrdAdmin && (
+            <>
+              <button
+                onClick={() => setActiveTab('vehicle')}
+                className={`px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                  activeTab === 'vehicle'
+                    ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50'
+                    : 'border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Car className="w-4 h-4" />
+                <span>{t.tabVehicle}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('visit')}
+                className={`px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                  activeTab === 'visit'
+                    ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50'
+                    : 'border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <MapPin className="w-4 h-4" />
+                <span>{t.tabVisit}</span>
+              </button>
+            </>
+          )}
+          {/* Hanya admin yg memiliki akses spesifik bisa mendaftar akun */}
+          {(isHrdAdmin || hasPermission('admin:users:manage')) && (
+            <button
+              onClick={() => setActiveTab('employee')}
+              className={`px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                activeTab === 'employee'
+                  ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>{t.tabEmployee}</span>
+            </button>
+          )}
         </div>
 
         {/* Form Body with Scroll */}
@@ -385,53 +391,18 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
           {/* 1. Pengajuan Cuti / Izin */}
           {activeTab === 'leave' && (
             <form onSubmit={handleLeaveSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvName}</label>
-                  <input
-                    type="text"
-                    required
-                    value={leaveEmployeeName}
-                    onChange={(e) => setLeaveEmployeeName(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvNik}</label>
-                  <input
-                    type="text"
-                    required
-                    value={leaveEmployeeNik}
-                    onChange={(e) => setLeaveEmployeeNik(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvDept}</label>
-                  <input
-                    type="text"
-                    required
-                    value={leaveDepartment}
-                    onChange={(e) => setLeaveDepartment(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvType}</label>
-                  <select
-                    value={leaveType}
-                    onChange={(e) => setLeaveType(e.target.value as LeaveRequest['leaveType'])}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                  >
-                    <option value="CUTI_TAHUNAN">{t.lvType1}</option>
-                    <option value="SAKIT_SURAT_DOKTER">{t.lvType2}</option>
-                    <option value="IZIN_KEPERLUAN_KHUSUS">{t.lvType3}</option>
-                    <option value="CUTI_MELAHIRKAN">{t.lvType4}</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvType}</label>
+                <select
+                  value={leaveType}
+                  onChange={(e) => setLeaveType(e.target.value as LeaveRequest['leaveType'])}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                >
+                  <option value="CUTI_TAHUNAN">{t.lvType1}</option>
+                  <option value="SAKIT_SURAT_DOKTER">{t.lvType2}</option>
+                  <option value="IZIN_KEPERLUAN_KHUSUS">{t.lvType3}</option>
+                  <option value="CUTI_MELAHIRKAN">{t.lvType4}</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -500,7 +471,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
           )}
 
           {/* 2. Peminjaman Kendaraan */}
-          {activeTab === 'vehicle' && (
+          {activeTab === 'vehicle' && isHrdAdmin && (
             <form onSubmit={handleVehicleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -587,7 +558,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
           )}
 
           {/* 3. Log Kunjungan Sales (GPS) */}
-          {activeTab === 'visit' && (
+          {activeTab === 'visit' && isHrdAdmin && (
             <form onSubmit={handleVisitSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -688,7 +659,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
           )}
 
           {/* 4. Pendaftaran Karyawan Baru */}
-          {activeTab === 'employee' && (
+          {activeTab === 'employee' && (isHrdAdmin || hasPermission('admin:users:manage')) && (
             <form onSubmit={handleEmployeeSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>

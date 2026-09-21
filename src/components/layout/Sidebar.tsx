@@ -102,7 +102,9 @@ export const Sidebar: React.FC = () => {
   const isMobileSidebarOpen = useAppStore((state) => state.isMobileSidebarOpen);
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language];
-  const { canAccessModule, canAccessAdminUsers, canAccessTool } = useRBAC();
+  const { canAccessModule, canAccessAdminUsers, canAccessTool, isSuperAdmin, isExecutive, hasPermission } = useRBAC();
+
+  const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
 
   // Count active QC Hold batches
   const activeQcHoldCount = qcRecords.filter(
@@ -170,8 +172,8 @@ export const Sidebar: React.FC = () => {
     {
       id: 'hrd',
       code: 'Core 1',
-      label: t.moduleNames.hrd,
-      sublabel: t.moduleNames.hrdSub,
+      label: isHrdAdmin ? t.moduleNames.hrd : 'Pengajuan Cuti',
+      sublabel: isHrdAdmin ? t.moduleNames.hrdSub : 'Kelola Cuti & Izin',
       icon: Users,
       shortcut: 'Alt+1',
       color: 'text-violet-600',
