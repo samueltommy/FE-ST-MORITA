@@ -30,6 +30,10 @@ export async function getSalesOrdersApi(): Promise<SalesTrackingOrder[]> {
         { stage: 'Surat Jalan / DO', timestamp: '14:20 WIB', completed: true, location: 'Dispatch Area', operator: 'Gudang FG' },
         { stage: 'In Transit Delivery', timestamp: '15:10 WIB (Sedang Jalan)', completed: false, location: 'Armada Truk #04', operator: 'Supir Logistik' },
       ],
+      truckNumber: String(item.truckNumber || 'B 1234 CD'),
+      driverName: String(item.driverName || 'Supir Default'),
+      driverPhone: String(item.driverPhone || '08123456789'),
+      eta: String(item.eta || '15:30 WIB'),
     }));
   } catch (err: any) {
     if (err.response?.status === 404 || err.response?.status === 405) {

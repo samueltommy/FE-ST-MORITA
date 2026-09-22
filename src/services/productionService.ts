@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/apiClient';
-import type { WorkOrderSpk, QcInspectionRecord } from '../types';
+import type { WorkOrderSpk, QcInspectionRecord, QcStatus } from '../types';
 
 export async function getProductionOrdersApi(): Promise<WorkOrderSpk[]> {
   try {

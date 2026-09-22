@@ -111,6 +111,8 @@ export interface UserProfile {
   status: 'ACTIVE' | 'SUSPENDED';
   joinedDate?: string;
   phoneNumber?: string;
+  userLevel?: string;
+  employmentStatus?: string;
 }
 
 export type ItemCategory =

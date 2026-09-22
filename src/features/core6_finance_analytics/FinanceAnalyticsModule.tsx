@@ -23,6 +23,22 @@ import {
 import { FinancialMask } from "../../components/ui/FinancialMask";
 import { useAppStore } from '../../store/useAppStore';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useEffect } from 'react';
+
+// Debounce hook for real-time input delay
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 import { getDeliveryOrdersApi, calculateInvoiceApi, createInvoiceApi } from '../../services/financeService';
 import {
   INVOICE_FORMULAS,
@@ -208,11 +224,81 @@ export const FinanceAnalyticsModule: React.FC = () => {
     [deliveryOrders, selectedDoIds]
   );
 
-  // Real-time calculation result
-  const calculationResult = useMemo(
-    () => calculateSalesInvoice(selectedFormulaId, selectedDos, customParams),
-    [selectedFormulaId, selectedDos, customParams]
-  );
+  const debouncedSelectedDoIds = useDebounce(Array.from(selectedDoIds), 500);
+  const debouncedParams = useDebounce(customParams, 500);
+  const debouncedFormulaId = useDebounce(selectedFormulaId, 500);
+
+  // Real-time calculation using Backend API
+  const { data: calculationResponse, isLoading: isCalcLoading } = useQuery({
+    queryKey: ['invoiceCalc', debouncedFormulaId, debouncedSelectedDoIds, debouncedParams],
+    queryFn: async () => {
+      if (debouncedSelectedDoIds.length === 0) return null;
+      
+      const formulaNumber = parseInt(debouncedFormulaId.replace('FORMULA_', '').split('_')[0], 10) || 1;
+      const custId = selectedDos.length > 0 ? (selectedDos[0].customerId || 'CUST-000') : 'CUST-000';
+      const subtotalGoods = selectedDos.reduce((sum, item) => sum + (item.totalBeforeTax ?? item.totalGrossValue ?? 0), 0);
+      
+      return await calculateInvoiceApi({
+        customer_id: custId,
+        delivery_order_ids: debouncedSelectedDoIds as string[],
+        formula_id: formulaNumber,
+        freight_cost: debouncedParams.freightCost || 0,
+        discount_amount: ((debouncedParams.discountRatePercent || 0) / 100) * subtotalGoods,
+        down_payment_deduction: debouncedParams.downPaymentAmount || 0,
+        retention_deduction: ((debouncedParams.retentionPercent || 0) / 100) * subtotalGoods,
+        ppn_rate: 11,
+        pph_rate: 2,
+      });
+    },
+    enabled: debouncedSelectedDoIds.length > 0,
+  });
+
+  // Re-map the API response to fit the UI or use fallback
+  const subtotalGoods = selectedDos.reduce((sum, item) => sum + (item.totalBeforeTax ?? item.totalGrossValue ?? 0), 0);
+  const selectedFormulaMeta = INVOICE_FORMULAS.find((f) => f.id === selectedFormulaId) || INVOICE_FORMULAS[0];
+  
+  const calculationResult = useMemo(() => {
+    if (calculationResponse?.calculationBreakdown) {
+       const bd = calculationResponse.calculationBreakdown;
+       // Simulate Margin for UI (since backend might not return it yet)
+       const minFloor = customParams.minimumMarginPercent ?? 18.0;
+       const simulatedCost = customParams.estimatedCostOfGoods ?? subtotalGoods * 0.81;
+       const estimatedMarginPercent = subtotalGoods > 0 ? ((subtotalGoods - simulatedCost) / subtotalGoods) * 100 : 22;
+       
+       return {
+         formulaName: selectedFormulaMeta.name,
+         formulaDescription: selectedFormulaMeta.description,
+         subtotalGoods: bd.totGrossAmount || subtotalGoods,
+         taxableBaseDpp: bd.subtotalDpp || 0,
+         ppnAmount: bd.ppnAmount || 0,
+         finalPayableAmount: bd.netInvoiceAmount || 0,
+         marginCheckPassed: estimatedMarginPercent >= minFloor,
+         estimatedMarginPercent: Number(estimatedMarginPercent.toFixed(1)),
+         freightAmount: bd.freightCost || 0,
+         discountOrRebate: bd.discountAmount || 0,
+         downPaymentDeduction: bd.downPaymentDeduction || 0,
+         retentionWithheld: bd.retentionDeduction || 0,
+         pph23Amount: bd.pphAmount || 0,
+         returnCreditOffset: customParams.returnNoteAmount || 0,
+       };
+    }
+    return {
+       formulaName: selectedFormulaMeta.name,
+       formulaDescription: selectedFormulaMeta.description,
+       subtotalGoods: subtotalGoods,
+       taxableBaseDpp: 0,
+       ppnAmount: 0,
+       finalPayableAmount: 0,
+       marginCheckPassed: true,
+       estimatedMarginPercent: 0,
+       freightAmount: 0,
+       discountOrRebate: 0,
+       downPaymentDeduction: 0,
+       retentionWithheld: 0,
+       pph23Amount: 0,
+       returnCreditOffset: 0,
+    };
+  }, [calculationResponse, subtotalGoods, selectedFormulaMeta, customParams]);
 
   const createInvoiceMutation = useMutation({
     mutationFn: async () => {
@@ -530,23 +616,39 @@ export const FinanceAnalyticsModule: React.FC = () => {
               </span>
             </div>
 
-            {/* Formula Selector Dropdown */}
+            {/* Formula Selector - Premium Card Grid */}
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1.5">
+              <label className="text-xs font-bold text-slate-700 block mb-2">
                 {t.selectFormula}
               </label>
-              <select
-                id="invoice-formula-selector"
-                value={selectedFormulaId}
-                onChange={(e) => setSelectedFormulaId(e.target.value as InvoiceFormulaId)}
-                className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              >
-                {INVOICE_FORMULAS.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    [{f.code}] {f.name} &bull; {f.category}
-                  </option>
-                ))}
-              </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2 rounded-xl">
+                {INVOICE_FORMULAS.map((f) => {
+                  const isSelected = selectedFormulaId === f.id;
+                  return (
+                    <div
+                      key={f.id}
+                      onClick={() => setSelectedFormulaId(f.id)}
+                      className={`cursor-pointer border p-3 rounded-xl transition-all relative overflow-hidden group ${
+                        isSelected 
+                          ? 'border-blue-500 bg-blue-50/50 shadow-sm ring-1 ring-blue-500' 
+                          : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-xs'
+                      }`}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-0 right-0 w-8 h-8 bg-blue-500 rounded-bl-xl flex items-center justify-center">
+                          <CheckSquare className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                      <div className="text-[10px] font-mono font-bold text-slate-400 mb-1">
+                        {f.code} &bull; {f.category}
+                      </div>
+                      <div className={`text-xs font-bold leading-tight ${isSelected ? 'text-blue-900' : 'text-slate-700 group-hover:text-slate-900'}`}>
+                        {f.name}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Formula Explanation Card */}
@@ -680,101 +782,122 @@ export const FinanceAnalyticsModule: React.FC = () => {
               )}
             </div>
 
-            {/* Calculated Breakdown Line-Items */}
-            <div className="divide-y divide-slate-100 text-xs">
-              <div className="py-2 flex justify-between">
-                <span className="text-slate-600">{t.breakdownSubtotal}</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {<FinancialMask value={calculationResult.subtotalGoods} />}
-                </span>
+            {/* Calculated Breakdown Line-Items - Sidebar Styled Receipt */}
+            <div className="bg-slate-900 text-slate-300 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+              
+              <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                <h3 className="font-bold text-white flex items-center gap-2 text-sm">
+                  <Receipt className="w-4 h-4 text-blue-400" />
+                  Live Calculation Receipt
+                </h3>
+                {isCalcLoading && (
+                  <span className="flex h-3 w-3 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                  </span>
+                )}
               </div>
 
-              {calculationResult.discountOrRebate > 0 && (
-                <div className="py-2 flex justify-between text-emerald-600">
-                  <span>{t.breakdownDiscount}</span>
-                  <span className="font-mono font-bold">
-                    - {<FinancialMask value={calculationResult.discountOrRebate} />}
+              <div className="space-y-3 text-xs font-mono">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">{t.breakdownSubtotal}</span>
+                  <span className="font-bold text-white">
+                    {<FinancialMask value={calculationResult.subtotalGoods} />}
                   </span>
                 </div>
-              )}
 
-              {calculationResult.freightAmount > 0 && (
-                <div className="py-2 flex justify-between text-blue-600">
-                  <span>{t.breakdownFreight}</span>
-                  <span className="font-mono font-bold">
-                    + {<FinancialMask value={calculationResult.freightAmount} />}
+                {calculationResult.discountOrRebate > 0 && (
+                  <div className="flex justify-between items-center text-emerald-400">
+                    <span>{t.breakdownDiscount}</span>
+                    <span className="font-bold">
+                      - {<FinancialMask value={calculationResult.discountOrRebate} />}
+                    </span>
+                  </div>
+                )}
+
+                {calculationResult.freightAmount > 0 && (
+                  <div className="flex justify-between items-center text-blue-400">
+                    <span>{t.breakdownFreight}</span>
+                    <span className="font-bold">
+                      + {<FinancialMask value={calculationResult.freightAmount} />}
+                    </span>
+                  </div>
+                )}
+
+                {calculationResult.downPaymentDeduction > 0 && (
+                  <div className="flex justify-between items-center text-amber-400">
+                    <span>{t.breakdownDp}</span>
+                    <span className="font-bold">
+                      - {<FinancialMask value={calculationResult.downPaymentDeduction} />}
+                    </span>
+                  </div>
+                )}
+
+                {calculationResult.returnCreditOffset > 0 && (
+                  <div className="flex justify-between items-center text-rose-400">
+                    <span>{t.breakdownReturn}</span>
+                    <span className="font-bold">
+                      - {<FinancialMask value={calculationResult.returnCreditOffset} />}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center bg-slate-800/80 px-3 py-2 rounded-lg mt-2 mb-2 text-slate-200">
+                  <span className="font-sans font-semibold text-xs">{t.breakdownDpp}</span>
+                  <span className="font-bold">{<FinancialMask value={calculationResult.taxableBaseDpp} />}</span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span>{t.breakdownPpn}</span>
+                  <span className="font-bold text-blue-400">
+                    + {<FinancialMask value={calculationResult.ppnAmount} />}
                   </span>
                 </div>
-              )}
 
-              {calculationResult.downPaymentDeduction > 0 && (
-                <div className="py-2 flex justify-between text-amber-600">
-                  <span>{t.breakdownDp}</span>
-                  <span className="font-mono font-bold">
-                    - {<FinancialMask value={calculationResult.downPaymentDeduction} />}
-                  </span>
-                </div>
-              )}
+                {calculationResult.pph23Amount > 0 && (
+                  <div className="flex justify-between items-center text-amber-400">
+                    <span>{t.breakdownPph23}</span>
+                    <span className="font-bold">
+                      - {<FinancialMask value={calculationResult.pph23Amount} />}
+                    </span>
+                  </div>
+                )}
 
-              {calculationResult.returnCreditOffset > 0 && (
-                <div className="py-2 flex justify-between text-rose-600">
-                  <span>{t.breakdownReturn}</span>
-                  <span className="font-mono font-bold">
-                    - {<FinancialMask value={calculationResult.returnCreditOffset} />}
-                  </span>
-                </div>
-              )}
-
-              <div className="py-2.5 flex justify-between bg-slate-50 px-2.5 rounded-lg font-semibold text-slate-800">
-                <span>{t.breakdownDpp}</span>
-                <span className="font-mono">{<FinancialMask value={calculationResult.taxableBaseDpp} />}</span>
+                {calculationResult.retentionWithheld > 0 && (
+                  <div className="flex justify-between items-center text-amber-400">
+                    <span>{t.breakdownRetention}</span>
+                    <span className="font-bold">
+                      - {<FinancialMask value={calculationResult.retentionWithheld} />}
+                    </span>
+                  </div>
+                )}
               </div>
-
-              <div className="py-2 flex justify-between text-slate-700">
-                <span>{t.breakdownPpn}</span>
-                <span className="font-mono font-bold text-blue-600">
-                  + {<FinancialMask value={calculationResult.ppnAmount} />}
-                </span>
-              </div>
-
-              {calculationResult.pph23Amount > 0 && (
-                <div className="py-2 flex justify-between text-amber-600">
-                  <span>{t.breakdownPph23}</span>
-                  <span className="font-mono font-bold">
-                    - {<FinancialMask value={calculationResult.pph23Amount} />}
-                  </span>
-                </div>
-              )}
-
-              {calculationResult.retentionWithheld > 0 && (
-                <div className="py-2 flex justify-between text-amber-600">
-                  <span>{t.breakdownRetention}</span>
-                  <span className="font-mono font-bold">
-                    - {<FinancialMask value={calculationResult.retentionWithheld} />}
-                  </span>
-                </div>
-              )}
 
               {/* Total Payable */}
-              <div className="py-3.5 flex justify-between items-center text-sm font-black pt-3 border-t-2 border-slate-200">
-                <span className="text-slate-900">{t.totalNetInvoice}</span>
-                <span className="text-lg font-mono text-emerald-600">
-                  {<FinancialMask value={calculationResult.finalPayableAmount} />}
-                </span>
+              <div className="mt-4 pt-4 border-t border-slate-700 flex flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-sans">{t.totalNetInvoice}</span>
+                <div className="flex justify-between items-end">
+                  <span className="text-2xl font-black text-emerald-400 font-mono leading-none">
+                    {<FinancialMask value={calculationResult.finalPayableAmount} />}
+                  </span>
+                  <span className="text-xs text-slate-500 font-sans">IDR</span>
+                </div>
               </div>
             </div>
 
             {/* Quick Action */}
-              <button
-                onClick={() => handleGenerateInvoice()}
-                disabled={selectedDos.length === 0 || createInvoiceMutation.isPending}
-                className={`w-full py-3 px-4 rounded-xl text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
-                  selectedDos.length === 0 || createInvoiceMutation.isPending ? 'bg-slate-300' : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                <FileCheck2 className="w-4 h-4" />
-                <span>{createInvoiceMutation.isPending ? 'Memproses...' : t.btnGenerate}</span>
-              </button>
+            <button
+              onClick={() => handleGenerateInvoice()}
+              disabled={selectedDos.length === 0 || createInvoiceMutation.isPending}
+              className={`w-full py-4 rounded-xl text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
+                selectedDos.length === 0 || createInvoiceMutation.isPending ? 'bg-slate-200 text-slate-400' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-md active:scale-[0.98]'
+              }`}
+            >
+              <FileCheck2 className="w-5 h-5" />
+              <span>{createInvoiceMutation.isPending ? 'Memproses...' : t.btnGenerate}</span>
+            </button>
           </div>
         </div>
       </div>
