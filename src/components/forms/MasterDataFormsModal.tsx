@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Building2, Truck, Boxes, Trash2, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { CustomerMaster, SupplierMaster, MasterItem, WasteRecord, ItemCategory } from '../../types';
+import { useSystemChoices, findOptionDescription, SelectOption } from '../../hooks/useSystemChoices';
 
 const CONTENT = {
   id: {
@@ -214,6 +215,14 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
   const currentUser = useAppStore((state) => state.currentUser);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const { data: customerTypeOptions, loading: loadingCustTypes } = useSystemChoices('customer-types');
+  const { data: pkpStatusOptions, loading: loadingPkp } = useSystemChoices('pkp-statuses');
+  const { data: itemTypeOptions, loading: loadingItemTypes } = useSystemChoices('item-types');
+
+  const customerTypes: SelectOption[] = Array.isArray(customerTypeOptions) ? customerTypeOptions : [];
+  const pkpStatuses: SelectOption[] = Array.isArray(pkpStatusOptions) ? pkpStatusOptions : [];
+  const itemTypes: SelectOption[] = Array.isArray(itemTypeOptions) ? itemTypeOptions : [];
+
   React.useEffect(() => {
     if (isOpen) {
       setActiveTab(defaultTab);
@@ -225,7 +234,8 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
   const [custCode, setCustCode] = useState(`CUST-${Math.floor(Math.random() * 900 + 100)}`);
   const [custName, setCustName] = useState('');
   const [custStatus, setCustStatus] = useState<'NEW' | 'OLD'>('NEW');
-  const [custBusinessType, setCustBusinessType] = useState('Otomotif & Manufaktur');
+  const [custBusinessType, setCustBusinessType] = useState('LOCAL_CORPORATE');
+  const [custPkpStatus, setCustPkpStatus] = useState('PKP');
   const [custTaxCode, setCustTaxCode] = useState<CustomerMaster['taxTransactionCode']>('01');
   const [custNpwp, setCustNpwp] = useState('');
   const [custNik, setCustNik] = useState('');
@@ -252,7 +262,26 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
   // Form 3: Item state
   const [itemCode, setItemCode] = useState('');
   const [itemName, setItemName] = useState('');
-  const [itemCategory, setItemCategory] = useState<ItemCategory>('Slit Tape');
+  const [itemCategory, setItemCategory] = useState<ItemCategory>('RAW_MATERIAL');
+
+  React.useEffect(() => {
+    if (customerTypes.length > 0 && !custBusinessType) {
+      setCustBusinessType(customerTypes[0].value);
+    }
+  }, [customerTypes, custBusinessType]);
+
+  React.useEffect(() => {
+    if (pkpStatuses.length > 0 && !custPkpStatus) {
+      setCustPkpStatus(pkpStatuses[0].value);
+    }
+  }, [pkpStatuses, custPkpStatus]);
+
+  React.useEffect(() => {
+    if (itemTypes.length > 0 && (!itemCategory || itemCategory === 'RAW_MATERIAL')) {
+      setItemCategory(itemTypes[0].value);
+    }
+  }, [itemTypes, itemCategory]);
+
   const [itemUnit, setItemUnit] = useState('Roll');
   const [itemStock, setItemStock] = useState(100);
   const [itemMinStock, setItemMinStock] = useState(25);
@@ -514,6 +543,49 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   </select>
                 </div>
                 <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Tipe Pelanggan</label>
+                  <select
+                    value={custBusinessType}
+                    onChange={(e) => setCustBusinessType(e.target.value)}
+                    disabled={loadingCustTypes}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-bold"
+                  >
+                    {customerTypes.map((c) => (
+                      <option key={c.value} value={c.value} title={c.description}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                  {findOptionDescription(customerTypes, custBusinessType) && (
+                    <p className="mt-1 text-[10px] text-slate-500 italic truncate" title={findOptionDescription(customerTypes, custBusinessType)}>
+                      {findOptionDescription(customerTypes, custBusinessType)}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Status PKP</label>
+                  <select
+                    value={custPkpStatus}
+                    onChange={(e) => setCustPkpStatus(e.target.value)}
+                    disabled={loadingPkp}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-bold"
+                  >
+                    {pkpStatuses.map((p) => (
+                      <option key={p.value} value={p.value} title={p.description}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                  {findOptionDescription(pkpStatuses, custPkpStatus) && (
+                    <p className="mt-1 text-[10px] text-slate-500 italic">
+                      {findOptionDescription(pkpStatuses, custPkpStatus)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     {t.cuTax}
                   </label>
@@ -760,15 +832,21 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   <label className="block text-xs font-bold text-slate-700 mb-1">{t.itCat}</label>
                   <select
                     value={itemCategory}
-                    onChange={(e) => setItemCategory(e.target.value as ItemCategory)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                    onChange={(e) => setItemCategory(e.target.value)}
+                    disabled={loadingItemTypes}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-bold"
                   >
-                    <option value="Raw Material">{t.itCat1}</option>
-                    <option value="Jumbo Roll Tape">{t.itCat2}</option>
-                    <option value="Slit Tape">{t.itCat3}</option>
-                    <option value="Finished Goods">{t.itCat4}</option>
-                    <option value="Packaging">{t.itCat5}</option>
+                    {itemTypes.map((it) => (
+                      <option key={it.value} value={it.value} title={it.description}>
+                        {it.label}
+                      </option>
+                    ))}
                   </select>
+                  {findOptionDescription(itemTypes, itemCategory) && (
+                    <p className="mt-1 text-[10px] text-slate-500 italic truncate" title={findOptionDescription(itemTypes, itemCategory)}>
+                      {findOptionDescription(itemTypes, itemCategory)}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">{t.itUnit}</label>

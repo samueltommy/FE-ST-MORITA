@@ -16,8 +16,11 @@ import {
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { EximDocument, ProcurementOrder, ProcurementStage } from '../../types';
 import { FinancialMask } from '../../components/ui/FinancialMask';
+import { checkPermission } from '../../utils/rbac';
 import { Can } from '../../components/rbac/Can';
 import { ProcurementFormsModal } from '../../components/forms/ProcurementFormsModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getPurchaseOrdersApi, getEximDocsApi, uploadEximDocApi } from '../../services/procurementService';
 
 const CONTENT = {
   id: {
@@ -77,9 +80,18 @@ const CONTENT = {
 export const ProcurementEximModule: React.FC = () => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
+  const queryClient = useQueryClient();
 
-  const procurementOrders = useAppStore((state) => state.procurementOrders);
-  const eximDocs = useAppStore((state) => state.eximDocs);
+  const { data: procurementOrders = [] } = useQuery({
+    queryKey: ['procurementOrders'],
+    queryFn: getPurchaseOrdersApi,
+  });
+
+  const { data: eximDocs = [] } = useQuery({
+    queryKey: ['eximDocs'],
+    queryFn: getEximDocsApi,
+  });
+
   const currentUser = useAppStore((state) => state.currentUser);
 
   const [activeTab, setActiveTab] = useState<'kanban' | 'exim_dropzone'>('kanban');
@@ -118,11 +130,18 @@ export const ProcurementEximModule: React.FC = () => {
       notes: newNotes.trim() || 'Dokumen kepabeanan resmi Kawasan Berikat ST. Morita Industries.',
     };
 
-    appStore.addEximDoc(newDoc);
-    setUploadModalOpen(false);
-    setNewRefNo('');
-    setNewNotes('');
+    uploadEximDocMutation.mutate(newDoc as EximDocument);
   };
+
+  const uploadEximDocMutation = useMutation({
+    mutationFn: uploadEximDocApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['eximDocs'] });
+      setUploadModalOpen(false);
+      setNewRefNo('');
+      setNewNotes('');
+    }
+  });
 
   return (
     <div className="space-y-6">
@@ -209,9 +228,9 @@ export const ProcurementEximModule: React.FC = () => {
                         {t.emptyQueue}
                       </div>
                     ) : (
-                      ordersInStage.map((ord) => (
+                      ordersInStage.map((ord, ordIdx) => (
                         <div
-                          key={ord.id}
+                          key={ord.id || ord.poNumber || `ord-${ordIdx}`}
                           className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-2 overflow-hidden"
                         >
                           <div className="flex items-center justify-between gap-1.5 min-w-0">
@@ -328,8 +347,8 @@ export const ProcurementEximModule: React.FC = () => {
             </h3>
 
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredEximDocs.map((doc) => (
-                <div key={doc.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              {filteredEximDocs.map((doc, docIdx) => (
+                <div key={doc.id || doc.referenceNumber || `doc-${docIdx}`} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
                       <FileCheck className="w-4 h-4" />

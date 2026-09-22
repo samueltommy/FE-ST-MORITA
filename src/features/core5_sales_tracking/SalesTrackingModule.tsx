@@ -19,6 +19,8 @@ import { Quotation, SalesTrackingOrder } from '../../types';
 import { FinancialMask } from '../../components/ui/FinancialMask';
 import { Can } from '../../components/rbac/Can';
 import { SalesFormsModal } from '../../components/forms/SalesFormsModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getQuotationsApi, getSalesOrdersApi, approveQuotationApi } from '../../services/salesService';
 
 const CONTENT = {
   id: {
@@ -84,13 +86,22 @@ const CONTENT = {
 export const SalesTrackingModule: React.FC = () => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
+  const queryClient = useQueryClient();
 
-  const quotations = useAppStore((state) => state.quotations);
-  const trackingOrders = useAppStore((state) => state.salesTrackingOrders);
+  const { data: quotations = [] } = useQuery({
+    queryKey: ['quotations'],
+    queryFn: getQuotationsApi,
+  });
+
+  const { data: trackingOrders = [] } = useQuery({
+    queryKey: ['salesTrackingOrders'],
+    queryFn: getSalesOrdersApi,
+  });
+
   const currentUser = useAppStore((state) => state.currentUser);
 
   const [activeTab, setActiveTab] = useState<'quotation_gating' | 'e_tracking'>('quotation_gating');
-  const [selectedTrackingId, setSelectedTrackingId] = useState<string>(trackingOrders[0]?.id || '');
+  const [selectedTrackingId, setSelectedTrackingId] = useState<string>('');
   const [salesFormsOpen, setSalesFormsOpen] = useState(false);
   const [salesFormsTab, setSalesFormsTab] = useState<'quotation' | 'do' | 'tracking'>('quotation');
 
@@ -98,12 +109,19 @@ export const SalesTrackingModule: React.FC = () => {
 
   // Synchronize or find selected tracking order safely
   const activeTracking =
-    trackingOrders.find((t) => t.id === selectedTrackingId) ||
+    trackingOrders.find((t) => t.id === selectedTrackingId || t.ioNumber === selectedTrackingId) ||
     trackingOrders[0] ||
     null;
 
+  const approveMutation = useMutation({
+    mutationFn: approveQuotationApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+    }
+  });
+
   const handleApproveMargin = (quoteId: string) => {
-    appStore.approveQuotation(quoteId);
+    approveMutation.mutate(quoteId);
   };
 
   return (
@@ -179,13 +197,13 @@ export const SalesTrackingModule: React.FC = () => {
             </h3>
 
             <div className="space-y-3">
-              {filteredQuotes.map((q) => {
+              {filteredQuotes.map((q, qIdx) => {
                 const isPending = q.status === 'PENDING_COST_CONTROL';
                 const isLowMargin = q.grossMarginPercent < 18.0;
 
                 return (
                   <div
-                    key={q.id}
+                    key={q.id || q.quotationNumber || `quote-${qIdx}`}
                     className={`p-4 rounded-2xl border transition-all text-xs space-y-2.5 ${
                       isPending
                         ? 'border-amber-300 bg-amber-50/30 dark:bg-amber-950/20 dark:border-amber-800'
@@ -284,17 +302,17 @@ export const SalesTrackingModule: React.FC = () => {
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {trackingOrders.map((t) => (
+              {trackingOrders.map((t, tIdx) => (
                 <button
-                  key={t.id}
+                  key={t.id || t.ioNumber || `track-${tIdx}`}
                   onClick={() => setSelectedTrackingId(t.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    activeTracking?.id === t.id
+                    activeTracking?.id === t.id || activeTracking?.ioNumber === t.ioNumber
                       ? 'bg-amber-600 text-white shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                   }`}
                 >
-                  {t.customerName} ({t.soNumber})
+                  {t.customerName} ({t.soNumber || t.ioNumber})
                 </button>
               ))}
             </div>
@@ -337,7 +355,7 @@ export const SalesTrackingModule: React.FC = () => {
                     { stage: 'In Transit Delivery', timestamp: '15:10 WIB (Sedang Jalan)', completed: false, location: 'Armada Truk #04', operator: 'Supir Logistik' },
                   ]).map((step, idx) => (
                     <div
-                      key={idx}
+                      key={step.stage || `step-${idx}`}
                       className={`p-4 rounded-2xl border text-xs space-y-2 relative transition-all ${
                         step.completed
                           ? 'border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20'

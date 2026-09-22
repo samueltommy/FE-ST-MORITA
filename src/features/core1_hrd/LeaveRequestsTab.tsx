@@ -3,6 +3,14 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { getLeaveRequestsApi, approveLeaveRequestApi } from '../../services/hrdService';
 import type { LeaveRequestApi } from '../../lib/schemas';
 import { CheckCircle2, XCircle, Clock, Calendar, Search, Filter, Download } from 'lucide-react';
+import {
+  useSystemChoices,
+  getBadgeClass,
+  findOptionLabel,
+  findOptionBadge,
+  findOptionDescription,
+  SelectOption,
+} from '../../hooks/useSystemChoices';
 
 interface Props {
   onOpenForm: () => void;
@@ -13,6 +21,12 @@ export const LeaveRequestsTab: React.FC<Props> = ({ onOpenForm }) => {
   const [requests, setRequests] = useState<LeaveRequestApi[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { data: requestTypeOptions } = useSystemChoices('request-types');
+  const { data: deptOptions } = useSystemChoices('departments');
+
+  const requestTypes: SelectOption[] = Array.isArray(requestTypeOptions) ? requestTypeOptions : [];
+  const departments: SelectOption[] = Array.isArray(deptOptions) ? deptOptions : [];
 
   // Tabs for Manager (L2)
   const [l2Tab, setL2Tab] = useState<'team' | 'mine'>('team');
@@ -140,8 +154,13 @@ export const LeaveRequestsTab: React.FC<Props> = ({ onOpenForm }) => {
                 </td>
                 <td className="px-4 py-3 text-xs font-medium text-slate-700 dark:text-slate-300">{r.department}</td>
                 <td className="px-4 py-3">
-                  <div className="text-xs font-bold text-violet-700 dark:text-violet-400">{r.requestType}</div>
-                  <div className="text-[11px] text-slate-500 max-w-[200px] truncate" title={r.reason}>{r.reason}</div>
+                  <span 
+                    className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full border ${getBadgeClass(findOptionBadge(requestTypes, r.requestType || ''))}`}
+                    title={findOptionDescription(requestTypes, r.requestType || '')}
+                  >
+                    {findOptionLabel(requestTypes, r.requestType || '')}
+                  </span>
+                  <div className="text-[11px] text-slate-500 max-w-[200px] truncate mt-0.5" title={r.reason || ''}>{r.reason}</div>
                 </td>
                 <td className="px-4 py-3">
                   <div className="text-[11px] flex items-center gap-1 font-medium text-slate-600 dark:text-slate-400">
@@ -273,7 +292,7 @@ export const LeaveRequestsTab: React.FC<Props> = ({ onOpenForm }) => {
                   className="bg-transparent border-none text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none"
                 >
                   <option value="ALL">Semua Departemen</option>
-                  {uniqueDepartments.map(d => <option key={d} value={d}>{d}</option>)}
+                  {departments.map(d => <option key={d.value} value={d.value} title={d.description}>{d.label}</option>)}
                 </select>
               </div>
             </>

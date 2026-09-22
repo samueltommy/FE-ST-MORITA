@@ -21,7 +21,9 @@ import {
   Plus,
 } from 'lucide-react';
 import { FinancialMask } from "../../components/ui/FinancialMask";
-import { useAppStore, appStore } from '../../store/useAppStore';
+import { useAppStore } from '../../store/useAppStore';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { getDeliveryOrdersApi, calculateInvoiceApi, createInvoiceApi } from '../../services/financeService';
 import {
   INVOICE_FORMULAS,
   calculateSalesInvoice,
@@ -169,7 +171,13 @@ export const FinanceAnalyticsModule: React.FC = () => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
 
-  const deliveryOrders = useAppStore((state) => state.deliveryOrders);
+  const { data: deliveryOrders = [], refetch: refetchDos, isLoading: isDosLoading } = useQuery({
+    queryKey: ['deliveryOrders'],
+    queryFn: getDeliveryOrdersApi,
+  });
+
+  const [selectedDoIds, setSelectedDoIds] = useState<Set<string>>(new Set());
+
   const currentUser = useAppStore((state) => state.currentUser);
   const isHighDensity = useAppStore((state) => state.isHighDensity);
 
@@ -196,8 +204,8 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
   // Selected DOs
   const selectedDos = useMemo(
-    () => deliveryOrders.filter((d) => d.selectedForInvoice),
-    [deliveryOrders]
+    () => deliveryOrders.filter((d) => selectedDoIds.has(d.id)),
+    [deliveryOrders, selectedDoIds]
   );
 
   // Real-time calculation result
@@ -206,12 +214,56 @@ export const FinanceAnalyticsModule: React.FC = () => {
     [selectedFormulaId, selectedDos, customParams]
   );
 
+  const createInvoiceMutation = useMutation({
+    mutationFn: async () => {
+      const formulaNumber = parseInt(selectedFormulaId.replace('FORMULA_', '').split('_')[0], 10) || 1;
+      const custId = selectedDos.length > 0 ? (selectedDos[0].customerId || 'CUST-000') : 'CUST-000';
+      return await createInvoiceApi({
+        customer_id: custId,
+        delivery_order_ids: Array.from(selectedDoIds),
+        formula_id: formulaNumber,
+        freight_cost: customParams.freightCost,
+        discount_amount: (customParams.discountRatePercent / 100) * calculationResult.subtotalGoods,
+        down_payment_deduction: customParams.downPaymentAmount,
+        retention_deduction: (customParams.retentionPercent / 100) * calculationResult.subtotalGoods,
+        ppn_rate: 11,
+        pph_rate: 2,
+        invoice_date: new Date().toISOString().split('T')[0],
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +30 days
+      });
+    },
+    onSuccess: (data) => {
+      setShowPrintInvoiceModal(true);
+      refetchDos(); // Refresh DO table to exclude generated DOs
+      setSelectedDoIds(new Set()); // Clear selection
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || err.response?.data?.message || err.message;
+      alert("Gagal menerbitkan invoice: " + (typeof msg === 'string' ? msg : JSON.stringify(msg)));
+    }
+  });
+
+  const handleGenerateInvoice = () => {
+    createInvoiceMutation.mutate();
+  };
+
   const canViewCostAndMargin = checkPermission(currentUser.permissions, 'finance:cost:read');
 
-  const allSelected = deliveryOrders.length > 0 && deliveryOrders.every((d) => d.selectedForInvoice);
+  const allSelected = deliveryOrders.length > 0 && selectedDoIds.size === deliveryOrders.length;
 
   const toggleAll = () => {
-    appStore.selectAllDos(!allSelected);
+    if (allSelected) {
+      setSelectedDoIds(new Set());
+    } else {
+      setSelectedDoIds(new Set(deliveryOrders.map(d => d.id)));
+    }
+  };
+
+  const toggleDoSelection = (id: string) => {
+    const newSet = new Set(selectedDoIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedDoIds(newSet);
   };
 
   return (
@@ -240,8 +292,8 @@ export const FinanceAnalyticsModule: React.FC = () => {
             <span>{t.btnForm}</span>
           </button>
           <button
-            onClick={() => setShowPrintInvoiceModal(true)}
-            disabled={selectedDos.length === 0}
+            onClick={() => handleGenerateInvoice()}
+            disabled={selectedDos.length === 0 || createInvoiceMutation.isPending}
             className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer ${
               selectedDos.length > 0
                 ? 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white'
@@ -392,52 +444,55 @@ export const FinanceAnalyticsModule: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {deliveryOrders.map((d) => (
-                    <tr
-                      key={d.id}
-                      onClick={() => appStore.toggleDoSelection(d.id)}
-                      className={`cursor-pointer transition-colors ${
-                        d.selectedForInvoice
-                          ? 'bg-blue-50/60'
-                          : 'hover:bg-slate-50'
-                      }`}
-                    >
-                      <td className="py-3 px-3 text-center">
-                        {d.selectedForInvoice ? (
-                          <CheckSquare className="w-4 h-4 text-blue-600" />
-                        ) : (
-                          <Square className="w-4 h-4 text-slate-300" />
-                        )}
-                      </td>
-                      <td className="py-3 px-3 font-mono font-bold text-slate-800">
-                        {d.doNumber}
-                        <div className="text-[10px] text-slate-400 font-normal">
-                          Tgl: {d.deliveryDate || d.dispatchDate}
-                        </div>
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="font-bold text-slate-900">
-                          {d.customerName}
-                        </div>
-                        <div className="text-xs text-slate-500 truncate max-w-[180px]">
-                          {d.itemName || (d.items && d.items[0]?.itemName) || t.multiItem}
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 text-right font-bold font-mono">
-                        {d.qtyDelivered || (d.items && d.items.reduce((s, it) => s + it.quantity, 0)) || 0}{' '}
-                        {d.unit || (d.items && d.items[0]?.unit) || 'Carton'}
-                      </td>
-                      <td className="py-3 px-3 text-right font-mono text-slate-600">
-                        <FinancialMask value={d.unitPrice || (d.items && d.items[0]?.unitPrice) || 0} />
-                      </td>
-                      <td className="py-3 px-3 text-right font-bold font-mono text-slate-900">
-                        {<FinancialMask value={d.totalBeforeTax || d.totalGrossValue || 0} />}
-                      </td>
-                      <td className="py-3 px-3 text-center text-[11px] text-slate-500 font-mono">
-                        {d.truckPlate || d.truckArmada}
-                      </td>
-                    </tr>
-                  ))}
+                  {deliveryOrders.map((d) => {
+                    const isSelected = selectedDoIds.has(d.id);
+                    return (
+                      <tr
+                        key={d.id}
+                        onClick={() => toggleDoSelection(d.id)}
+                        className={`cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-blue-50/60'
+                            : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <td className="py-3 px-3 text-center">
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-blue-600" />
+                          ) : (
+                            <Square className="w-4 h-4 text-slate-300" />
+                          )}
+                        </td>
+                        <td className="py-3 px-3 font-mono font-bold text-slate-800">
+                          {d.doNumber}
+                          <div className="text-[10px] text-slate-400 font-normal">
+                            Tgl: {d.deliveryDate || d.dispatchDate}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-slate-900">
+                            {d.customerName}
+                          </div>
+                          <div className="text-xs text-slate-500 truncate max-w-[180px]">
+                            {d.itemName || (d.items && d.items[0]?.itemName) || t.multiItem}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-right font-bold font-mono">
+                          {d.qtyDelivered || (d.items && d.items.reduce((s, it) => s + it.quantity, 0)) || 0}{' '}
+                          {d.unit || (d.items && d.items[0]?.unit) || 'Carton'}
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono text-slate-600">
+                          <FinancialMask value={d.unitPrice || (d.items && d.items[0]?.unitPrice) || 0} />
+                        </td>
+                        <td className="py-3 px-3 text-right font-bold font-mono text-slate-900">
+                          {<FinancialMask value={d.totalBeforeTax || d.totalGrossValue || 0} />}
+                        </td>
+                        <td className="py-3 px-3 text-center text-[11px] text-slate-500 font-mono">
+                          {d.truckPlate || d.truckArmada}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -710,13 +765,16 @@ export const FinanceAnalyticsModule: React.FC = () => {
             </div>
 
             {/* Quick Action */}
-            <button
-              onClick={() => setShowPrintInvoiceModal(true)}
-              className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-            >
-              <FileCheck2 className="w-4 h-4" />
-              <span>{t.btnGenerate}</span>
-            </button>
+              <button
+                onClick={() => handleGenerateInvoice()}
+                disabled={selectedDos.length === 0 || createInvoiceMutation.isPending}
+                className={`w-full py-3 px-4 rounded-xl text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
+                  selectedDos.length === 0 || createInvoiceMutation.isPending ? 'bg-slate-300' : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                <FileCheck2 className="w-4 h-4" />
+                <span>{createInvoiceMutation.isPending ? 'Memproses...' : t.btnGenerate}</span>
+              </button>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { apiClient } from '../lib/apiClient';
+import type { VehicleBooking, SalesOutdoorVisit } from '../types';
 import type {
   Employee,
   EmployeeListResponse,
@@ -150,4 +151,35 @@ export async function submitSalesVisitApi(
 ): Promise<SalesVisitApi> {
   const response = await apiClient.post('/hrd/sales-visits', data);
   return response.data as SalesVisitApi;
+}
+
+export async function getVehicleBookingsApi(): Promise<VehicleBooking[]> {
+  try {
+    const response = await apiClient.get('/hrd/vehicle-bookings');
+    return (response.data?.data || response.data) as VehicleBooking[];
+  } catch (err: any) {
+    if (err.response?.status === 404 || err.response?.status === 405) {
+      console.warn("Endpoint GET /hrd/vehicle-bookings belum siap (404/405). Mengembalikan array kosong.");
+      return [];
+    }
+    throw err;
+  }
+}
+
+export async function getSalesVisitsApi(): Promise<SalesOutdoorVisit[]> {
+  try {
+    const response = await apiClient.get('/hrd/sales-visits');
+    return (response.data?.data || response.data) as SalesOutdoorVisit[];
+  } catch (err: any) {
+    if (err.response?.status === 404 || err.response?.status === 405) {
+      console.warn("Endpoint GET /hrd/sales-visits belum siap (404/405). Mengembalikan array kosong.");
+      return [];
+    }
+    throw err;
+  }
+}
+
+export async function approveVehicleBookingApi(id: string): Promise<VehicleBooking> {
+  const response = await apiClient.post(`/hrd/vehicle-bookings/${id}/approve`);
+  return (response.data?.data || response.data) as VehicleBooking;
 }

@@ -18,6 +18,8 @@ import { useAppStore, appStore } from '../../store/useAppStore';
 import { QcInspectionRecord, QcStatus } from '../../types';
 import { Can } from '../../components/rbac/Can';
 import { ProductionQcFormsModal } from '../../components/forms/ProductionQcFormsModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getQcRecordsApi, overrideQcHoldApi } from '../../services/productionService';
 
 const CONTENT = {
   id: {
@@ -137,8 +139,13 @@ const CONTENT = {
 export const ProductionQcModule: React.FC = () => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
+  const queryClient = useQueryClient();
 
-  const qcRecords = useAppStore((state) => state.qcRecords);
+  const { data: qcRecords = [] } = useQuery({
+    queryKey: ['qcRecords'],
+    queryFn: getQcRecordsApi,
+  });
+
   const currentUser = useAppStore((state) => state.currentUser);
 
   const [selectedRecord, setSelectedRecord] = useState<QcInspectionRecord | null>(null);
@@ -150,12 +157,12 @@ export const ProductionQcModule: React.FC = () => {
   const [qcFormsTab, setQcFormsTab] = useState<'spk' | 'qc_test' | 'hold_override'>('spk');
 
   // Filter records by unit
+  const q = (searchQuery || '').toLowerCase();
   const filteredRecords = qcRecords.filter(
     (r) =>
-      
-      (r.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.lotNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.itemCode.toLowerCase().includes(searchQuery.toLowerCase()))
+      ((r.itemName || '').toLowerCase().includes(q) ||
+        (r.lotNumber || '').toLowerCase().includes(q) ||
+        (r.itemCode || '').toLowerCase().includes(q))
   );
 
   const handleOpenOverride = (rec: QcInspectionRecord) => {
@@ -164,11 +171,18 @@ export const ProductionQcModule: React.FC = () => {
     setOverrideModalOpen(true);
   };
 
+  const overrideHoldMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => overrideQcHoldApi(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['qcRecords'] });
+      setOverrideModalOpen(false);
+      setSelectedRecord(null);
+    }
+  });
+
   const handleConfirmOverride = () => {
     if (!selectedRecord || !supervisorReason.trim()) return;
-    appStore.overrideQcHold(selectedRecord.id, supervisorReason.trim());
-    setOverrideModalOpen(false);
-    setSelectedRecord(null);
+    overrideHoldMutation.mutate({ id: selectedRecord.id, reason: supervisorReason.trim() });
   };
 
   return (
@@ -286,11 +300,11 @@ export const ProductionQcModule: React.FC = () => {
 
         {/* Inspections List */}
         <div className="space-y-3">
-          {filteredRecords.map((rec) => {
+          {filteredRecords.map((rec, recIdx) => {
             const isHold = rec.status === 'HOLD';
             return (
               <div
-                key={rec.id}
+                key={rec.id || rec.lotNumber || `qc-rec-${recIdx}`}
                 className={`p-4 rounded-2xl border transition-all ${
                   isHold
                     ? 'border-rose-400 bg-rose-50/40 dark:bg-rose-950/20 dark:border-rose-800'
@@ -358,7 +372,7 @@ export const ProductionQcModule: React.FC = () => {
                       <div className="font-bold text-slate-500 uppercase text-[10px] mb-1">
                         {t.labResult}
                       </div>
-                      {rec.testedParameters.map((param, pIdx) => (
+                      {(rec.testedParameters || []).map((param, pIdx) => (
                         <div key={pIdx} className="flex justify-between text-[11px] py-0.5">
                           <span className="text-slate-600 dark:text-slate-400 truncate max-w-[140px]">
                             {param.name}:

@@ -117,3 +117,56 @@ export const GenericResponseSchema = z.object({
   success: z.boolean().optional(),
 });
 export type GenericResponse = z.infer<typeof GenericResponseSchema>;
+
+// ─── Finance Schemas (Core 6) ────────────────────────────────
+
+export const CalculationBreakdownSchema = z.object({
+  totGrossAmount: z.number().optional().nullable(),
+  freightCost: z.number().optional().nullable(),
+  discountAmount: z.number().optional().nullable(),
+  subtotalDpp: z.number().optional().nullable(),
+  ppnAmount: z.number().optional().nullable(),
+  pphAmount: z.number().optional().nullable(),
+  downPaymentDeduction: z.number().optional().nullable(),
+  retentionDeduction: z.number().optional().nullable(),
+  netInvoiceAmount: z.number().optional().nullable(),
+});
+export type CalculationBreakdown = z.infer<typeof CalculationBreakdownSchema>;
+
+export const InvoiceCalculateOutSchema = z.object({
+  formulaId: z.number(),
+  formulaExpression: z.string(),
+  calculationBreakdown: CalculationBreakdownSchema,
+});
+export type InvoiceCalculateOut = z.infer<typeof InvoiceCalculateOutSchema>;
+
+export const InvoiceOutSchema = z.object({
+  invoiceId: z.string().optional(),
+  invoiceNumber: z.string().optional(),
+  taxFactureNumber: z.string().optional().nullable(),
+  netInvoiceAmount: z.number().optional(),
+  invoiceStatus: z.string().optional(),
+});
+export type InvoiceOut = z.infer<typeof InvoiceOutSchema>;
+
+export const ARPaymentOutSchema = z.object({
+  arId: z.string().optional(),
+  paymentAmount: z.number().optional(),
+  remainingAmount: z.number().optional(),
+});
+export type ARPaymentOut = z.infer<typeof ARPaymentOutSchema>;
+
+export const ComplaintOutSchema = z.object({
+  complaintId: z.string().optional(),
+  ticketNumber: z.string().optional(),
+  status: z.string().optional(),
+});
+export type ComplaintOut = z.infer<typeof ComplaintOutSchema>;
+
+export const RMAResolveOutSchema = z.object({
+  complaintId: z.string().optional(),
+  creditNoteAmount: z.number().optional(),
+  status: z.string().optional(),
+});
+export type RMAResolveOut = z.infer<typeof RMAResolveOutSchema>;
+

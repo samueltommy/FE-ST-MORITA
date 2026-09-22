@@ -20,6 +20,8 @@ import { FinancialMask } from '../../components/ui/FinancialMask';
 import { checkPermission } from '../../utils/rbac';
 import { Can } from '../../components/rbac/Can';
 import { MasterDataFormsModal } from '../../components/forms/MasterDataFormsModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getMasterItemsApi, createMasterItemApi } from '../../services/masterDataService';
 
 const CONTENT = {
   id: {
@@ -100,7 +102,11 @@ export const MasterDataModule: React.FC = () => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
 
-  const items = useAppStore((state) => state.items);
+  const queryClient = useQueryClient();
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ['masterItems'],
+    queryFn: getMasterItemsApi,
+  });
   const currentUser = useAppStore((state) => state.currentUser);
   const isHighDensity = useAppStore((state) => state.isHighDensity);
 
@@ -142,7 +148,7 @@ export const MasterDataModule: React.FC = () => {
       item.lotNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.barcode.includes(searchQuery);
     return matchesCat && matchesQuery;
-  });
+  }) || [];
 
   const handleCreateItem = (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,11 +176,18 @@ export const MasterDataModule: React.FC = () => {
       status: 'ACTIVE',
     };
 
-    appStore.addMasterItem(newItem);
+    createItemMutation.mutate(newItem as MasterItem);
     setCreateModalOpen(false);
     setNewCode('');
     setNewName('');
   };
+
+  const createItemMutation = useMutation({
+    mutationFn: createMasterItemApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['masterItems'] });
+    }
+  });
 
   return (
     <div className="space-y-6">

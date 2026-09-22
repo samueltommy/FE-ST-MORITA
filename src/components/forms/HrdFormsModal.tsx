@@ -5,6 +5,7 @@ import { LeaveRequest, VehicleBooking, SalesOutdoorVisit } from '../../types';
 import { ROLE_DEFINITIONS } from '../../utils/rbac';
 import { useRBAC } from '../../hooks/useRBAC';
 import { submitLeaveRequestApi } from '../../services/hrdService';
+import { useSystemChoices, findOptionDescription, SelectOption } from '../../hooks/useSystemChoices';
 
 interface Props {
   isOpen: boolean;
@@ -171,12 +172,24 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
   const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const { data: requestTypeOptions, loading: loadingReqTypes } = useSystemChoices('request-types');
+  const { data: deptOptions, loading: loadingDepts } = useSystemChoices('departments');
+
+  const requestTypes: SelectOption[] = Array.isArray(requestTypeOptions) ? requestTypeOptions : [];
+  const departments: SelectOption[] = Array.isArray(deptOptions) ? deptOptions : [];
+
   // Form 1: Leave Request state
-  const [leaveType, setLeaveType] = useState<LeaveRequest['leaveType']>('CUTI_TAHUNAN');
+  const [leaveType, setLeaveType] = useState<string>('CUTI');
   const [leaveStartDate, setLeaveStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [leaveEndDate, setLeaveEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [leaveDays, setLeaveDays] = useState(1);
   const [leaveReason, setLeaveReason] = useState('');
+
+  React.useEffect(() => {
+    if (requestTypes.length > 0 && (!leaveType || !requestTypes.some(r => r.value === leaveType))) {
+      setLeaveType(requestTypes[0].value);
+    }
+  }, [requestTypes, leaveType]);
 
   // Form 2: Vehicle Booking state
   const [vehicleName, setVehicleName] = useState('Isuzu Giga Wingbox (B 9128 UXT)');
@@ -195,13 +208,18 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
   const [visitPurpose, setVisitPurpose] = useState('');
   const [visitResult, setVisitResult] = useState('');
 
-  // Form 4: New Employee state
   const [empNik, setEmpNik] = useState('');
   const [empName, setEmpName] = useState('');
   const [empRole, setEmpRole] = useState<'OPERATOR' | 'SALES_STAFF' | 'QC_INSPECTOR' | 'PPIC_PLANNER'>('OPERATOR');
-  const [empDept, setEmpDept] = useState('Produksi - Slitting 02');
+  const [empDept, setEmpDept] = useState('');
   const [empPhone, setEmpPhone] = useState('+62 812-');
   const [empPlant, setEmpPlant] = useState('Pabrik Utama Cikarang Barat (Kawasan Berikat)');
+
+  React.useEffect(() => {
+    if (departments.length > 0 && !empDept) {
+      setEmpDept(departments[0].value);
+    }
+  }, [departments, empDept]);
 
   if (!isOpen) return null;
 
@@ -395,14 +413,21 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                 <label className="block text-xs font-bold text-slate-700 mb-1">{t.lvType}</label>
                 <select
                   value={leaveType}
-                  onChange={(e) => setLeaveType(e.target.value as LeaveRequest['leaveType'])}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                  onChange={(e) => setLeaveType(e.target.value)}
+                  disabled={loadingReqTypes}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-bold"
                 >
-                  <option value="CUTI_TAHUNAN">{t.lvType1}</option>
-                  <option value="SAKIT_SURAT_DOKTER">{t.lvType2}</option>
-                  <option value="IZIN_KEPERLUAN_KHUSUS">{t.lvType3}</option>
-                  <option value="CUTI_MELAHIRKAN">{t.lvType4}</option>
+                  {requestTypes.map((opt) => (
+                    <option key={opt.value} value={opt.value} title={opt.description}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
+                {findOptionDescription(requestTypes, leaveType) && (
+                  <p className="mt-1 text-[11px] text-slate-500 italic">
+                    {findOptionDescription(requestTypes, leaveType)}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -702,13 +727,26 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">{t.empDept}</label>
-                  <input
-                    type="text"
-                    required
+                  <select
                     value={empDept}
                     onChange={(e) => setEmpDept(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+                    disabled={loadingDepts}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                  >
+                    <option value="" disabled>
+                      {loadingDepts ? 'Memuat data...' : '-- Pilih Departemen --'}
+                    </option>
+                    {departments.map((d) => (
+                      <option key={d.value} value={d.value} title={d.description}>
+                        {d.label}
+                      </option>
+                    ))}
+                  </select>
+                  {findOptionDescription(departments, empDept) && (
+                    <p className="mt-1 text-[10px] text-slate-500 italic truncate" title={findOptionDescription(departments, empDept)}>
+                      {findOptionDescription(departments, empDept)}
+                    </p>
+                  )}
                 </div>
               </div>
 

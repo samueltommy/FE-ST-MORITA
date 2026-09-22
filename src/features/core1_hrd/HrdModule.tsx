@@ -17,6 +17,8 @@ import { VehicleBooking, SalesOutdoorVisit } from '../../types';
 import { Can } from '../../components/rbac/Can';
 import { useRBAC } from '../../hooks/useRBAC';
 import { HrdFormsModal } from '../../components/forms/HrdFormsModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getLeaveRequestsApi, getVehicleBookingsApi, getSalesVisitsApi, approveVehicleBookingApi } from '../../services/hrdService';
 import { LeaveRequestsTab } from './LeaveRequestsTab';
 
 const CONTENT = {
@@ -95,9 +97,23 @@ const CONTENT = {
 export const HrdModule: React.FC = () => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
+  const queryClient = useQueryClient();
 
-  const vehicleBookings = useAppStore((state) => state.vehicleBookings);
-  const salesVisits = useAppStore((state) => state.salesVisits);
+  const { data: leaveRequests = [] } = useQuery({
+    queryKey: ['leaveRequests'],
+    queryFn: getLeaveRequestsApi,
+  });
+
+  const { data: vehicleBookings = [] } = useQuery({
+    queryKey: ['vehicleBookings'],
+    queryFn: getVehicleBookingsApi,
+  });
+
+  const { data: salesVisits = [] } = useQuery({
+    queryKey: ['salesVisits'],
+    queryFn: getSalesVisitsApi,
+  });
+
   const currentUser = useAppStore((state) => state.currentUser);
   const { isSuperAdmin, isExecutive, hasPermission } = useRBAC();
   const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
@@ -106,8 +122,15 @@ export const HrdModule: React.FC = () => {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [formModalTab, setFormModalTab] = useState<'leave' | 'vehicle' | 'visit' | 'employee'>('leave');
 
+  const approveVehicleMutation = useMutation({
+    mutationFn: approveVehicleBookingApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicleBookings'] });
+    }
+  });
+
   const handleApproveVehicle = (bookingId: string) => {
-    appStore.approveVehicleBooking(bookingId);
+    approveVehicleMutation.mutate(bookingId);
   };
 
   const openFormWithTab = (tab: 'leave' | 'vehicle' | 'visit' | 'employee') => {

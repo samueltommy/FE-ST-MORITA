@@ -34,6 +34,14 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { createEmployeeApi, getEmployeesApi, updateEmployeeApi, deleteEmployeeApi, suspendEmployeeApi, resetPasswordApi } from '../../services/hrdService';
 import type { CreateEmployeePayload } from '../../services/hrdService';
 import { useQuery } from '@tanstack/react-query';
+import {
+  useSystemChoices,
+  SelectOption,
+  getBadgeClass,
+  findOptionLabel,
+  findOptionBadge,
+  findOptionDescription,
+} from '../../hooks/useSystemChoices';
 
 const CONTENT = {
   id: {
@@ -328,6 +336,13 @@ export const UserManagementModule: React.FC = () => {
   const t = CONTENT[language] || CONTENT.id;
 
   const currentUser = useAppStore((state) => state.currentUser);
+  const { data: deptOptions, loading: loadingDepts } = useSystemChoices('departments');
+  const { data: userLevelOptions, loading: loadingLevels } = useSystemChoices('user-levels');
+  const { data: statusOptions, loading: loadingStatuses } = useSystemChoices('employment-statuses');
+
+  const departments: SelectOption[] = Array.isArray(deptOptions) ? deptOptions : [];
+  const userLevels: SelectOption[] = Array.isArray(userLevelOptions) ? userLevelOptions : [];
+  const employmentStatuses: SelectOption[] = Array.isArray(statusOptions) ? statusOptions : [];
 
   // Fetch employees from backend
   const { data: employeeData, isLoading: isLoadingEmployees, refetch } = useQuery({
@@ -365,6 +380,9 @@ export const UserManagementModule: React.FC = () => {
       permissions: [],
       avatar: '',
       plantLocation: 'HO / Main Plant',
+      userLevel: emp?.userLevel,
+      rawUserLevel: emp?.userLevel,
+      employmentStatus: emp?.employmentStatus,
     };
   });
 
@@ -394,7 +412,19 @@ export const UserManagementModule: React.FC = () => {
   const [fSalary, setFSalary] = useState<number | ''>('');
 
   // Optional fields
-  const [fDepartment, setFDepartment] = useState('PPIC_PRODUKSI');
+  const [fDepartment, setFDepartment] = useState('');
+
+  React.useEffect(() => {
+    if (departments.length > 0 && !fDepartment) {
+      setFDepartment(departments[0].value);
+    }
+    if (employmentStatuses.length > 0 && !fEmploymentStatus) {
+      setFEmploymentStatus(employmentStatuses[0].value as any);
+    }
+    if (userLevels.length > 0 && !fUserLevel) {
+      setFUserLevel(userLevels[0].value as any);
+    }
+  }, [departments, employmentStatuses, userLevels, fDepartment, fEmploymentStatus, fUserLevel]);
 
   // Derived Role
   const derivedRole = getDerivedRole(fUserLevel, fDepartment);
@@ -441,7 +471,7 @@ export const UserManagementModule: React.FC = () => {
     setFNik(origUser.nik || userProfile.nik || '');
     setFFullName(origUser.fullName || userProfile.name || '');
     setFEmail(origUser.email || userProfile.email || '');
-    setFDepartment(origUser.department || userProfile.department || 'PPIC_PRODUKSI');
+    setFDepartment(origUser.department || userProfile.department || departments[0]?.value || '');
     setFUserLevel(origUser.userLevel || 'L3_STAFF'); 
     setFKtp(origUser.identityCardNumber || '0000000000000000'); 
     setFSalary(origUser.basicSalary || '');
@@ -491,10 +521,10 @@ export const UserManagementModule: React.FC = () => {
     setFNik(`EMP-${new Date().getFullYear()}-001`);
     setFFullName(''); setFEmail(''); setFPhone('+62'); setFUsername(''); setFPassword('');
     setFKtp(''); setFSalary(''); setFBankName(''); setFBankAccount('');
-    setFUserLevel('L3_STAFF');
-    setFEmploymentStatus('PERMANENT');
+    setFUserLevel((userLevels[0]?.value as any) || 'L3_STAFF');
+    setFEmploymentStatus((employmentStatuses[0]?.value as any) || 'PERMANENT');
     setFJoinDate(new Date().toISOString().split('T')[0]);
-    setFDepartment('PPIC_PRODUKSI');
+    setFDepartment(departments[0]?.value || '');
     setFormError('');
   };
 
@@ -749,31 +779,47 @@ export const UserManagementModule: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">{t.fStatus}</label>
-                  <select value={fEmploymentStatus} onChange={e => setFEmploymentStatus(e.target.value as any)} required
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold">
-                    <option value="PERMANENT">{t.statusOptions.perm}</option>
-                    <option value="CONTRACT">{t.statusOptions.cont}</option>
-                    <option value="PROBATION">{t.statusOptions.prob}</option>
-                    <option value="INTERNSHIP">{t.statusOptions.intern}</option>
-                    <option value="RESIGNED">{t.statusOptions.resign}</option>
+                  <select
+                    value={fEmploymentStatus}
+                    onChange={e => setFEmploymentStatus(e.target.value as any)}
+                    required
+                    disabled={loadingStatuses}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold"
+                  >
+                    {employmentStatuses.map((st) => (
+                      <option key={st.value} value={st.value} title={st.description}>
+                        {st.label}
+                      </option>
+                    ))}
                   </select>
+                  {findOptionDescription(employmentStatuses, fEmploymentStatus) && (
+                    <p className="mt-1 text-[10px] text-slate-500 italic">
+                      {findOptionDescription(employmentStatuses, fEmploymentStatus)}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">{t.fDept}</label>
-                  <select value={fDepartment} onChange={e => setFDepartment(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="HRD_GA">HRD & GA</option>
-                    <option value="FINANCE">Finance</option>
-                    <option value="PPIC_PRODUKSI">PPIC & Produksi</option>
-                    <option value="LOGISTIK_GUDANG">Logistik & Gudang</option>
-                    <option value="QUALITY_CONTROL">Quality Control</option>
-                    <option value="SALES_MARKETING">Sales & Marketing</option>
-                    <option value="PURCHASING_EXIM">Purchasing & Exim</option>
-                    <option value="RND">Research & Development</option>
-                    <option value="COST_CONTROL">Cost Control</option>
-                    <option value="IT">IT</option>
-                    <option value="EXTERNAL_PORTAL">External Portal</option>
+                  <select
+                    value={fDepartment}
+                    onChange={e => setFDepartment(e.target.value)}
+                    disabled={loadingDepts}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  >
+                    <option value="" disabled>
+                      {loadingDepts ? 'Memuat data...' : '-- Pilih Department --'}
+                    </option>
+                    {departments.map((dept) => (
+                      <option key={dept.value} value={dept.value} title={dept.description}>
+                        {dept.label}
+                      </option>
+                    ))}
                   </select>
+                  {findOptionDescription(departments, fDepartment) && (
+                    <p className="mt-1 text-[10px] text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
+                      {findOptionDescription(departments, fDepartment)}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">{t.fSalary}</label>
@@ -809,14 +855,25 @@ export const UserManagementModule: React.FC = () => {
                 {/* user_level */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">{t.fLvl}</label>
-                  <select value={fUserLevel} onChange={e => setFUserLevel(e.target.value as any)} required
-                    className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="L0_SUPER_ADMIN">{t.lvlOptions.l0}</option>
-                    <option value="L1_DIREKSI">{t.lvlOptions.l1}</option>
-                    <option value="L2_MANAGER">{t.lvlOptions.l2}</option>
-                    <option value="L3_STAFF">{t.lvlOptions.l3}</option>
-                    <option value="L4_EXTERNAL">{t.lvlOptions.l4}</option>
+                  <select
+                    value={fUserLevel}
+                    onChange={e => setFUserLevel(e.target.value as any)}
+                    required
+                    disabled={loadingLevels}
+                    className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  >
+                    {userLevels.map((lvl) => (
+                      <option key={lvl.value} value={lvl.value} title={lvl.description}>
+                        {lvl.label}
+                      </option>
+                    ))}
                   </select>
+                  {findOptionDescription(userLevels, fUserLevel) && (
+                    <p className="mt-1.5 text-[11px] text-slate-600 bg-blue-50/70 p-2 rounded-lg border border-blue-100 flex items-start gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                      <span>{findOptionDescription(userLevels, fUserLevel)}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -828,8 +885,8 @@ export const UserManagementModule: React.FC = () => {
                       <Shield className="w-3.5 h-3.5 text-blue-600" />
                       <span>{t.fPreview} {ROLE_DEFINITIONS[derivedRole].label}</span>
                     </div>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${getTierBadge(ROLE_DEFINITIONS[derivedRole].tier).badgeClass}`}>
-                      {fUserLevel}
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${getBadgeClass(findOptionBadge(userLevels, fUserLevel))}`}>
+                      {findOptionLabel(userLevels, fUserLevel) || fUserLevel}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mb-2">
@@ -1017,7 +1074,7 @@ export const UserManagementModule: React.FC = () => {
                       {/* Department & Location */}
                       <td className="py-3 px-4">
                         <div className="font-semibold text-slate-800 dark:text-slate-200">
-                          {user.department}
+                          {findOptionLabel(departments, user.department) || user.department}
                         </div>
                         <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                           <Building2 className="w-3 h-3 text-slate-400" />
@@ -1028,11 +1085,20 @@ export const UserManagementModule: React.FC = () => {
                       {/* Role & Tier Badge */}
                       <td className="py-3 px-4">
                         <div className="flex flex-col gap-1 items-start">
-                          <span
-                            className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${tierMeta.badgeClass}`}
-                          >
-                            {tierMeta.pillText} &bull; Level {user.tier}
-                          </span>
+                          {user.userLevel ? (
+                            <span
+                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${getBadgeClass(findOptionBadge(userLevels, user.userLevel))}`}
+                              title={findOptionDescription(userLevels, user.userLevel)}
+                            >
+                              {findOptionLabel(userLevels, user.userLevel)}
+                            </span>
+                          ) : (
+                            <span
+                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${tierMeta.badgeClass}`}
+                            >
+                              {tierMeta.pillText} &bull; Level {user.tier}
+                            </span>
+                          )}
                           <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                             {ROLE_DEFINITIONS[user.role]?.label || user.role}
                           </span>
@@ -1052,18 +1118,28 @@ export const UserManagementModule: React.FC = () => {
 
                       {/* Status */}
                       <td className="py-3 px-4">
-                        <span
-                          className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full ${user.status === 'ACTIVE'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                              : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                            }`}
-                        >
+                        <div className="flex flex-col gap-1 items-start">
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${user.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'
+                            className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full ${user.status === 'ACTIVE'
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
                               }`}
-                          />
-                          {user.status === 'ACTIVE' ? t.statusActive : t.statusSuspended}
-                        </span>
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${user.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'
+                                }`}
+                            />
+                            {user.status === 'ACTIVE' ? t.statusActive : t.statusSuspended}
+                          </span>
+                          {user.employmentStatus && (
+                            <span
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${getBadgeClass(findOptionBadge(employmentStatuses, user.employmentStatus))}`}
+                              title={findOptionDescription(employmentStatuses, user.employmentStatus)}
+                            >
+                              {findOptionLabel(employmentStatuses, user.employmentStatus)}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Actions */}
@@ -1181,30 +1257,54 @@ export const UserManagementModule: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Departemen</label>
-                  <select value={fDepartment} onChange={e => setFDepartment(e.target.value)}
+                  <select value={fDepartment} onChange={e => setFDepartment(e.target.value)} disabled={loadingDepts}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500">
-                    <option value="HRD_GA">HRD & GA</option>
-                    <option value="FINANCE">Finance</option>
-                    <option value="PPIC_PRODUKSI">PPIC & Produksi</option>
-                    <option value="LOGISTIK_GUDANG">Logistik & Gudang</option>
-                    <option value="QUALITY_CONTROL">Quality Control</option>
-                    <option value="SALES_MARKETING">Sales & Marketing</option>
-                    <option value="PURCHASING_EXIM">Purchasing & Exim</option>
-                    <option value="RND">Research & Development</option>
-                    <option value="COST_CONTROL">Cost Control</option>
-                    <option value="IT">IT</option>
-                    <option value="EXTERNAL_PORTAL">External Portal</option>
+                    <option value="" disabled>
+                      {loadingDepts ? 'Memuat data...' : '-- Pilih Department --'}
+                    </option>
+                    {departments.map((dept) => (
+                      <option key={dept.value} value={dept.value} title={dept.description}>
+                        {dept.label}
+                      </option>
+                    ))}
                   </select>
+                  {findOptionDescription(departments, fDepartment) && (
+                    <p className="mt-1 text-[11px] text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
+                      {findOptionDescription(departments, fDepartment)}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tingkat Akses (Role)</label>
-                  <select value={fUserLevel} onChange={e => setFUserLevel(e.target.value as any)}
+                  <select value={fUserLevel} onChange={e => setFUserLevel(e.target.value as any)} disabled={loadingLevels}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500">
-                    <option value="L3_STAFF">L3 — Staff / Operator</option>
-                    <option value="L2_MANAGER">L2 — Manager / Admin Bidang</option>
-                    <option value="L1_DIREKSI">L1 — Board of Directors</option>
-                    <option value="L0_SUPER_ADMIN">L0 — Super Admin</option>
+                    {userLevels.map((lvl) => (
+                      <option key={lvl.value} value={lvl.value} title={lvl.description}>
+                        {lvl.label}
+                      </option>
+                    ))}
                   </select>
+                  {findOptionDescription(userLevels, fUserLevel) && (
+                    <p className="mt-1 text-[11px] text-slate-500 italic">
+                      {findOptionDescription(userLevels, fUserLevel)}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status Kepegawaian</label>
+                  <select value={fEmploymentStatus} onChange={e => setFEmploymentStatus(e.target.value as any)} disabled={loadingStatuses}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500 font-bold">
+                    {employmentStatuses.map((st) => (
+                      <option key={st.value} value={st.value} title={st.description}>
+                        {st.label}
+                      </option>
+                    ))}
+                  </select>
+                  {findOptionDescription(employmentStatuses, fEmploymentStatus) && (
+                    <p className="mt-1 text-[11px] text-slate-500 italic">
+                      {findOptionDescription(employmentStatuses, fEmploymentStatus)}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Gaji Pokok</label>

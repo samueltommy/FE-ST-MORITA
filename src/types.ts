@@ -119,7 +119,8 @@ export type ItemCategory =
   | 'Slit Tape'
   | 'Cosmetics Chemical'
   | 'Packaging'
-  | 'Finished Goods';
+  | 'Finished Goods'
+  | string;
 
 export interface MasterItem {
   id: string;

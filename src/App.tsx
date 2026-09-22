@@ -61,10 +61,11 @@ export default function App() {
     initialize();
   }, [initialize]);
 
-  // Ensure authPage resets to login on logout
+  // Ensure authPage resets to login on logout and clear any stale session expired state
   useEffect(() => {
     if (!isAuthenticated) {
       setAuthPage('login');
+      setIsSessionExpired(false);
     }
   }, [isAuthenticated]);
 
