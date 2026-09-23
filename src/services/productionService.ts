@@ -47,13 +47,16 @@ export async function updateProductionOrderApi(id: string, payload: Partial<Work
   return (response.data?.data || response.data) as WorkOrderSpk;
 }
 
-export async function getQcRecordsApi(): Promise<QcInspectionRecord[]> {
+export async function getQcRecordsApi(page: number = 1, limit: number = 10, search?: string) {
   try {
-    const response = await apiClient.get('/production/qc-records');
+    const params: any = { page, limit };
+    if (search) params.search = search;
+    const response = await apiClient.get('/production/qc-records', { params });
     const rawList = (response.data?.data || response.data) as any[];
-    if (!Array.isArray(rawList)) return [];
+    if (!Array.isArray(rawList)) return { data: [], meta: { total_pages: 1, page: 1 } };
+    const meta = response.data?.meta || { total_pages: 1, page: 1 };
 
-    return rawList.map((rec: any, idx: number) => ({
+    const data = rawList.map((rec: any, idx: number) => ({
       id: String(rec.id || rec.inspectionId || rec.inspection_id || `QC-${idx + 1}`),
       lotNumber: String(rec.lotNumber || rec.inspectionNumber || rec.inspection_number || `LOT-QC-00${idx + 1}`),
       itemCode: String(rec.itemCode || rec.item_code || 'ITM-BOPP-01'),
@@ -76,10 +79,11 @@ export async function getQcRecordsApi(): Promise<QcInspectionRecord[]> {
       ],
       coaNumber: rec.coaNumber || rec.coa_number || undefined,
     }));
+    return { data, meta };
   } catch (err: any) {
     if (err.response?.status === 404 || err.response?.status === 405) {
       console.warn("Endpoint GET /production/qc-records belum siap. Mengembalikan array kosong.");
-      return [];
+      return { data: [], meta: { total_pages: 1, page: 1 } };
     }
     throw err;
   }

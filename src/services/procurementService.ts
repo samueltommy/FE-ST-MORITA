@@ -1,11 +1,14 @@
 import { apiClient } from '../lib/apiClient';
 import type { ProcurementOrder, EximDocument, ProcurementStage } from '../types';
 
-export async function getPurchaseOrdersApi(): Promise<ProcurementOrder[]> {
+export async function getPurchaseOrdersApi(page: number = 1, limit: number = 100, search?: string) {
   try {
-    const response = await apiClient.get('/procurement/orders');
+    const params: any = { page, limit };
+    if (search) params.search = search;
+    const response = await apiClient.get('/procurement/orders', { params });
     const rawData = response.data?.data || response.data || [];
-    return rawData.map((po: any) => {
+    const meta = response.data?.meta || { total_pages: 1, page: 1 };
+    const data = rawData.map((po: any) => {
       // Map status backend ke stage Kanban FE ('PR' | 'PO' | 'LOG' | 'IQC' | 'AP')
       let mappedStage: ProcurementStage = 'PO';
       if (po.poStatus === 'RELEASED') mappedStage = 'LOG'; // In-Transit / Port
@@ -22,10 +25,11 @@ export async function getPurchaseOrdersApi(): Promise<ProcurementOrder[]> {
         estimatedArrival: po.deliveryDate || po.createdAt,
       };
     }) as ProcurementOrder[];
+    return { data, meta };
   } catch (err: any) {
     if (err.response?.status === 404 || err.response?.status === 405) {
       console.warn("Endpoint GET /procurement/orders belum siap (404/405). Mengembalikan array kosong.");
-      return [];
+      return { data: [], meta: { total_pages: 1, page: 1 } };
     }
     throw err;
   }
@@ -41,12 +45,15 @@ export async function updatePurchaseOrderApi(id: string, payload: Partial<Procur
   return (response.data?.data || response.data) as ProcurementOrder;
 }
 
-export async function getEximDocsApi(): Promise<EximDocument[]> {
+export async function getEximDocsApi(page: number = 1, limit: number = 10, search?: string) {
   try {
-    const response = await apiClient.get('/procurement/exim-docs');
+    const params: any = { page, limit };
+    if (search) params.search = search;
+    const response = await apiClient.get('/procurement/exim-docs', { params });
     const rawData = response.data?.data || response.data || [];
+    const meta = response.data?.meta || { total_pages: 1, page: 1 };
     
-    return rawData.map((doc: any) => {
+    const data = rawData.map((doc: any) => {
       let mappedType: any = 'BC 2.3';
       if (doc.docType === 'BC27') mappedType = 'BC 2.7';
       if (doc.docType === 'BC40') mappedType = 'BC 4.0';
@@ -68,10 +75,11 @@ export async function getEximDocsApi(): Promise<EximDocument[]> {
         notes: doc.goodsDescription || doc.notes || 'Dokumen kepabeanan',
       };
     }) as EximDocument[];
+    return { data, meta };
   } catch (err: any) {
     if (err.response?.status === 404 || err.response?.status === 405) {
       console.warn("Endpoint GET /procurement/exim-docs belum siap (404/405). Mengembalikan array kosong.");
-      return [];
+      return { data: [], meta: { total_pages: 1, page: 1 } };
     }
     throw err;
   }

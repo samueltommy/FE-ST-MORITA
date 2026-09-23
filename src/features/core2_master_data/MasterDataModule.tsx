@@ -103,16 +103,22 @@ export const MasterDataModule: React.FC = () => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+
   const queryClient = useQueryClient();
-  const { data: items = [], isLoading } = useQuery({
-    queryKey: ['masterItems'],
-    queryFn: getMasterItemsApi,
+  const { data: queryResult, isLoading } = useQuery({
+    queryKey: ['masterItems', currentPage, pageSize, searchQuery],
+    queryFn: () => getMasterItemsApi(currentPage, pageSize, searchQuery),
   });
+  
+  const items = queryResult?.data || [];
+  const totalPages = queryResult?.meta?.totalPages || queryResult?.meta?.total_pages || 1;
+
   const currentUser = useAppStore((state) => state.currentUser);
   const isHighDensity = useAppStore((state) => state.isHighDensity);
-
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
   const [zebraModalItem, setZebraModalItem] = useState<MasterItem | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [masterFormsOpen, setMasterFormsOpen] = useState(false);
@@ -228,7 +234,7 @@ export const MasterDataModule: React.FC = () => {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               placeholder={t.searchPl}
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden"
             />
@@ -236,7 +242,7 @@ export const MasterDataModule: React.FC = () => {
 
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
             className="text-xs py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-hidden"
           >
             <option value="ALL">{t.optAll}</option>
@@ -352,6 +358,29 @@ export const MasterDataModule: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+        
+        {/* KONTROL PAGINATION MASTER DATA */}
+        <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+          <span className="text-xs text-slate-500 font-medium">
+            Halaman {currentPage} dari {totalPages}
+          </span>
+          <div className="flex gap-2">
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              className="px-3 py-1 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+            >
+              Sebelumnya
+            </button>
+            <button 
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+              className="px-3 py-1 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+            >
+              Selanjutnya
+            </button>
+          </div>
         </div>
       </div>
 

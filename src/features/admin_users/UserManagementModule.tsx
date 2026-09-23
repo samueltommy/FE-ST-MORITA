@@ -344,10 +344,25 @@ export const UserManagementModule: React.FC = () => {
   const userLevels: SelectOption[] = Array.isArray(userLevelOptions) ? userLevelOptions : [];
   const employmentStatuses: SelectOption[] = Array.isArray(statusOptions) ? statusOptions : [];
 
-  // Fetch employees from backend
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  // Filters & Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTierFilter, setSelectedTierFilter] = useState<string>('ALL');
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ACTIVE');
+
+  // Fetch employees from backend (paginated for table)
   const { data: employeeData, isLoading: isLoadingEmployees, refetch } = useQuery({
-    queryKey: ['hrd', 'employees'],
-    queryFn: () => getEmployeesApi(1, 100),
+    queryKey: ['hrd', 'employees', currentPage, pageSize, searchQuery],
+    queryFn: () => getEmployeesApi(currentPage, pageSize, searchQuery),
+  });
+
+  // Fetch ALL employees strictly for global KPI calculations
+  const { data: allEmployeeData } = useQuery({
+    queryKey: ['hrd', 'employees', 'all-metrics'],
+    queryFn: () => getEmployeesApi(1, 1000, ''),
   });
 
   // Safely extract array from various possible backend response formats
@@ -359,6 +374,8 @@ export const UserManagementModule: React.FC = () => {
       : Array.isArray(rawData?.employees) 
         ? rawData.employees 
         : [];
+        
+  const totalPages = rawData?.meta?.totalPages || rawData?.meta?.total_pages || 1;
 
   // Map API Employees to UI UserProfile defensively
   const users: UserProfile[] = apiUsers.map((emp: any) => {
@@ -385,11 +402,6 @@ export const UserManagementModule: React.FC = () => {
       employmentStatus: emp?.employmentStatus,
     };
   });
-
-  // Filters & Search
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTierFilter, setSelectedTierFilter] = useState<string>('ALL');
-  const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('ALL');
 
   // ─── Form State — matches exact BE EmployeeCreate schema ─────
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -596,16 +608,48 @@ export const UserManagementModule: React.FC = () => {
     const matchesDept =
       selectedDeptFilter === 'ALL' || u.department.toLowerCase().includes(selectedDeptFilter.toLowerCase());
 
-    return matchesSearch && matchesTier && matchesDept;
+    let matchesStatus = true;
+    if (statusFilter === 'ACTIVE') {
+      matchesStatus = u.status === 'ACTIVE' && u.employmentStatus !== 'RESIGNED';
+    } else if (statusFilter === 'INACTIVE') {
+      matchesStatus = u.status === 'SUSPENDED' || u.employmentStatus === 'RESIGNED';
+    }
+
+    return matchesSearch && matchesTier && matchesDept && matchesStatus;
   });
 
-  // Calculate Metrics
-  const totalCount = users.length;
-  const activeCount = users.filter((u) => u.status === 'ACTIVE').length;
-  const l0Count = users.filter((u) => u.tier === 0).length;
-  const l1Count = users.filter((u) => u.tier === 1).length;
-  const l2Count = users.filter((u) => u.tier === 2).length;
-  const l3Count = users.filter((u) => u.tier === 3).length;
+  // Calculate Global Metrics (use allUsers if available, fallback to current page users)
+  const allApiUsers: any[] = allEmployeeData?.data || [];
+  const allUsers: UserProfile[] = allApiUsers.length > 0 ? allApiUsers.map((emp: any) => {
+    let tierVal = 3;
+    if (emp?.userLevel && typeof emp.userLevel === 'string') {
+      const match = emp.userLevel.match(/L(\d)/);
+      if (match) tierVal = parseInt(match[1], 10);
+    }
+    return {
+      id: String(emp?.id || Math.random()),
+      name: String(emp?.fullName || emp?.username || '-'),
+      nik: String(emp?.nik || '-'),
+      email: String(emp?.email || '-'),
+      department: String(emp?.department || '-'),
+      role: (emp?.roleId as UserRole) || 'OPERATOR_PROD',
+      tier: (isNaN(tierVal) ? 3 : tierVal) as RoleTier,
+      status: emp?.isActive === false || emp?.employmentStatus === 'RESIGNED' ? 'SUSPENDED' : 'ACTIVE',
+      permissions: [],
+      avatar: '',
+      plantLocation: 'HO / Main Plant',
+      userLevel: emp?.userLevel,
+      rawUserLevel: emp?.userLevel,
+      employmentStatus: emp?.employmentStatus,
+    };
+  }) : users;
+
+  const totalCount = rawData?.meta?.totalItems || rawData?.meta?.total_items || allUsers.length || users.length;
+  const activeCount = allUsers.filter((u) => u.status === 'ACTIVE').length;
+  const l0Count = allUsers.filter((u) => u.tier === 0).length;
+  const l1Count = allUsers.filter((u) => u.tier === 1).length;
+  const l2Count = allUsers.filter((u) => u.tier === 2).length;
+  const l3Count = allUsers.filter((u) => u.tier === 3).length;
 
   return (
     <div className="space-y-6">
@@ -941,6 +985,28 @@ export const UserManagementModule: React.FC = () => {
         </div>
       )}
 
+      {/* Filter Status Tabs */}
+      <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg w-fit">
+        <button
+          onClick={() => setStatusFilter('ALL')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${statusFilter === 'ALL' ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+        >
+          Semua Karyawan
+        </button>
+        <button
+          onClick={() => setStatusFilter('ACTIVE')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${statusFilter === 'ACTIVE' ? 'bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+        >
+          Karyawan Aktif
+        </button>
+        <button
+          onClick={() => setStatusFilter('INACTIVE')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${statusFilter === 'INACTIVE' ? 'bg-white dark:bg-slate-700 shadow text-rose-600 dark:text-rose-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+        >
+          Non-Aktif (Resigned)
+        </button>
+      </div>
+
       {/* SEARCH & FILTERS BAR */}
       <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
         {/* Search */}
@@ -1209,6 +1275,28 @@ export const UserManagementModule: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+        {/* KONTROL PAGINATION USER MANAGEMENT */}
+        <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+          <span className="text-xs text-slate-500 font-medium">
+            Halaman {currentPage} dari {totalPages}
+          </span>
+          <div className="flex gap-2">
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+            >
+              Sebelumnya
+            </button>
+            <button 
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+              className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+            >
+              Selanjutnya
+            </button>
+          </div>
         </div>
       </div>
 

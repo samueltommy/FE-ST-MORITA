@@ -1,12 +1,15 @@
 import { apiClient } from '../lib/apiClient';
 import type { MasterItem } from '../types';
 
-export async function getMasterItemsApi(): Promise<MasterItem[]> {
+export async function getMasterItemsApi(page: number = 1, limit: number = 10, search?: string) {
   try {
-    const response = await apiClient.get('/master-data/items');
+    const params: any = { page, limit };
+    if (search) params.search = search;
+    const response = await apiClient.get('/mdm/items', { params }); // Assuming backend path is /mdm/items as per user's list
     const rawData = response.data?.data || response.data || [];
+    const meta = response.data?.meta || { total_pages: 1, page: 1 };
     
-    return rawData.map((item: any) => {
+    const data = rawData.map((item: any) => {
       const baseCost = item.standardCostHpp || item.unitCost || item.costPrice || item.basePrice || item.hpp || 15000;
       return {
         id: item.id || `ITM-${Math.random()}`,
@@ -25,10 +28,11 @@ export async function getMasterItemsApi(): Promise<MasterItem[]> {
         status: item.isActive ?? item.status === 'ACTIVE' ? 'ACTIVE' : 'DISCONTINUED',
       };
     }) as MasterItem[];
+    return { data, meta };
   } catch (err: any) {
     if (err.response?.status === 404 || err.response?.status === 405) {
-      console.warn("Endpoint GET /master-data/items belum siap (404/405). Mengembalikan array kosong.");
-      return [];
+      console.warn("Endpoint GET /mdm/items belum siap (404/405). Mengembalikan array kosong.");
+      return { data: [], meta: { total_pages: 1, page: 1 } };
     }
     throw err;
   }

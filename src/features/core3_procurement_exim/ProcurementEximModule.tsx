@@ -82,15 +82,20 @@ export const ProcurementEximModule: React.FC = () => {
   const t = CONTENT[language] || CONTENT.id;
   const queryClient = useQueryClient();
 
-  const { data: procurementOrders = [] } = useQuery({
+  const { data: poRes } = useQuery({
     queryKey: ['procurementOrders'],
-    queryFn: getPurchaseOrdersApi,
+    queryFn: () => getPurchaseOrdersApi(1, 100),
   });
+  const procurementOrders = poRes?.data || [];
 
-  const { data: eximDocs = [] } = useQuery({
-    queryKey: ['eximDocs'],
-    queryFn: getEximDocsApi,
+  const [eximPage, setEximPage] = useState(1);
+  const pageSize = 10;
+  const { data: eximRes } = useQuery({
+    queryKey: ['eximDocs', eximPage, pageSize],
+    queryFn: () => getEximDocsApi(eximPage, pageSize),
   });
+  const eximDocs = eximRes?.data || [];
+  const eximTotalPages = eximRes?.meta?.totalPages || eximRes?.meta?.total_pages || 1;
 
   const currentUser = useAppStore((state) => state.currentUser);
 
@@ -399,6 +404,29 @@ export const ProcurementEximModule: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+            
+            {/* KONTROL PAGINATION EXIM */}
+            <div className="flex justify-between items-center mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+              <span className="text-xs text-slate-500 font-medium">
+                Halaman {eximPage} dari {eximTotalPages}
+              </span>
+              <div className="flex gap-2">
+                <button 
+                  disabled={eximPage === 1}
+                  onClick={() => setEximPage(p => Math.max(1, p - 1))}
+                  className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                >
+                  Sebelumnya
+                </button>
+                <button 
+                  disabled={eximPage >= eximTotalPages}
+                  onClick={() => setEximPage(p => p + 1)}
+                  className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                >
+                  Selanjutnya
+                </button>
+              </div>
             </div>
           </div>
         </div>

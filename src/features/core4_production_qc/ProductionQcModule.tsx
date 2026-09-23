@@ -141,10 +141,17 @@ export const ProductionQcModule: React.FC = () => {
   const t = CONTENT[language] || CONTENT.id;
   const queryClient = useQueryClient();
 
-  const { data: qcRecords = [] } = useQuery({
-    queryKey: ['qcRecords'],
-    queryFn: getQcRecordsApi,
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const { data: qcRes } = useQuery({
+    queryKey: ['qcRecords', currentPage, pageSize, searchQuery],
+    queryFn: () => getQcRecordsApi(currentPage, pageSize, searchQuery),
   });
+  
+  const qcRecords = qcRes?.data || [];
+  const totalPages = qcRes?.meta?.totalPages || qcRes?.meta?.total_pages || 1;
 
   const currentUser = useAppStore((state) => state.currentUser);
 
@@ -152,18 +159,10 @@ export const ProductionQcModule: React.FC = () => {
   const [overrideModalOpen, setOverrideModalOpen] = useState(false);
   const [supervisorReason, setSupervisorReason] = useState('');
   const [coaModalRecord, setCoaModalRecord] = useState<QcInspectionRecord | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [qcFormsOpen, setQcFormsOpen] = useState(false);
   const [qcFormsTab, setQcFormsTab] = useState<'spk' | 'qc_test' | 'hold_override'>('spk');
 
-  // Filter records by unit
-  const q = (searchQuery || '').toLowerCase();
-  const filteredRecords = qcRecords.filter(
-    (r) =>
-      ((r.itemName || '').toLowerCase().includes(q) ||
-        (r.lotNumber || '').toLowerCase().includes(q) ||
-        (r.itemCode || '').toLowerCase().includes(q))
-  );
+  const filteredRecords = qcRecords;
 
   const handleOpenOverride = (rec: QcInspectionRecord) => {
     setSelectedRecord(rec);
@@ -463,6 +462,29 @@ export const ProductionQcModule: React.FC = () => {
               </div>
             );
           })}
+        </div>
+        
+        {/* KONTROL PAGINATION QC */}
+        <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 rounded-b-2xl">
+          <span className="text-xs text-slate-500 font-medium">
+            Halaman {currentPage} dari {totalPages}
+          </span>
+          <div className="flex gap-2">
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+            >
+              Sebelumnya
+            </button>
+            <button 
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+              className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+            >
+              Selanjutnya
+            </button>
+          </div>
         </div>
       </div>
 

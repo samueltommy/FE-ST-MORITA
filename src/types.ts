@@ -573,3 +573,16 @@ export interface ArPaymentRecord {
   reconciled: boolean;
   notes: string;
 }
+
+export interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  department: string;
+  date: string;
+  shift: string;
+  checkIn: string;
+  checkOut: string;
+  status: 'HADIR' | 'TERLAMBAT' | 'CUTI' | 'SAKIT' | 'IZIN' | 'ALPHA';
+  notes?: string;
+}

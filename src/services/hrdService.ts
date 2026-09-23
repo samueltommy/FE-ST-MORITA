@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/apiClient';
-import type { VehicleBooking, SalesOutdoorVisit } from '../types';
+import type { VehicleBooking, SalesOutdoorVisit, AttendanceRecord } from '../types';
 import type {
   Employee,
   EmployeeListResponse,
@@ -16,12 +16,16 @@ import type {
  */
 export async function getEmployeesApi(
   page: number = 1,
-  limit: number = 10
-): Promise<EmployeeListResponse> {
-  const response = await apiClient.get('/hrd/employees', {
-    params: { page, limit },
-  });
-  return response.data as EmployeeListResponse;
+  limit: number = 10,
+  search?: string
+) {
+  const params: any = { page, limit };
+  if (search) params.search = search;
+  const response = await apiClient.get('/hrd/employees', { params });
+  return {
+    data: response.data?.data || [],
+    meta: response.data?.meta || { total_pages: 1, page: 1 },
+  };
 }
 
 /**
@@ -97,10 +101,13 @@ export async function createEmployeeApi(
  * Get list of leave requests.
  * Backend filters automatically based on user role/level.
  */
-export async function getLeaveRequestsApi(): Promise<LeaveRequestApi[]> {
-  const response = await apiClient.get('/hrd/requests'); // Sesuaikan path
+export async function getLeaveRequestsApi(page: number = 1, limit: number = 10, search?: string) {
+  const params: any = { page, limit };
+  if (search) params.search = search;
+  const response = await apiClient.get('/hrd/requests', { params }); // Sesuaikan path
   const rawData = response.data?.data || response.data || [];
-  return rawData.map((lr: any) => ({
+  const meta = response.data?.meta || { total_pages: 1, page: 1 };
+  const data = rawData.map((lr: any) => ({
     id: lr.id,
     employeeName: lr.employeeName,
     employeeNik: 'NIK-000', // Mock jika di backend tidak ada
@@ -114,6 +121,7 @@ export async function getLeaveRequestsApi(): Promise<LeaveRequestApi[]> {
     approvedBy: lr.approvedBy,
     createdAt: lr.createdAt || lr.startDate
   })) as any[];
+  return { data, meta };
 }
 
 /**
@@ -179,11 +187,14 @@ export async function getVehicleBookingsApi(): Promise<VehicleBooking[]> {
   }
 }
 
-export async function getSalesVisitsApi(): Promise<SalesOutdoorVisit[]> {
+export async function getSalesVisitsApi(page: number = 1, limit: number = 10, search?: string) {
   try {
-    const response = await apiClient.get('/hrd/sales-visits'); // Sesuaikan path endpoint
+    const params: any = { page, limit };
+    if (search) params.search = search;
+    const response = await apiClient.get('/hrd/sales-visits', { params }); // Sesuaikan path endpoint
     const rawData = response.data?.data || response.data || [];
-    return rawData.map((visit: any) => ({
+    const meta = response.data?.meta || { total_pages: 1, page: 1 };
+    const data = rawData.map((visit: any) => ({
       id: visit.id,
       salesName: visit.employeeName,
       salesRep: visit.employeeName, // FE terkadang memakai ini
@@ -199,10 +210,11 @@ export async function getSalesVisitsApi(): Promise<SalesOutdoorVisit[]> {
       resultNotes: visit.visitResult || '',
       status: 'VERIFIED_CHECKIN'
     })) as SalesOutdoorVisit[];
+    return { data, meta };
   } catch (err: any) {
     if (err.response?.status === 404 || err.response?.status === 405) {
       console.warn("Endpoint GET /hrd/sales-visits belum siap (404/405). Mengembalikan array kosong.");
-      return [];
+      return { data: [], meta: { total_pages: 1, page: 1 } };
     }
     throw err;
   }
@@ -211,4 +223,28 @@ export async function getSalesVisitsApi(): Promise<SalesOutdoorVisit[]> {
 export async function approveVehicleBookingApi(id: string): Promise<VehicleBooking> {
   const response = await apiClient.post(`/hrd/vehicle-bookings/${id}/approve`);
   return (response.data?.data || response.data) as VehicleBooking;
+}
+
+export async function getAttendanceApi(page: number = 1, limit: number = 10, startDate?: string, endDate?: string) {
+  const params: any = { page, limit };
+  if (startDate) params.start_date = startDate;
+  if (endDate) params.end_date = endDate;
+  
+  const response = await apiClient.get('/hrd/attendance', { params });
+  const rawData = response.data?.data || response.data || [];
+  const meta = response.data?.meta || { total_pages: 1, page: 1 };
+
+  const data = rawData.map((att: any) => ({
+    id: att.id,
+    employeeId: att.employee_id || att.employeeId,
+    employeeName: att.employee_name || att.employeeName,
+    department: att.department,
+    date: att.date,
+    shift: att.shift,
+    checkIn: att.check_in || att.checkIn || '-',
+    checkOut: att.check_out || att.checkOut || '-',
+    status: att.status,
+    notes: att.notes || '',
+  }));
+  return { data, meta };
 }

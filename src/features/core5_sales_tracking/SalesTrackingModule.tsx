@@ -88,15 +88,21 @@ export const SalesTrackingModule: React.FC = () => {
   const t = CONTENT[language] || CONTENT.id;
   const queryClient = useQueryClient();
 
-  const { data: quotations = [] } = useQuery({
-    queryKey: ['quotations'],
-    queryFn: getQuotationsApi,
+  const [quotePage, setQuotePage] = useState(1);
+  const pageSize = 10;
+  
+  const { data: quoteRes } = useQuery({
+    queryKey: ['quotations', quotePage, pageSize],
+    queryFn: () => getQuotationsApi(quotePage, pageSize),
   });
+  const quotations = quoteRes?.data || [];
+  const quoteTotalPages = quoteRes?.meta?.totalPages || quoteRes?.meta?.total_pages || 1;
 
-  const { data: trackingOrders = [] } = useQuery({
+  const { data: trackingRes } = useQuery({
     queryKey: ['salesTrackingOrders'],
-    queryFn: getSalesOrdersApi,
+    queryFn: () => getSalesOrdersApi(1, 100),
   });
+  const trackingOrders = trackingRes?.data || [];
 
   const currentUser = useAppStore((state) => state.currentUser);
 
@@ -287,6 +293,29 @@ export const SalesTrackingModule: React.FC = () => {
                   </div>
                 );
               })}
+            </div>
+            
+            {/* KONTROL PAGINATION QUOTATIONS */}
+            <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <span className="text-xs text-slate-500 font-medium">
+                Halaman {quotePage} dari {quoteTotalPages}
+              </span>
+              <div className="flex gap-2">
+                <button 
+                  disabled={quotePage === 1}
+                  onClick={() => setQuotePage(p => Math.max(1, p - 1))}
+                  className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                >
+                  Sebelumnya
+                </button>
+                <button 
+                  disabled={quotePage >= quoteTotalPages}
+                  onClick={() => setQuotePage(p => p + 1)}
+                  className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                >
+                  Selanjutnya
+                </button>
+              </div>
             </div>
           </div>
         </div>

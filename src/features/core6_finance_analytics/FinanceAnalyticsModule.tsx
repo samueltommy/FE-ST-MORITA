@@ -187,10 +187,16 @@ export const FinanceAnalyticsModule: React.FC = () => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
 
-  const { data: deliveryOrders = [], refetch: refetchDos, isLoading: isDosLoading } = useQuery({
-    queryKey: ['deliveryOrders'],
-    queryFn: getDeliveryOrdersApi,
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  
+  const { data: doRes, refetch: refetchDos, isLoading: isDosLoading } = useQuery({
+    queryKey: ['deliveryOrders', currentPage, pageSize],
+    queryFn: () => getDeliveryOrdersApi(currentPage, pageSize),
   });
+  
+  const deliveryOrders = doRes?.data || [];
+  const totalPages = doRes?.meta?.totalPages || doRes?.meta?.total_pages || 1;
 
   const [selectedDoIds, setSelectedDoIds] = useState<Set<string>>(new Set());
 
@@ -546,6 +552,29 @@ export const FinanceAnalyticsModule: React.FC = () => {
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* KONTROL PAGINATION DELIVERY ORDERS */}
+            <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 rounded-b-xl mt-2">
+              <span className="text-xs text-slate-500 font-medium">
+                Halaman {currentPage} dari {totalPages}
+              </span>
+              <div className="flex gap-2">
+                <button 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                >
+                  Sebelumnya
+                </button>
+                <button 
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                >
+                  Selanjutnya
+                </button>
+              </div>
             </div>
 
             {/* Multi-DO Selection Summary Bar */}

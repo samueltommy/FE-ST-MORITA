@@ -18,7 +18,7 @@ import { Can } from '../../components/rbac/Can';
 import { useRBAC } from '../../hooks/useRBAC';
 import { HrdFormsModal } from '../../components/forms/HrdFormsModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getLeaveRequestsApi, getVehicleBookingsApi, getSalesVisitsApi, approveVehicleBookingApi } from '../../services/hrdService';
+import { getLeaveRequestsApi, getVehicleBookingsApi, getSalesVisitsApi, approveVehicleBookingApi, getAttendanceApi } from '../../services/hrdService';
 import { LeaveRequestsTab } from './LeaveRequestsTab';
 
 const CONTENT = {
@@ -109,10 +109,26 @@ export const HrdModule: React.FC = () => {
     queryFn: getVehicleBookingsApi,
   });
 
-  const { data: salesVisits = [] } = useQuery({
-    queryKey: ['salesVisits'],
-    queryFn: getSalesVisitsApi,
+  const [attPage, setAttPage] = useState(1);
+  const [salesPage, setSalesPage] = useState(1);
+  const pageSize = 10;
+
+  const { data: salesVisitsRes, isLoading: loadingSales } = useQuery({
+    queryKey: ['salesVisits', salesPage, pageSize],
+    queryFn: () => getSalesVisitsApi(salesPage, pageSize),
   });
+  const salesVisits = salesVisitsRes?.data || [];
+  const salesTotalPages = salesVisitsRes?.meta?.total_pages || 1;
+
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const { data: attendanceRes, isLoading: loadingAtt } = useQuery({
+    queryKey: ['attendanceLogs', attPage, pageSize, startDate, endDate],
+    queryFn: () => getAttendanceApi(attPage, pageSize, startDate, endDate),
+  });
+  const attendanceLogs = attendanceRes?.data || [];
+  const attTotalPages = attendanceRes?.meta?.total_pages || 1;
 
   const currentUser = useAppStore((state) => state.currentUser);
   const { isSuperAdmin, isExecutive, hasPermission } = useRBAC();
@@ -232,6 +248,103 @@ export const HrdModule: React.FC = () => {
               <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase">{t.kpi4Title}</span>
               <div className="text-xl font-black text-blue-800 dark:text-blue-200 mt-1">{t.kpi4Value}</div>
               <div className="text-[10px] text-blue-600 mt-0.5">{t.kpi4Desc}</div>
+            </div>
+          </div>
+
+          {/* Attendance Detail Table */}
+          <div className="mt-8 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-indigo-500" />
+                Detail Presensi Karyawan Harian
+              </h3>
+              <div className="flex items-center gap-2 text-xs">
+                <input 
+                  type="date" 
+                  value={startDate} 
+                  onChange={(e) => { setStartDate(e.target.value); setAttPage(1); }} 
+                  className="px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+                <span className="text-slate-500 font-medium">s/d</span>
+                <input 
+                  type="date" 
+                  value={endDate} 
+                  onChange={(e) => { setEndDate(e.target.value); setAttPage(1); }} 
+                  className="px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+                {(startDate || endDate) && (
+                  <button 
+                    onClick={() => { setStartDate(''); setEndDate(''); setAttPage(1); }}
+                    className="p-1 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
+                    title="Reset Tanggal"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400">
+                  <tr>
+                    <th className="px-4 py-3 font-bold">Nama Karyawan</th>
+                    <th className="px-4 py-3 font-bold">Departemen</th>
+                    <th className="px-4 py-3 font-bold">Shift</th>
+                    <th className="px-4 py-3 font-bold">Check In</th>
+                    <th className="px-4 py-3 font-bold">Check Out</th>
+                    <th className="px-4 py-3 font-bold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {attendanceLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{log.employeeName}</td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{log.department}</td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{log.shift}</td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{log.checkIn}</td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{log.checkOut}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full ${
+                          log.status === 'HADIR' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' :
+                          log.status === 'TERLAMBAT' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
+                          'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                        }`}>
+                          {log.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {attendanceLogs.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500 italic">
+                        {loadingAtt ? 'Memuat data presensi...' : 'Tidak ada data presensi hari ini.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {/* KONTROL PAGINATION ATTENDANCE */}
+            <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+              <span className="text-xs text-slate-500 font-medium">
+                Halaman {attPage} dari {attTotalPages}
+              </span>
+              <div className="flex gap-2">
+                <button 
+                  disabled={attPage === 1}
+                  onClick={() => setAttPage(p => Math.max(1, p - 1))}
+                  className="px-3 py-1 text-xs border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                >
+                  Sebelumnya
+                </button>
+                <button 
+                  disabled={attPage >= attTotalPages}
+                  onClick={() => setAttPage(p => p + 1)}
+                  className="px-3 py-1 text-xs border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                >
+                  Selanjutnya
+                </button>
+              </div>
             </div>
           </div>
 

@@ -1,13 +1,16 @@
 import { apiClient } from '../lib/apiClient';
 import type { SalesTrackingOrder, Quotation } from '../types';
 
-export async function getSalesOrdersApi(): Promise<SalesTrackingOrder[]> {
+export async function getSalesOrdersApi(page: number = 1, limit: number = 10, search?: string) {
   try {
-    const response = await apiClient.get('/sales/orders');
+    const params: any = { page, limit };
+    if (search) params.search = search;
+    const response = await apiClient.get('/sales/orders', { params });
     const rawList = (response.data?.data || response.data) as any[];
-    if (!Array.isArray(rawList)) return [];
+    if (!Array.isArray(rawList)) return { data: [], meta: { total_pages: 1, page: 1 } };
+    const meta = response.data?.meta || { total_pages: 1, page: 1 };
 
-    return rawList.map((item: any, idx: number) => ({
+    const data = rawList.map((item: any, idx: number) => ({
       id: String(item.id || item.ioId || item.io_id || `SO-${idx + 1}`),
       ioNumber: String(item.ioNumber || item.io_number || `IO/STI/2026/09/000${idx + 1}`),
       soNumber: String(item.soNumber || item.customerPoNumber || item.customer_po_number || item.ioNumber || `SO-${idx + 1}`),
@@ -35,10 +38,11 @@ export async function getSalesOrdersApi(): Promise<SalesTrackingOrder[]> {
       driverPhone: String(item.driverPhone || '08123456789'),
       eta: String(item.eta || '15:30 WIB'),
     }));
+    return { data, meta };
   } catch (err: any) {
     if (err.response?.status === 404 || err.response?.status === 405) {
       console.warn("Endpoint GET /sales/orders belum siap (404/405). Mengembalikan array kosong.");
-      return [];
+      return { data: [], meta: { total_pages: 1, page: 1 } };
     }
     throw err;
   }
@@ -54,13 +58,16 @@ export async function updateSalesOrderApi(id: string, payload: Partial<SalesTrac
   return (response.data?.data || response.data) as SalesTrackingOrder;
 }
 
-export async function getQuotationsApi(): Promise<Quotation[]> {
+export async function getQuotationsApi(page: number = 1, limit: number = 10, search?: string) {
   try {
-    const response = await apiClient.get('/sales/quotations');
+    const params: any = { page, limit };
+    if (search) params.search = search;
+    const response = await apiClient.get('/sales/quotations', { params });
     const rawList = (response.data?.data || response.data) as any[];
-    if (!Array.isArray(rawList)) return [];
+    if (!Array.isArray(rawList)) return { data: [], meta: { total_pages: 1, page: 1 } };
+    const meta = response.data?.meta || { total_pages: 1, page: 1 };
 
-    return rawList.map((item: any, idx: number) => ({
+    const data = rawList.map((item: any, idx: number) => ({
       id: String(item.id || item.quotationId || item.quotation_id || `QUO-${idx + 1}`),
       quotationNumber: String(item.quotationNumber || item.quoteNumber || item.quotation_number || `QUO/STI/2026/09/00${idx + 1}`),
       quoteNumber: String(item.quoteNumber || item.quotationNumber || item.quotation_number || `QUO/STI/2026/09/00${idx + 1}`),
@@ -78,10 +85,11 @@ export async function getQuotationsApi(): Promise<Quotation[]> {
       salesRepresentative: String(item.salesRepresentative || item.salesRep || 'Sales Admin Commercial'),
       costControlNotes: item.costControlNotes || undefined,
     }));
+    return { data, meta };
   } catch (err: any) {
     if (err.response?.status === 404 || err.response?.status === 405) {
       console.warn("Endpoint GET /sales/quotations belum siap (404/405). Mengembalikan array kosong.");
-      return [];
+      return { data: [], meta: { total_pages: 1, page: 1 } };
     }
     throw err;
   }
