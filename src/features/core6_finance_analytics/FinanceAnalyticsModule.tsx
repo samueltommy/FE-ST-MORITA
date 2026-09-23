@@ -236,7 +236,12 @@ export const FinanceAnalyticsModule: React.FC = () => {
       
       const formulaNumber = parseInt(debouncedFormulaId.replace('FORMULA_', '').split('_')[0], 10) || 1;
       const custId = selectedDos.length > 0 ? (selectedDos[0].customerId || 'CUST-000') : 'CUST-000';
-      const subtotalGoods = selectedDos.reduce((sum, item) => sum + (item.totalBeforeTax ?? item.totalGrossValue ?? 0), 0);
+      const subtotalGoods = selectedDos.reduce((sum, item) => {
+        const qty = item.qtyDelivered || (item.items && item.items.reduce((s: number, it: any) => s + it.quantity, 0)) || 0;
+        const price = item.unitPrice || (item.items && item.items[0]?.unitPrice) || 0;
+        const calculatedTotal = qty * price;
+        return sum + (item.totalBeforeTax || item.totalGrossValue || calculatedTotal);
+      }, 0);
       
       return await calculateInvoiceApi({
         customer_id: custId,
@@ -254,51 +259,11 @@ export const FinanceAnalyticsModule: React.FC = () => {
   });
 
   // Re-map the API response to fit the UI or use fallback
-  const subtotalGoods = selectedDos.reduce((sum, item) => sum + (item.totalBeforeTax ?? item.totalGrossValue ?? 0), 0);
-  const selectedFormulaMeta = INVOICE_FORMULAS.find((f) => f.id === selectedFormulaId) || INVOICE_FORMULAS[0];
-  
   const calculationResult = useMemo(() => {
-    if (calculationResponse?.calculationBreakdown) {
-       const bd = calculationResponse.calculationBreakdown;
-       // Simulate Margin for UI (since backend might not return it yet)
-       const minFloor = customParams.minimumMarginPercent ?? 18.0;
-       const simulatedCost = customParams.estimatedCostOfGoods ?? subtotalGoods * 0.81;
-       const estimatedMarginPercent = subtotalGoods > 0 ? ((subtotalGoods - simulatedCost) / subtotalGoods) * 100 : 22;
-       
-       return {
-         formulaName: selectedFormulaMeta.name,
-         formulaDescription: selectedFormulaMeta.description,
-         subtotalGoods: bd.totGrossAmount || subtotalGoods,
-         taxableBaseDpp: bd.subtotalDpp || 0,
-         ppnAmount: bd.ppnAmount || 0,
-         finalPayableAmount: bd.netInvoiceAmount || 0,
-         marginCheckPassed: estimatedMarginPercent >= minFloor,
-         estimatedMarginPercent: Number(estimatedMarginPercent.toFixed(1)),
-         freightAmount: bd.freightCost || 0,
-         discountOrRebate: bd.discountAmount || 0,
-         downPaymentDeduction: bd.downPaymentDeduction || 0,
-         retentionWithheld: bd.retentionDeduction || 0,
-         pph23Amount: bd.pphAmount || 0,
-         returnCreditOffset: customParams.returnNoteAmount || 0,
-       };
-    }
-    return {
-       formulaName: selectedFormulaMeta.name,
-       formulaDescription: selectedFormulaMeta.description,
-       subtotalGoods: subtotalGoods,
-       taxableBaseDpp: 0,
-       ppnAmount: 0,
-       finalPayableAmount: 0,
-       marginCheckPassed: true,
-       estimatedMarginPercent: 0,
-       freightAmount: 0,
-       discountOrRebate: 0,
-       downPaymentDeduction: 0,
-       retentionWithheld: 0,
-       pph23Amount: 0,
-       returnCreditOffset: 0,
-    };
-  }, [calculationResponse, subtotalGoods, selectedFormulaMeta, customParams]);
+    // Utilize the robust frontend formula engine to ensure consistency in values
+    // over any mocked/static backend breakdowns
+    return calculateSalesInvoice(selectedFormulaId, selectedDos, customParams);
+  }, [selectedFormulaId, selectedDos, customParams]);
 
   const createInvoiceMutation = useMutation({
     mutationFn: async () => {
@@ -571,7 +536,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                           <FinancialMask value={d.unitPrice || (d.items && d.items[0]?.unitPrice) || 0} />
                         </td>
                         <td className="py-3 px-3 text-right font-bold font-mono text-slate-900">
-                          {<FinancialMask value={d.totalBeforeTax || d.totalGrossValue || 0} />}
+                          {<FinancialMask value={d.totalBeforeTax || d.totalGrossValue || ((d.qtyDelivered || (d.items && d.items.reduce((s: number, it: any) => s + it.quantity, 0)) || 0) * (d.unitPrice || (d.items && d.items[0]?.unitPrice) || 0))} />}
                         </td>
                         <td className="py-3 px-3 text-center text-[11px] text-slate-500 font-mono">
                           {d.truckPlate || d.truckArmada}
@@ -783,13 +748,13 @@ export const FinanceAnalyticsModule: React.FC = () => {
             </div>
 
             {/* Calculated Breakdown Line-Items - Sidebar Styled Receipt */}
-            <div className="bg-slate-900 text-slate-300 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+            <div className="bg-white text-slate-600 rounded-2xl p-5 shadow-lg relative overflow-hidden border border-slate-200">
               {/* Decorative elements */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
               
-              <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
-                <h3 className="font-bold text-white flex items-center gap-2 text-sm">
-                  <Receipt className="w-4 h-4 text-blue-400" />
+              <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-3">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
+                  <Receipt className="w-4 h-4 text-blue-600" />
                   Live Calculation Receipt
                 </h3>
                 {isCalcLoading && (
@@ -802,14 +767,14 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
               <div className="space-y-3 text-xs font-mono">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">{t.breakdownSubtotal}</span>
-                  <span className="font-bold text-white">
+                  <span className="text-slate-500">{t.breakdownSubtotal}</span>
+                  <span className="font-bold text-slate-900">
                     {<FinancialMask value={calculationResult.subtotalGoods} />}
                   </span>
                 </div>
 
                 {calculationResult.discountOrRebate > 0 && (
-                  <div className="flex justify-between items-center text-emerald-400">
+                  <div className="flex justify-between items-center text-emerald-600">
                     <span>{t.breakdownDiscount}</span>
                     <span className="font-bold">
                       - {<FinancialMask value={calculationResult.discountOrRebate} />}
@@ -818,7 +783,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 )}
 
                 {calculationResult.freightAmount > 0 && (
-                  <div className="flex justify-between items-center text-blue-400">
+                  <div className="flex justify-between items-center text-blue-600">
                     <span>{t.breakdownFreight}</span>
                     <span className="font-bold">
                       + {<FinancialMask value={calculationResult.freightAmount} />}
@@ -827,7 +792,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 )}
 
                 {calculationResult.downPaymentDeduction > 0 && (
-                  <div className="flex justify-between items-center text-amber-400">
+                  <div className="flex justify-between items-center text-amber-600">
                     <span>{t.breakdownDp}</span>
                     <span className="font-bold">
                       - {<FinancialMask value={calculationResult.downPaymentDeduction} />}
@@ -836,7 +801,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 )}
 
                 {calculationResult.returnCreditOffset > 0 && (
-                  <div className="flex justify-between items-center text-rose-400">
+                  <div className="flex justify-between items-center text-rose-600">
                     <span>{t.breakdownReturn}</span>
                     <span className="font-bold">
                       - {<FinancialMask value={calculationResult.returnCreditOffset} />}
@@ -844,20 +809,20 @@ export const FinanceAnalyticsModule: React.FC = () => {
                   </div>
                 )}
 
-                <div className="flex justify-between items-center bg-slate-800/80 px-3 py-2 rounded-lg mt-2 mb-2 text-slate-200">
+                <div className="flex justify-between items-center bg-slate-100 px-3 py-2 rounded-lg mt-2 mb-2 text-slate-700">
                   <span className="font-sans font-semibold text-xs">{t.breakdownDpp}</span>
                   <span className="font-bold">{<FinancialMask value={calculationResult.taxableBaseDpp} />}</span>
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span>{t.breakdownPpn}</span>
-                  <span className="font-bold text-blue-400">
+                  <span className="text-slate-500">{t.breakdownPpn}</span>
+                  <span className="font-bold text-blue-600">
                     + {<FinancialMask value={calculationResult.ppnAmount} />}
                   </span>
                 </div>
 
                 {calculationResult.pph23Amount > 0 && (
-                  <div className="flex justify-between items-center text-amber-400">
+                  <div className="flex justify-between items-center text-amber-600">
                     <span>{t.breakdownPph23}</span>
                     <span className="font-bold">
                       - {<FinancialMask value={calculationResult.pph23Amount} />}
@@ -866,7 +831,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 )}
 
                 {calculationResult.retentionWithheld > 0 && (
-                  <div className="flex justify-between items-center text-amber-400">
+                  <div className="flex justify-between items-center text-amber-600">
                     <span>{t.breakdownRetention}</span>
                     <span className="font-bold">
                       - {<FinancialMask value={calculationResult.retentionWithheld} />}
@@ -876,10 +841,10 @@ export const FinanceAnalyticsModule: React.FC = () => {
               </div>
 
               {/* Total Payable */}
-              <div className="mt-4 pt-4 border-t border-slate-700 flex flex-col gap-1">
-                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-sans">{t.totalNetInvoice}</span>
+              <div className="mt-4 pt-4 border-t border-slate-200 flex flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-sans">{t.totalNetInvoice}</span>
                 <div className="flex justify-between items-end">
-                  <span className="text-2xl font-black text-emerald-400 font-mono leading-none">
+                  <span className="text-2xl font-black text-emerald-600 font-mono leading-none">
                     {<FinancialMask value={calculationResult.finalPayableAmount} />}
                   </span>
                   <span className="text-xs text-slate-500 font-sans">IDR</span>

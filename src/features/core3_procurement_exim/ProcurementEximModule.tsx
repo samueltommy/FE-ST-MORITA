@@ -16,9 +16,9 @@ import {
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { EximDocument, ProcurementOrder, ProcurementStage } from '../../types';
 import { FinancialMask } from '../../components/ui/FinancialMask';
-import { checkPermission } from '../../utils/rbac';
 import { Can } from '../../components/rbac/Can';
 import { ProcurementFormsModal } from '../../components/forms/ProcurementFormsModal';
+import { DataDetailModal } from '../../components/ui/DataDetailModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getPurchaseOrdersApi, getEximDocsApi, uploadEximDocApi } from '../../services/procurementService';
 
@@ -98,6 +98,7 @@ export const ProcurementEximModule: React.FC = () => {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [procurementFormsOpen, setProcurementFormsOpen] = useState(false);
   const [procurementFormsTab, setProcurementFormsTab] = useState<'pr' | 'po' | 'log' | 'exim'>('pr');
+  const [selectedDetailItem, setSelectedDetailItem] = useState<any>(null);
   const [newDocType, setNewDocType] = useState<EximDocument['docType']>('BC 2.3');
   const [newRefNo, setNewRefNo] = useState('');
   const [newNotes, setNewNotes] = useState('');
@@ -231,7 +232,8 @@ export const ProcurementEximModule: React.FC = () => {
                       ordersInStage.map((ord, ordIdx) => (
                         <div
                           key={ord.id || ord.poNumber || `ord-${ordIdx}`}
-                          className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-2 overflow-hidden"
+                          onClick={() => setSelectedDetailItem(ord)}
+                          className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-2 overflow-hidden cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
                         >
                           <div className="flex items-center justify-between gap-1.5 min-w-0">
                             <span
@@ -348,7 +350,11 @@ export const ProcurementEximModule: React.FC = () => {
 
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredEximDocs.map((doc, docIdx) => (
-                <div key={doc.id || doc.referenceNumber || `doc-${docIdx}`} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div 
+                  key={doc.id || doc.referenceNumber || `doc-${docIdx}`} 
+                  onClick={() => setSelectedDetailItem(doc)}
+                  className="py-3 px-2 -mx-2 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                >
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
                       <FileCheck className="w-4 h-4" />
@@ -382,7 +388,10 @@ export const ProcurementEximModule: React.FC = () => {
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => alert(`${t.alertDl} ${doc.fileName}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        alert(`${t.alertDl} ${doc.fileName}`);
+                      }}
                       className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-[11px] text-slate-700 dark:text-slate-300"
                     >
                       {t.btnDownload}
@@ -473,6 +482,13 @@ export const ProcurementEximModule: React.FC = () => {
         isOpen={procurementFormsOpen}
         onClose={() => setProcurementFormsOpen(false)}
         defaultTab={procurementFormsTab}
+      />
+      {/* Data Detail Modal */}
+      <DataDetailModal
+        isOpen={selectedDetailItem !== null}
+        onClose={() => setSelectedDetailItem(null)}
+        title={activeTab === 'kanban' ? 'Detail Purchase Order' : 'Detail Dokumen Pabean'}
+        data={selectedDetailItem}
       />
     </div>
   );

@@ -391,6 +391,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    * Returns true if successful.
    */
   fetchMe: async (): Promise<boolean> => {
+    const currentToken = get().token;
     try {
       const me = await getMeApi();
       const token = get().token;
@@ -418,8 +419,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return true;
     } catch {
       // Token invalid or expired
-      localStorage.removeItem(TOKEN_KEY);
-      set({ token: null, user: null, isAuthenticated: false });
+      if (get().token === currentToken) {
+        localStorage.removeItem(TOKEN_KEY);
+        set({ token: null, user: null, isAuthenticated: false });
+      }
       return false;
     }
   },

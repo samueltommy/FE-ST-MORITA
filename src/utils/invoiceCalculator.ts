@@ -137,7 +137,12 @@ export function calculateSalesInvoice(
 
   // Base raw calculations from selected DOs
   const subtotalGoods = selectedDos.reduce(
-    (sum, item) => sum + (item.totalBeforeTax ?? item.totalGrossValue ?? 0),
+    (sum, item) => {
+      const qty = item.qtyDelivered || (item.items && item.items.reduce((s: number, it: any) => s + it.quantity, 0)) || 0;
+      const price = item.unitPrice || (item.items && item.items[0]?.unitPrice) || 0;
+      const calculatedTotal = qty * price;
+      return sum + (item.totalBeforeTax || item.totalGrossValue || calculatedTotal);
+    },
     0
   );
   const totalQuantity = selectedDos.reduce(

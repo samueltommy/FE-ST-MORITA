@@ -58,10 +58,17 @@ apiClient.interceptors.response.use(
       }
 
       // Token expired or invalid → clear and dispatch event for popup
-      if (localStorage.getItem('samhance_access_token')) {
-        localStorage.removeItem('samhance_access_token');
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('auth:expired'));
+      const currentToken = localStorage.getItem('samhance_access_token');
+      const requestAuthHeader = error.config?.headers?.Authorization || error.config?.headers?.authorization;
+      const requestToken = typeof requestAuthHeader === 'string' ? requestAuthHeader.replace('Bearer ', '') : null;
+
+      if (currentToken) {
+        // Prevent race condition: only trigger expiry if the failing token is still active
+        if (!requestToken || currentToken === requestToken) {
+          localStorage.removeItem('samhance_access_token');
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('auth:expired'));
+          }
         }
       }
     } else if (error.response && error.response.status >= 400) {

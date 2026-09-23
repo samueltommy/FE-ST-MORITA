@@ -20,6 +20,7 @@ import { FinancialMask } from '../../components/ui/FinancialMask';
 import { checkPermission } from '../../utils/rbac';
 import { Can } from '../../components/rbac/Can';
 import { MasterDataFormsModal } from '../../components/forms/MasterDataFormsModal';
+import { DataDetailModal } from '../../components/ui/DataDetailModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMasterItemsApi, createMasterItemApi } from '../../services/masterDataService';
 
@@ -116,6 +117,7 @@ export const MasterDataModule: React.FC = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [masterFormsOpen, setMasterFormsOpen] = useState(false);
   const [masterFormsTab, setMasterFormsTab] = useState<'customer' | 'supplier' | 'item' | 'waste'>('item');
+  const [selectedDetailItem, setSelectedDetailItem] = useState<MasterItem | null>(null);
 
   // New item form state
   const [newCode, setNewCode] = useState('');
@@ -284,7 +286,8 @@ export const MasterDataModule: React.FC = () => {
               {filteredItems.map((item) => (
                 <tr
                   key={item.id}
-                  className={`hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${
+                  onClick={() => setSelectedDetailItem(item)}
+                  className={`hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer ${
                     isHighDensity ? 'py-1' : 'py-2.5'
                   }`}
                 >
@@ -335,7 +338,10 @@ export const MasterDataModule: React.FC = () => {
 
                   <td className="py-2.5 px-3 text-center">
                     <button
-                      onClick={() => setZebraModalItem(item)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setZebraModalItem(item);
+                      }}
                       className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                       title="Generate & Cetak Label Zebra Thermal"
                     >
@@ -564,6 +570,13 @@ export const MasterDataModule: React.FC = () => {
         isOpen={masterFormsOpen}
         onClose={() => setMasterFormsOpen(false)}
         defaultTab={masterFormsTab}
+      />
+      {/* Data Detail Modal */}
+      <DataDetailModal
+        isOpen={selectedDetailItem !== null}
+        onClose={() => setSelectedDetailItem(null)}
+        title="Master Data Item Detail"
+        data={selectedDetailItem}
       />
     </div>
   );

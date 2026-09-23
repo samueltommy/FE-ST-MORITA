@@ -98,9 +98,22 @@ export async function createEmployeeApi(
  * Backend filters automatically based on user role/level.
  */
 export async function getLeaveRequestsApi(): Promise<LeaveRequestApi[]> {
-  const response = await apiClient.get('/hrd/requests');
-  // Handle both {data: [...]} and direct array responses
-  return (response.data?.data || response.data) as LeaveRequestApi[];
+  const response = await apiClient.get('/hrd/requests'); // Sesuaikan path
+  const rawData = response.data?.data || response.data || [];
+  return rawData.map((lr: any) => ({
+    id: lr.id,
+    employeeName: lr.employeeName,
+    employeeNik: 'NIK-000', // Mock jika di backend tidak ada
+    department: lr.department,
+    leaveType: lr.requestType,
+    startDate: lr.startDate,
+    endDate: lr.endDate,
+    durationDays: lr.durationDays,
+    reason: lr.reason,
+    status: lr.status, // PENDING_APPROVAL, APPROVED, REJECTED
+    approvedBy: lr.approvedBy,
+    createdAt: lr.createdAt || lr.startDate
+  })) as any[];
 }
 
 /**
@@ -168,8 +181,24 @@ export async function getVehicleBookingsApi(): Promise<VehicleBooking[]> {
 
 export async function getSalesVisitsApi(): Promise<SalesOutdoorVisit[]> {
   try {
-    const response = await apiClient.get('/hrd/sales-visits');
-    return (response.data?.data || response.data) as SalesOutdoorVisit[];
+    const response = await apiClient.get('/hrd/sales-visits'); // Sesuaikan path endpoint
+    const rawData = response.data?.data || response.data || [];
+    return rawData.map((visit: any) => ({
+      id: visit.id,
+      salesName: visit.employeeName,
+      salesRep: visit.employeeName, // FE terkadang memakai ini
+      clientName: visit.customerName || 'Prospect Client',
+      clientCompany: visit.customerName,
+      clientAddress: visit.locationAddress || 'Tidak ada alamat',
+      checkInTime: visit.visitedAt,
+      coordinates: { 
+          lat: visit.latitude || 0, 
+          lng: visit.longitude || 0 
+      },
+      purpose: visit.visitPurpose || '',
+      resultNotes: visit.visitResult || '',
+      status: 'VERIFIED_CHECKIN'
+    })) as SalesOutdoorVisit[];
   } catch (err: any) {
     if (err.response?.status === 404 || err.response?.status === 405) {
       console.warn("Endpoint GET /hrd/sales-visits belum siap (404/405). Mengembalikan array kosong.");

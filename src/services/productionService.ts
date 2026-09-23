@@ -4,7 +4,30 @@ import type { WorkOrderSpk, QcInspectionRecord, QcStatus } from '../types';
 export async function getProductionOrdersApi(): Promise<WorkOrderSpk[]> {
   try {
     const response = await apiClient.get('/production/orders');
-    return (response.data?.data || response.data) as WorkOrderSpk[];
+    const rawList = (response.data?.data || response.data) as any[];
+    if (!Array.isArray(rawList)) return [];
+
+    return rawList.map((item: any, idx: number) => ({
+      ...item,
+      id: String(item.id || item.spk_number || `WO-${idx + 1}`),
+      spkNumber: String(item.spkNumber || item.spk_number || `SPK-${idx + 1}`),
+      customerIoRef: item.customerIoRef || item.customer_io_ref,
+      itemCode: String(item.itemCode || item.item_code || 'ITM-01'),
+      itemName: String(item.itemName || item.item_name || 'Production Item'),
+      targetQuantity: Number(item.targetQuantity ?? item.target_quantity ?? 100),
+      producedGoodQty: Number(item.producedGoodQty ?? item.produced_good_qty ?? 0),
+      producedNgQty: Number(item.producedNgQty ?? item.produced_ng_qty ?? 0),
+      unit: String(item.unit || 'Roll'),
+      targetWidthMm: Number(item.targetWidthMm ?? item.target_width_mm ?? 0),
+      targetLengthM: Number(item.targetLengthM ?? item.target_length_m ?? 0),
+      targetMicron: item.targetMicron ?? item.target_micron,
+      productionLine: String(item.productionLine || item.production_line || 'Line 1'),
+      operatorName: String(item.operatorName || item.operator_name || 'Operator'),
+      spkStatus: item.spkStatus || item.spk_status || 'QUEUED',
+      startDate: String(item.startDate || item.start_date || '2026-09-15'),
+      dueDate: String(item.dueDate || item.due_date || '2026-09-30'),
+      rawMaterialLotChecked: Boolean(item.rawMaterialLotChecked ?? item.raw_material_lot_checked ?? false),
+    })) as WorkOrderSpk[];
   } catch (err: any) {
     if (err.response?.status === 404 || err.response?.status === 405) {
       console.warn("Endpoint GET /production/orders belum siap (404/405). Mengembalikan array kosong.");
