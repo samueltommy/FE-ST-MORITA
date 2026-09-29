@@ -345,13 +345,14 @@ export const UserManagementModule: React.FC = () => {
   const employmentStatuses: SelectOption[] = Array.isArray(statusOptions) ? statusOptions : [];
 
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('ALL');
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const [sortOption, setSortOption] = useState<string>('name_asc');
 
   // Fetch employees from backend (paginated for table)
   const { data: employeeData, isLoading: isLoadingEmployees, refetch } = useQuery({
@@ -359,11 +360,8 @@ export const UserManagementModule: React.FC = () => {
     queryFn: () => getEmployeesApi(currentPage, pageSize, searchQuery),
   });
 
-  // Fetch ALL employees strictly for global KPI calculations
-  const { data: allEmployeeData } = useQuery({
-    queryKey: ['hrd', 'employees', 'all-metrics'],
-    queryFn: () => getEmployeesApi(1, 1000, ''),
-  });
+  // The global KPI calculations now use the 'summary' object returned by the API
+  // No need for a separate 'all-metrics' fetch with limit=1000
 
   // Safely extract array from various possible backend response formats
   const rawData = employeeData as any;
@@ -619,40 +617,36 @@ export const UserManagementModule: React.FC = () => {
     }
 
     return matchesSearch && matchesTier && matchesDept && matchesStatus;
+  }).sort((a, b) => {
+    if (sortOption === 'name_asc') return a.name.localeCompare(b.name);
+    if (sortOption === 'name_desc') return b.name.localeCompare(a.name);
+    
+    // Sort by join_date if available in original API data, fallback to ID
+    const aApi = apiUsers.find(u => String(u.id) === a.id);
+    const bApi = apiUsers.find(u => String(u.id) === b.id);
+    const aDate = aApi?.join_date || aApi?.joinDate || a.id;
+    const bDate = bApi?.join_date || bApi?.joinDate || b.id;
+    
+    if (sortOption === 'date_desc') return String(bDate).localeCompare(String(aDate));
+    if (sortOption === 'date_asc') return String(aDate).localeCompare(String(bDate));
+    
+    return 0;
   });
 
-  // Calculate Global Metrics (use allUsers if available, fallback to current page users)
-  const allApiUsers: any[] = allEmployeeData?.data || [];
-  const allUsers: UserProfile[] = allApiUsers.length > 0 ? allApiUsers.map((emp: any) => {
-    let tierVal = 3;
-    if (emp?.userLevel && typeof emp.userLevel === 'string') {
-      const match = emp.userLevel.match(/L(\d)/);
-      if (match) tierVal = parseInt(match[1], 10);
-    }
-    return {
-      id: String(emp?.id || Math.random()),
-      name: String(emp?.fullName || emp?.username || '-'),
-      nik: String(emp?.nik || '-'),
-      email: String(emp?.email || '-'),
-      department: String(emp?.department || '-'),
-      role: (emp?.roleId as UserRole) || 'OPERATOR_PROD',
-      tier: (isNaN(tierVal) ? 3 : tierVal) as RoleTier,
-      status: emp?.isActive === false || emp?.employmentStatus === 'RESIGNED' ? 'SUSPENDED' : 'ACTIVE',
-      permissions: [],
-      avatar: '',
-      plantLocation: 'HO / Main Plant',
-      userLevel: emp?.userLevel,
-      rawUserLevel: emp?.userLevel,
-      employmentStatus: emp?.employmentStatus,
-    };
-  }) : users;
+  // Calculate Global Metrics using the new 'summary' field from the backend
+  const summary = rawData?.summary || {};
+  const totalCount = summary.total || rawData?.meta?.totalItems || rawData?.meta?.total_items || users.length;
+  
+  // Active accounts = Total minus resigned/suspended
+  const resignedCount = summary.by_employment_status?.['RESIGNED'] || 0;
+  const activeCount = totalCount - resignedCount;
 
-  const totalCount = rawData?.meta?.totalItems || rawData?.meta?.total_items || allUsers.length || users.length;
-  const activeCount = allUsers.filter((u) => u.status === 'ACTIVE').length;
-  const l0Count = allUsers.filter((u) => u.tier === 0).length;
-  const l1Count = allUsers.filter((u) => u.tier === 1).length;
-  const l2Count = allUsers.filter((u) => u.tier === 2).length;
-  const l3Count = allUsers.filter((u) => u.tier === 3).length;
+  // L-Counts based on user_level
+  const byLevel = summary.by_user_level || {};
+  const l0Count = byLevel['L0_SUPER_ADMIN'] || 0;
+  const l1Count = byLevel['L1_DIREKSI'] || 0;
+  const l2Count = byLevel['L2_MANAGER'] || 0;
+  const l3Count = byLevel['L3_STAFF'] || 0;
 
   return (
     <div className="space-y-6">
@@ -705,47 +699,7 @@ export const UserManagementModule: React.FC = () => {
         </div>
       )}
 
-      {/* Metrics Cards: Tier Distribution */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t.kpiTotal}</div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">{totalCount}</div>
-          <div className="text-[10px] text-emerald-600 font-semibold mt-0.5 flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" />
-            <span>{activeCount} {t.kpiActive}</span>
-          </div>
-        </div>
 
-        <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 shadow-xs">
-          <div className="text-[11px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider">{t.kpiL0}</div>
-          <div className="text-2xl font-black text-purple-900 dark:text-purple-100 mt-1">{l0Count}</div>
-          <div className="text-[10px] text-purple-600 dark:text-purple-400 mt-0.5">{t.kpiL0Desc}</div>
-        </div>
-
-        <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 shadow-xs">
-          <div className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">{t.kpiL1}</div>
-          <div className="text-2xl font-black text-amber-900 dark:text-amber-100 mt-1">{l1Count}</div>
-          <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">{t.kpiL1Desc}</div>
-        </div>
-
-        <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 shadow-xs">
-          <div className="text-[11px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">{t.kpiL2}</div>
-          <div className="text-2xl font-black text-blue-900 dark:text-blue-100 mt-1">{l2Count}</div>
-          <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">{t.kpiL2Desc}</div>
-        </div>
-
-        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t.kpiL3}</div>
-          <div className="text-2xl font-black text-slate-800 dark:text-slate-200 mt-1">{l3Count}</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">{t.kpiL3Desc}</div>
-        </div>
-
-        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t.kpiStd}</div>
-          <div className="text-sm font-bold text-slate-900 dark:text-white mt-2">{t.kpiStdVal}</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">{t.kpiStdDesc}</div>
-        </div>
-      </div>
 
       {/* FORM: Buat Akun Pegawai Baru — Sinkron dengan BE EmployeeCreate schema */}
       {isFormOpen && isAuthorized && (
@@ -777,61 +731,61 @@ export const UserManagementModule: React.FC = () => {
 
             {/* ── Row 1: Identitas Dasar ── */}
             <div>
-              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row1Title}</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row1Title}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fNik} <span className="font-normal text-slate-400">{t.fNikFmt}</span></label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fNik} <span className="font-normal text-slate-400">{t.fNikFmt}</span></label>
                   <input type="text" value={fNik} onChange={e => setFNik(e.target.value)} required
                     pattern="^EMP-\d{4}-\d{3,4}$" title="Format: EMP-2026-001"
                     placeholder="EMP-2026-001"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fName}</label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fName}</label>
                   <input type="text" value={fFullName} onChange={e => handleNameChange(e.target.value)} required minLength={2} maxLength={200}
                     placeholder="Contoh: Rian Pratama, S.T."
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fEmail}</label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fEmail}</label>
                   <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)} required
                     placeholder="nama@stmorita.co.id"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fKtp}</label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fKtp}</label>
                   <input type="text" value={fKtp} onChange={e => setFKtp(e.target.value.replace(/\D/g, '').slice(0, 16))} required
                     minLength={16} maxLength={16} inputMode="numeric"
                     placeholder="16 digit Nomor KTP"
-                    className={`w-full px-3 py-2 rounded-xl bg-slate-50 border text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none ${fKtp.length > 0 && fKtp.length !== 16 ? 'border-rose-400' : 'border-slate-300'}`} />
-                  {fKtp.length > 0 && fKtp.length !== 16 && <p className="text-[10px] text-rose-500 mt-0.5">{fKtp.length}/16 digit</p>}
+                    className={`w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none ${fKtp.length > 0 && fKtp.length !== 16 ? 'border-rose-400' : 'border-slate-300'}`} />
+                  {fKtp.length > 0 && fKtp.length !== 16 && <p className="text-[10px] md:text-xs text-rose-500 mt-0.5">{fKtp.length}/16 digit</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fPhone}</label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fPhone}</label>
                   <input type="text" value={fPhone} onChange={e => setFPhone(e.target.value)} required maxLength={20}
                     placeholder="+62 8xx-xxxx-xxxx"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fDate}</label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fDate}</label>
                   <input type="date" value={fJoinDate} onChange={e => setFJoinDate(e.target.value)} required
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
               </div>
             </div>
 
             {/* ── Row 2: Status & Penempatan ── */}
             <div>
-              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row2Title}</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row2Title}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fStatus}</label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fStatus}</label>
                   <select
                     value={fEmploymentStatus}
                     onChange={e => setFEmploymentStatus(e.target.value as any)}
                     required
                     disabled={loadingStatuses}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold"
+                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold"
                   >
                     {employmentStatuses.map((st) => (
                       <option key={st.value} value={st.value} title={st.description}>
@@ -840,18 +794,18 @@ export const UserManagementModule: React.FC = () => {
                     ))}
                   </select>
                   {findOptionDescription(employmentStatuses, fEmploymentStatus) && (
-                    <p className="mt-1 text-[10px] text-slate-500 italic">
+                    <p className="mt-1 text-[10px] md:text-xs text-slate-500 italic">
                       {findOptionDescription(employmentStatuses, fEmploymentStatus)}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fDept}</label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fDept}</label>
                   <select
                     value={fDepartment}
                     onChange={e => setFDepartment(e.target.value)}
                     disabled={loadingDepts}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   >
                     <option value="" disabled>
                       {loadingDepts ? 'Memuat data...' : '-- Pilih Department --'}
@@ -863,51 +817,51 @@ export const UserManagementModule: React.FC = () => {
                     ))}
                   </select>
                   {findOptionDescription(departments, fDepartment) && (
-                    <p className="mt-1 text-[10px] text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
+                    <p className="mt-1 text-[10px] md:text-xs text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
                       {findOptionDescription(departments, fDepartment)}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fSalary}</label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fSalary}</label>
                   <input type="number" value={fSalary} onChange={e => setFSalary(e.target.value === '' ? '' : Number(e.target.value))} required
                     min={1} step={500000} placeholder="Contoh: 5000000"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
               </div>
             </div>
 
             {/* ── Row 3: Akun Login & RBAC ── */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
-              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{t.row3Title}</p>
+            <div className="p-4 md:p-6 rounded-xl bg-slate-50 border border-slate-200 space-y-4 md:space-y-5">
+              <p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-widest">{t.row3Title}</p>
               
               {!editingUserId && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">{t.fUsername}</label>
+                    <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fUsername}</label>
                     <input type="text" value={fUsername} onChange={e => setFUsername(e.target.value)} required={!editingUserId} minLength={3} maxLength={100}
                       placeholder="Contoh: rian_pratama"
-                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                      className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-white border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">{t.fPass} <span className="font-normal text-slate-400">{t.fPassMin}</span></label>
+                    <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fPass} <span className="font-normal text-slate-400">{t.fPassMin}</span></label>
                     <input type="text" value={fPassword} onChange={e => setFPassword(e.target.value)} required={!editingUserId} minLength={8}
                       placeholder="Password awal — pegawai akan diminta ganti saat login pertama"
-                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                      className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-white border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:gap-5">
                 {/* user_level */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fLvl}</label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fLvl}</label>
                   <select
                     value={fUserLevel}
                     onChange={e => setFUserLevel(e.target.value as any)}
                     required
                     disabled={loadingLevels}
-                    className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2.5 md:px-4 md:py-3 rounded-xl bg-white border border-slate-300 text-xs md:text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   >
                     {userLevels.map((lvl) => (
                       <option key={lvl.value} value={lvl.value} title={lvl.description}>
@@ -916,8 +870,8 @@ export const UserManagementModule: React.FC = () => {
                     ))}
                   </select>
                   {findOptionDescription(userLevels, fUserLevel) && (
-                    <p className="mt-1.5 text-[11px] text-slate-600 bg-blue-50/70 p-2 rounded-lg border border-blue-100 flex items-start gap-1.5">
-                      <Shield className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="mt-1.5 text-[11px] md:text-xs text-slate-600 bg-blue-50/70 p-2 md:p-3 rounded-lg border border-blue-100 flex items-start gap-1.5">
+                      <Shield className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600 shrink-0 mt-0.5" />
                       <span>{findOptionDescription(userLevels, fUserLevel)}</span>
                     </p>
                   )}
@@ -926,24 +880,24 @@ export const UserManagementModule: React.FC = () => {
 
               {/* Role Preview */}
               {ROLE_DEFINITIONS[derivedRole] && (
-                <div className="text-xs p-3 rounded-lg bg-blue-50/50 border border-blue-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                      <Shield className="w-3.5 h-3.5 text-blue-600" />
+                <div className="text-xs md:text-sm p-3 md:p-4 rounded-lg bg-blue-50/50 border border-blue-200">
+                  <div className="flex items-center justify-between mb-1 md:mb-2">
+                    <div className="font-bold text-slate-800 flex items-center gap-1.5 md:gap-2">
+                      <Shield className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600" />
                       <span>{t.fPreview} {ROLE_DEFINITIONS[derivedRole].label}</span>
                     </div>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${getBadgeClass(findOptionBadge(userLevels, fUserLevel))}`}>
+                    <span className={`text-[9px] md:text-[10px] font-bold px-2 py-0.5 md:px-2.5 md:py-1 rounded-full border ${getBadgeClass(findOptionBadge(userLevels, fUserLevel))}`}>
                       {findOptionLabel(userLevels, fUserLevel) || fUserLevel}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 mb-2">
+                  <p className="text-[11px] md:text-xs text-slate-500 mb-2 md:mb-3">
                     {t.fPreviewDesc}
                     <br /><br />
                     {ROLE_DEFINITIONS[derivedRole].description}
                   </p>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1 md:gap-1.5">
                     {ROLE_DEFINITIONS[derivedRole].permissions.map(p => (
-                      <span key={p} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">{p}</span>
+                      <span key={p} className="text-[10px] md:text-[11px] font-mono px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">{p}</span>
                     ))}
                   </div>
                 </div>
@@ -952,34 +906,34 @@ export const UserManagementModule: React.FC = () => {
 
             {/* ── Row 4: Informasi Bank (Opsional) ── */}
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{t.row4Title} <span className="font-normal normal-case">{t.row4Opt}</span></p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t.row4Title} <span className="font-normal normal-case">{t.row4Opt}</span></p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fBank}</label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fBank}</label>
                   <input type="text" value={fBankName} onChange={e => setFBankName(e.target.value)} maxLength={50}
                     placeholder="Contoh: BCA, BNI, Mandiri, BRI"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fAcc}</label>
+                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fAcc}</label>
                   <input type="text" value={fBankAccount} onChange={e => setFBankAccount(e.target.value)} maxLength={30}
                     placeholder="Nomor rekening"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
               </div>
             </div>
 
             {/* Submit */}
-            <div className="pt-3 flex items-center justify-between border-t border-slate-200">
-              <p className="text-[10px] text-slate-400">{t.fReq}</p>
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => { setIsFormOpen(false); setEditingUserId(null);; resetForm(); }}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+            <div className="pt-3 md:pt-4 flex items-center justify-between border-t border-slate-200">
+              <p className="text-[10px] md:text-xs text-slate-400">{t.fReq}</p>
+              <div className="flex items-center gap-3 md:gap-4">
+                <button type="button" onClick={() => { setIsFormOpen(false); setEditingUserId(null); resetForm(); }}
+                  className="px-4 py-2 md:px-5 md:py-2.5 rounded-xl border border-slate-300 text-xs md:text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors">
                   {t.formCancel}
                 </button>
                 <button id="submit-create-employee-btn" type="submit" disabled={isSubmitting}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all">
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
+                  className="flex items-center gap-2 px-5 py-2 md:px-6 md:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs md:text-sm font-bold shadow-md shadow-blue-600/20 transition-all">
+                  {isSubmitting ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <UserCheck className="w-4 h-4 md:w-5 md:h-5" />}
                   <span>{isSubmitting ? t.btnSubmitting : t.btnSubmit}</span>
                 </button>
               </div>
@@ -990,12 +944,6 @@ export const UserManagementModule: React.FC = () => {
 
       {/* Filter Status Tabs */}
       <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg w-fit">
-        <button
-          onClick={() => setStatusFilter('ALL')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${statusFilter === 'ALL' ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-        >
-          Semua Karyawan
-        </button>
         <button
           onClick={() => setStatusFilter('ACTIVE')}
           className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${statusFilter === 'ACTIVE' ? 'bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
@@ -1011,83 +959,111 @@ export const UserManagementModule: React.FC = () => {
       </div>
 
       {/* SEARCH & FILTERS BAR */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
-        {/* Search */}
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t.searchPlc}
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col gap-4">
+        
+        {/* Row 1: Search, Dept, and Sort */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3 w-full">
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:flex-1">
+            <div className="relative w-full flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t.searchPlc}
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <select
+              value={selectedDeptFilter}
+              onChange={(e) => setSelectedDeptFilter(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto min-w-[200px]"
+            >
+              <option value="ALL">Semua Divisi / Departemen</option>
+              {departments.map((d: any) => (
+                <option key={d.value} value={d.value}>{d.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="w-full md:w-auto shrink-0 flex items-center">
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="w-full md:w-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 shadow-xs"
+            >
+              <option value="name_asc">Nama (A-Z)</option>
+              <option value="name_desc">Nama (Z-A)</option>
+              <option value="date_desc">Terbaru</option>
+              <option value="date_asc">Terlama</option>
+            </select>
+          </div>
         </div>
 
-        {/* Tier & Dept Filters */}
-        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 shrink-0">
-            <Filter className="w-3.5 h-3.5" />
+        {/* Row 2: Tier Filters */}
+        <div className="flex items-center gap-3 w-full overflow-x-auto pb-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-1.5 text-xs text-slate-400 shrink-0 font-medium">
+            <Filter className="w-4 h-4" />
             <span>{t.filterLvl}</span>
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0 text-xs">
+          <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800 p-1 rounded-xl shrink-0 text-xs">
             {isLoadingEmployees && <Loader2 className="w-4 h-4 animate-spin text-blue-500 mr-2" />}
             <button
               onClick={() => setSelectedTierFilter('ALL')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${selectedTierFilter === 'ALL'
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${selectedTierFilter === 'ALL'
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
                 }`}
             >
-              {t.filterAll} ({totalCount})
+              {t.filterAll}
             </button>
             <button
               onClick={() => setSelectedTierFilter('1')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${selectedTierFilter === '1'
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${selectedTierFilter === '1'
                   ? 'bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
                 }`}
             >
-              {t.filterL1} ({l1Count})
+              {t.filterL1}
             </button>
             <button
               onClick={() => setSelectedTierFilter('0')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${selectedTierFilter === '0'
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${selectedTierFilter === '0'
                   ? 'bg-purple-100 dark:bg-purple-950 text-purple-900 dark:text-purple-200 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
                 }`}
             >
-              {t.filterL0} ({l0Count})
+              {t.filterL0}
             </button>
             <button
               onClick={() => setSelectedTierFilter('2')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${selectedTierFilter === '2'
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${selectedTierFilter === '2'
                   ? 'bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-200 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
                 }`}
             >
-              {t.filterL2} ({l2Count})
+              {t.filterL2}
             </button>
             <button
               onClick={() => setSelectedTierFilter('3')}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${selectedTierFilter === '3'
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${selectedTierFilter === '3'
                   ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
                 }`}
             >
-              {t.filterL3} ({l3Count})
+              {t.filterL3}
             </button>
           </div>
         </div>
       </div>
 
       {/* REGISTERED EMPLOYEES TABLE */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+        <div className="overflow-auto max-h-[60vh] 2xl:max-h-[70vh]">
+          <table className="w-full text-left text-xs relative">
+            <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 shadow-sm">
+              <tr className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                 <th className="py-3 px-4">{t.colEmp}</th>
                 <th className="py-3 px-4">{t.colDept}</th>
                 <th className="py-3 px-4">{t.colRole}</th>
@@ -1288,9 +1264,24 @@ export const UserManagementModule: React.FC = () => {
         </div>
         {/* KONTROL PAGINATION USER MANAGEMENT */}
         <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
-          <span className="text-xs text-slate-500 font-medium">
-            Halaman {currentPage} dari {totalPages}
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-slate-500 font-medium">
+              Halaman {currentPage} dari {totalPages}
+            </span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="text-xs font-medium border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 px-2 py-1 text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+            >
+              <option value={10}>10 Baris</option>
+              <option value={20}>20 Baris</option>
+              <option value={50}>50 Baris</option>
+              <option value={100}>100 Baris</option>
+            </select>
+          </div>
           <div className="flex gap-2">
             <button 
               disabled={currentPage === 1}

@@ -104,7 +104,7 @@ export const MasterDataModule: React.FC = () => {
   const t = CONTENT[language] || CONTENT.id;
 
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
@@ -260,11 +260,11 @@ export const MasterDataModule: React.FC = () => {
       </div>
 
       {/* High-Density Item Table */}
-      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800">
+      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden flex flex-col">
+        <div className="overflow-auto max-h-[60vh] 2xl:max-h-[70vh]">
+          <table className="w-full text-left text-xs border-collapse relative">
+            <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 shadow-sm">
+              <tr className="text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                 <th className="py-2.5 px-3 font-bold">{t.thCode}</th>
                 <th className="py-2.5 px-3 font-bold">{t.thDesc}</th>
                 <th className="py-2.5 px-3 font-bold">{t.thCat}</th>
@@ -362,9 +362,24 @@ export const MasterDataModule: React.FC = () => {
         
         {/* KONTROL PAGINATION MASTER DATA */}
         <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
-          <span className="text-xs text-slate-500 font-medium">
-            Halaman {currentPage} dari {totalPages}
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-slate-500 font-medium">
+              Halaman {currentPage} dari {totalPages}
+            </span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="text-xs font-medium border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 px-2 py-1 text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+            >
+              <option value={10}>10 Baris</option>
+              <option value={20}>20 Baris</option>
+              <option value={50}>50 Baris</option>
+              <option value={100}>100 Baris</option>
+            </select>
+          </div>
           <div className="flex gap-2">
             <button 
               disabled={currentPage === 1}

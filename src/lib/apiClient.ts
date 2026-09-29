@@ -75,7 +75,7 @@ apiClient.interceptors.response.use(
       // Global error handler for Bad Request (400) / Server Error (500)
       const msg = error.response.data?.message || error.response.data?.detail || error.message || 'Terjadi kesalahan sistem';
       if (typeof window !== 'undefined') {
-        toast.error(msg);
+        toast.error(msg, { id: msg });
       }
     }
     return Promise.reject(error);

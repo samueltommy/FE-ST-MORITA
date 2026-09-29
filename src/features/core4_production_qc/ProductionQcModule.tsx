@@ -142,7 +142,7 @@ export const ProductionQcModule: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   
   const { data: qcRes } = useQuery({
@@ -298,7 +298,7 @@ export const ProductionQcModule: React.FC = () => {
         </div>
 
         {/* Inspections List */}
-        <div className="space-y-3">
+        <div className="space-y-3 overflow-auto max-h-[60vh] 2xl:max-h-[70vh] pr-1">
           {filteredRecords.map((rec, recIdx) => {
             const isHold = rec.status === 'HOLD';
             return (
@@ -466,9 +466,24 @@ export const ProductionQcModule: React.FC = () => {
         
         {/* KONTROL PAGINATION QC */}
         <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 rounded-b-2xl">
-          <span className="text-xs text-slate-500 font-medium">
-            Halaman {currentPage} dari {totalPages}
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-slate-500 font-medium">
+              Halaman {currentPage} dari {totalPages}
+            </span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="text-xs font-medium border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 px-2 py-1 text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+            >
+              <option value={10}>10 Baris</option>
+              <option value={20}>20 Baris</option>
+              <option value={50}>50 Baris</option>
+              <option value={100}>100 Baris</option>
+            </select>
+          </div>
           <div className="flex gap-2">
             <button 
               disabled={currentPage === 1}

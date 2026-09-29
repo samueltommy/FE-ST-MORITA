@@ -113,7 +113,7 @@ export const HrdModule: React.FC = () => {
 
   const [attPage, setAttPage] = useState(1);
   const [salesPage, setSalesPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
 
   const { data: salesVisitsRes, isLoading: loadingSales } = useQuery({
     queryKey: ['salesVisits', salesPage, pageSize],
@@ -172,12 +172,8 @@ export const HrdModule: React.FC = () => {
   const { isSuperAdmin, isExecutive, hasPermission } = useRBAC();
   const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
 
-  const { data: allEmployeeData } = useQuery({
-    queryKey: ['hrd', 'employees', 'all-metrics'],
-    queryFn: () => getEmployeesApi(1, 1000, ''),
-    enabled: isHrdAdmin,
-  });
-  const allApiUsers = allEmployeeData?.data || [];
+  // We don't need all-metrics here anymore
+  const allApiUsers: any[] = [];
 
   const filteredAttendanceLogs = attendanceLogs.filter((log: any) => 
     log.employeeName.toLowerCase().includes(attSearch.toLowerCase())
@@ -357,10 +353,10 @@ export const HrdModule: React.FC = () => {
                 )}
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400">
-                  <tr>
+            <div className="overflow-auto max-h-[60vh] 2xl:max-h-[70vh]">
+              <table className="w-full text-xs text-left relative">
+                <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 shadow-sm text-slate-500 dark:text-slate-400">
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
                     <th className="px-4 py-3 font-bold">Nama Karyawan</th>
                     <th className="px-4 py-3 font-bold">Departemen</th>
                     <th className="px-4 py-3 font-bold">Shift</th>
@@ -408,9 +404,24 @@ export const HrdModule: React.FC = () => {
             </div>
             {/* KONTROL PAGINATION ATTENDANCE */}
             <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
-              <span className="text-xs text-slate-500 font-medium">
-                Halaman {attPage} dari {attTotalPages}
-              </span>
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-slate-500 font-medium">
+                  Halaman {attPage} dari {attTotalPages}
+                </span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setAttPage(1);
+                  }}
+                  className="text-xs font-medium border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 px-2 py-1 text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+                >
+                  <option value={10}>10 Baris</option>
+                  <option value={20}>20 Baris</option>
+                  <option value={50}>50 Baris</option>
+                  <option value={100}>100 Baris</option>
+                </select>
+              </div>
               <div className="flex gap-2">
                 <button 
                   disabled={attPage === 1}

@@ -89,7 +89,7 @@ export const ProcurementEximModule: React.FC = () => {
   const procurementOrders = poRes?.data || [];
 
   const [eximPage, setEximPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
   const { data: eximRes } = useQuery({
     queryKey: ['eximDocs', eximPage, pageSize],
     queryFn: () => getEximDocsApi(eximPage, pageSize),
@@ -353,7 +353,7 @@ export const ProcurementEximModule: React.FC = () => {
               {t.docList}
             </h3>
 
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 overflow-auto max-h-[60vh] 2xl:max-h-[70vh] pr-1">
               {filteredEximDocs.map((doc, docIdx) => (
                 <div 
                   key={doc.id || doc.referenceNumber || `doc-${docIdx}`} 
@@ -408,9 +408,24 @@ export const ProcurementEximModule: React.FC = () => {
             
             {/* KONTROL PAGINATION EXIM */}
             <div className="flex justify-between items-center mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
-              <span className="text-xs text-slate-500 font-medium">
-                Halaman {eximPage} dari {eximTotalPages}
-              </span>
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-slate-500 font-medium">
+                  Halaman {eximPage} dari {eximTotalPages}
+                </span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setEximPage(1);
+                  }}
+                  className="text-xs font-medium border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 px-2 py-1 text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+                >
+                  <option value={10}>10 Baris</option>
+                  <option value={20}>20 Baris</option>
+                  <option value={50}>50 Baris</option>
+                  <option value={100}>100 Baris</option>
+                </select>
+              </div>
               <div className="flex gap-2">
                 <button 
                   disabled={eximPage === 1}

@@ -89,7 +89,7 @@ export const SalesTrackingModule: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [quotePage, setQuotePage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
   
   const { data: quoteRes } = useQuery({
     queryKey: ['quotations', quotePage, pageSize],
@@ -202,7 +202,7 @@ export const SalesTrackingModule: React.FC = () => {
               {t.quoteList}
             </h3>
 
-            <div className="space-y-3">
+            <div className="space-y-3 overflow-auto max-h-[60vh] 2xl:max-h-[70vh] pr-1">
               {filteredQuotes.map((q, qIdx) => {
                 const isPending = q.status === 'PENDING_COST_CONTROL';
                 const isLowMargin = q.grossMarginPercent < 18.0;
@@ -297,9 +297,24 @@ export const SalesTrackingModule: React.FC = () => {
             
             {/* KONTROL PAGINATION QUOTATIONS */}
             <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-              <span className="text-xs text-slate-500 font-medium">
-                Halaman {quotePage} dari {quoteTotalPages}
-              </span>
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-slate-500 font-medium">
+                  Halaman {quotePage} dari {quoteTotalPages}
+                </span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setQuotePage(1);
+                  }}
+                  className="text-xs font-medium border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 px-2 py-1 text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+                >
+                  <option value={10}>10 Baris</option>
+                  <option value={20}>20 Baris</option>
+                  <option value={50}>50 Baris</option>
+                  <option value={100}>100 Baris</option>
+                </select>
+              </div>
               <div className="flex gap-2">
                 <button 
                   disabled={quotePage === 1}
