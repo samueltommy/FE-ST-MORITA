@@ -16,6 +16,8 @@ const CONTENT = {
     tabSpk: 'Penerbitan SPK (Work Order)',
     tabQc: 'Input Uji Mutu QC (IQC & PQC)',
     tabHold: 'Otorisasi Release QC Hold',
+    tabRm: 'Log Konsumsi Bahan Baku',
+    tabDowntime: 'Log Downtime Mesin',
     spkNum: 'Nomor SPK Produksi',
     spkIo: 'Referensi IO / PO Pelanggan',
     spkItem: 'Kode Produk',
@@ -68,6 +70,8 @@ const CONTENT = {
     tabSpk: 'SPK Issuance (Work Order)',
     tabQc: 'QC Quality Test Input (IQC & PQC)',
     tabHold: 'QC Hold Release Authorization',
+    tabRm: 'RM Consumption Log',
+    tabDowntime: 'Machine Downtime Log',
     spkNum: 'Production SPK Number',
     spkIo: 'Customer IO / PO Reference',
     spkItem: 'Product Code',
@@ -120,7 +124,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
 
-  const [activeTab, setActiveTab] = useState<'spk' | 'qc_test' | 'hold_override' | 'coa'>(defaultTab);
+  const [activeTab, setActiveTab] = useState<'spk' | 'qc_test' | 'hold_override' | 'rm_consumption' | 'downtime'>(defaultTab as any);
   const currentUser = useAppStore((state) => state.currentUser);
   const items = useAppStore((state) => state.items);
   const qcRecords = useAppStore((state) => state.qcRecords);
@@ -162,6 +166,15 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
   // Form 3: Override state
   const [overrideLot, setOverrideLot] = useState(qcRecords.find((r) => r.status === 'HOLD')?.id || '');
   const [overrideReason, setOverrideReason] = useState('');
+
+  // Form 4: RM Consumption state
+  const [rmLogs, setRmLogs] = useState([{ kode_bahan_baku: '', nomor_batch_terpakai: '', qty_standar_bom: 0, qty_aktual_terpakai: 0, keterangan_selisih: '' }]);
+
+  // Form 5: Downtime state
+  const [downtimeStart, setDowntimeStart] = useState('');
+  const [downtimeEnd, setDowntimeEnd] = useState('');
+  const [downtimeMinutes, setDowntimeMinutes] = useState(0);
+  const [downtimeCategory, setDowntimeCategory] = useState('Mesin Rusak');
 
   if (!isOpen) return null;
 
@@ -259,6 +272,26 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
     }, 1500);
   };
 
+  const handleRmSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rmLogs.length === 0) return;
+    setSuccessMessage('Log Konsumsi Bahan Baku (RM) berhasil dicatat.');
+    setTimeout(() => {
+      setSuccessMessage(null);
+      onClose();
+    }, 1500);
+  };
+
+  const handleDowntimeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!downtimeStart || !downtimeEnd) return;
+    setSuccessMessage('Log Downtime mesin produksi berhasil dicatat.');
+    setTimeout(() => {
+      setSuccessMessage(null);
+      onClose();
+    }, 1500);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
@@ -315,6 +348,28 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
           >
             <Unlock className="w-4 h-4" />
             <span>{t.tabHold}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('rm_consumption')}
+            className={`px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+              activeTab === 'rm_consumption'
+                ? 'border-rose-600 text-rose-700 bg-rose-50/50'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Award className="w-4 h-4" />
+            <span>{t.tabRm}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('downtime')}
+            className={`px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+              activeTab === 'downtime'
+                ? 'border-rose-600 text-rose-700 bg-rose-50/50'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <AlertTriangle className="w-4 h-4" />
+            <span>{t.tabDowntime}</span>
           </button>
         </div>
 
@@ -717,6 +772,97 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                 >
                   {t.btnOverrideSubmit}
                 </button>
+              </div>
+            </form>
+          )}
+
+          {/* 4. RM Consumption Form */}
+          {activeTab === 'rm_consumption' && (
+            <form onSubmit={handleRmSubmit} className="space-y-4">
+              <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-start gap-3">
+                <FileSpreadsheet className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="font-bold">Log Konsumsi Bahan Baku (Raw Material)</strong>
+                  <div className="text-[11px] text-blue-800 mt-0.5">
+                    Mencatat penggunaan aktual bahan baku dibandingkan dengan standar BOM (Bill of Materials).
+                  </div>
+                </div>
+              </div>
+
+              {rmLogs.map((log, index) => (
+                <div key={index} className="p-4 border border-slate-200 rounded-xl space-y-3 relative">
+                  <h4 className="text-xs font-bold text-slate-700">Material #{index + 1}</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Kode Bahan Baku</label>
+                      <input type="text" value={log.kode_bahan_baku} onChange={(e) => { const newLogs = [...rmLogs]; newLogs[index].kode_bahan_baku = e.target.value; setRmLogs(newLogs); }} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300" required />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Nomor Batch Terpakai</label>
+                      <input type="text" value={log.nomor_batch_terpakai} onChange={(e) => { const newLogs = [...rmLogs]; newLogs[index].nomor_batch_terpakai = e.target.value; setRmLogs(newLogs); }} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300" required />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Qty Standar BOM</label>
+                      <input type="number" value={log.qty_standar_bom} onChange={(e) => { const newLogs = [...rmLogs]; newLogs[index].qty_standar_bom = Number(e.target.value); setRmLogs(newLogs); }} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300" required />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Qty Aktual Terpakai</label>
+                      <input type="number" value={log.qty_aktual_terpakai} onChange={(e) => { const newLogs = [...rmLogs]; newLogs[index].qty_aktual_terpakai = Number(e.target.value); setRmLogs(newLogs); }} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300" required />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Keterangan Selisih (Jika Ada Variance)</label>
+                      <input type="text" value={log.keterangan_selisih} onChange={(e) => { const newLogs = [...rmLogs]; newLogs[index].keterangan_selisih = e.target.value; setRmLogs(newLogs); }} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300" />
+                    </div>
+                  </div>
+                  {rmLogs.length > 1 && (
+                    <button type="button" onClick={() => setRmLogs(rmLogs.filter((_, i) => i !== index))} className="absolute top-3 right-3 text-slate-400 hover:text-rose-500">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" onClick={() => setRmLogs([...rmLogs, { kode_bahan_baku: '', nomor_batch_terpakai: '', qty_standar_bom: 0, qty_aktual_terpakai: 0, keterangan_selisih: '' }])} className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                + Tambah Material
+              </button>
+              
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700">{t.btnCancel}</button>
+                <button type="submit" className="px-5 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs">Simpan Konsumsi RM</button>
+              </div>
+            </form>
+          )}
+
+          {/* 5. Downtime Form */}
+          {activeTab === 'downtime' && (
+            <form onSubmit={handleDowntimeSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Kategori Downtime</label>
+                <select value={downtimeCategory} onChange={(e) => setDowntimeCategory(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500">
+                  <option value="Mesin Rusak">Mesin Rusak</option>
+                  <option value="Tunggu Bahan Baku">Tunggu Bahan Baku</option>
+                  <option value="Tunggu QC">Tunggu QC</option>
+                  <option value="Maintenance Rutin">Maintenance Rutin</option>
+                  <option value="Ganti Setup/Pisau">Ganti Setup / Pisau</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Waktu Mulai Stop</label>
+                  <input type="datetime-local" value={downtimeStart} onChange={(e) => setDowntimeStart(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Waktu Selesai Stop</label>
+                  <input type="datetime-local" value={downtimeEnd} onChange={(e) => setDowntimeEnd(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500" required />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Total Menit Downtime</label>
+                <input type="number" value={downtimeMinutes} onChange={(e) => setDowntimeMinutes(Number(e.target.value))} className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500" required />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700">{t.btnCancel}</button>
+                <button type="submit" className="px-5 py-2 text-xs font-bold rounded-xl bg-amber-600 hover:bg-amber-700 text-white shadow-xs">Simpan Downtime</button>
               </div>
             </form>
           )}

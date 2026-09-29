@@ -224,6 +224,11 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
   const [showPrintInvoiceModal, setShowPrintInvoiceModal] = useState(false);
 
+  // FDD Phase 2: Tax Invoice Details
+  const [fakturPajakNo, setFakturPajakNo] = useState('');
+  const [fakturPajakDate, setFakturPajakDate] = useState('');
+  const [fakturPajakStatus, setFakturPajakStatus] = useState('DRAFT');
+
   // Selected DOs
   const selectedDos = useMemo(
     () => deliveryOrders.filter((d) => selectedDoIds.has(d.id)),
@@ -774,6 +779,34 @@ export const FinanceAnalyticsModule: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* FDD Phase 2: Faktur Pajak Details */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+              <h3 className="font-bold text-slate-900 text-xs flex items-center gap-2 mb-2">
+                <Receipt className="w-4 h-4 text-blue-600" />
+                Informasi Faktur Pajak
+              </h3>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1">No. Seri Faktur Pajak</label>
+                  <input type="text" value={fakturPajakNo} onChange={(e) => setFakturPajakNo(e.target.value)} placeholder="010.000-24.12345678" className="w-full px-2 py-1.5 text-xs rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Tanggal Faktur</label>
+                    <input type="date" value={fakturPajakDate} onChange={(e) => setFakturPajakDate(e.target.value)} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Status Pajak</label>
+                    <select value={fakturPajakStatus} onChange={(e) => setFakturPajakStatus(e.target.value)} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="DRAFT">DRAFT</option>
+                      <option value="ISSUED">ISSUED</option>
+                      <option value="REJECTED">REJECTED</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Calculated Breakdown Line-Items - Sidebar Styled Receipt */}

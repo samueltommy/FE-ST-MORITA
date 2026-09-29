@@ -11,6 +11,7 @@ const CONTENT = {
     tabCust: 'Master Pelanggan (Customer)',
     tabSupp: 'Master Vendor / Supplier',
     tabItem: 'Master Item & Pita Perekat',
+    tabBom: 'Master BOM (Bill of Material)',
     tabWaste: 'Pencatatan Limbah Pabrik',
 
     // Customer
@@ -108,6 +109,7 @@ const CONTENT = {
     tabCust: 'Customer Master',
     tabSupp: 'Vendor / Supplier Master',
     tabItem: 'Item Master & Adhesive Tape',
+    tabBom: 'Master BOM (Bill of Material)',
     tabWaste: 'Factory Waste Recording',
 
     // Customer
@@ -204,14 +206,14 @@ const CONTENT = {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  defaultTab?: 'customer' | 'supplier' | 'item' | 'waste';
+  defaultTab?: 'customer' | 'supplier' | 'item' | 'waste' | 'bom';
 }
 
 export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'customer' }) => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
 
-  const [activeTab, setActiveTab] = useState<'customer' | 'supplier' | 'item' | 'waste'>(defaultTab);
+  const [activeTab, setActiveTab] = useState<'customer' | 'supplier' | 'item' | 'waste' | 'bom'>(defaultTab);
   const currentUser = useAppStore((state) => state.currentUser);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -243,18 +245,14 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
   const [custShippingAddress, setCustShippingAddress] = useState('');
   const [custPaymentTerm, setCustPaymentTerm] = useState('Net 30 Hari');
   const [custCreditLimit, setCustCreditLimit] = useState(250000000);
-  const [custContactPerson, setCustContactPerson] = useState('');
-  const [custPhone, setCustPhone] = useState('+62 21 ');
-  const [custEmail, setCustEmail] = useState('');
+  const [custPics, setCustPics] = useState([{ nama_pic: 'Pak Bambang', jabatan_pic: 'Section Head', nomor_telepon: '+62 21 ', email_pic: '' }]);
 
   // Form 2: Supplier state
   const [suppCode, setSuppCode] = useState(`SUPP-${Math.floor(Math.random() * 900 + 100)}`);
   const [suppName, setSuppName] = useState('');
   const [suppNpwp, setSuppNpwp] = useState('');
   const [suppAddress, setSuppAddress] = useState('');
-  const [suppPhone, setSuppPhone] = useState('+62 ');
-  const [suppEmail, setSuppEmail] = useState('');
-  const [suppContact, setSuppContact] = useState('');
+  const [suppPics, setSuppPics] = useState([{ nama_pic: 'Mr. Tanaka', jabatan_pic: 'Sales Manager', nomor_telepon: '+62 ', email_pic: '' }]);
   const [suppTerm, setSuppTerm] = useState('Net 30 Hari');
   const [suppBank, setSuppBank] = useState('BCA KCU Cikarang');
   const [suppAccount, setSuppAccount] = useState('');
@@ -320,9 +318,15 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
       shippingAddress: custShippingAddress.trim() || custBillingAddress.trim(),
       paymentTerm: custPaymentTerm,
       creditLimit: Number(custCreditLimit) || 0,
-      contactPerson: custContactPerson.trim(),
-      phone: custPhone.trim(),
-      email: custEmail.trim(),
+      kontak_pic: custPics.map(pic => ({
+        nama_pic: pic.nama_pic.trim(),
+        jabatan_pic: pic.jabatan_pic.trim(),
+        nomor_telepon: pic.nomor_telepon.trim(),
+        email_pic: pic.email_pic.trim()
+      })),
+      contactPerson: custPics[0]?.nama_pic || '', // for backward compat if any
+      phone: custPics[0]?.nomor_telepon || '',
+      email: custPics[0]?.email_pic || '',
       createdAt: new Date().toISOString().slice(0, 10),
     };
 
@@ -344,9 +348,15 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
       supplierName: suppName.trim(),
       npwp: suppNpwp.trim(),
       address: suppAddress.trim(),
-      phone: suppPhone.trim(),
-      email: suppEmail.trim(),
-      contactPerson: suppContact.trim(),
+      kontak_pic: suppPics.map(pic => ({
+        nama_pic: pic.nama_pic.trim(),
+        jabatan_pic: pic.jabatan_pic.trim(),
+        nomor_telepon: pic.nomor_telepon.trim(),
+        email_pic: pic.email_pic.trim()
+      })),
+      phone: suppPics[0]?.nomor_telepon || '', // for backward compat
+      email: suppPics[0]?.email_pic || '',
+      contactPerson: suppPics[0]?.nama_pic || '',
       paymentTerm: suppTerm,
       bankName: suppBank.trim(),
       bankAccountNumber: suppAccount.trim(),
@@ -424,6 +434,23 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
     }, 1200);
   };
 
+  // Form 5: BOM state
+  const [bomFgItem, setBomFgItem] = useState('');
+  const [bomVersion, setBomVersion] = useState('v1.0.0');
+  const [bomScrap, setBomScrap] = useState(2.5);
+  const [bomComponents, setBomComponents] = useState([{ item_id: '', qty_komposisi_per_base_fg: 0, uom: 'Kg', keterangan: '' }]);
+
+  const handleBomSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bomFgItem.trim() || bomComponents.length === 0) return;
+
+    setSuccessMessage(`BOM Master untuk Item ${bomFgItem} (Versi ${bomVersion}) berhasil diregistrasi dengan ${bomComponents.length} komponen.`);
+    setTimeout(() => {
+      setSuccessMessage(null);
+      onClose();
+    }, 1200);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
@@ -491,6 +518,17 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
           >
             <Trash2 className="w-4 h-4" />
             <span>{t.tabWaste}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('bom')}
+            className={`px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+              activeTab === 'bom'
+                ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>{t.tabBom}</span>
           </button>
         </div>
 
@@ -663,16 +701,93 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.cuPic}</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={t.cuPicPl}
-                    value={custContactPerson}
-                    onChange={(e) => setCustContactPerson(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2 mt-4">
+                  <label className="block text-xs font-bold text-slate-700">Daftar Kontak (PIC)</label>
+                  <button
+                    type="button"
+                    onClick={() => setCustPics([...custPics, { nama_pic: '', jabatan_pic: '', nomor_telepon: '', email_pic: '' }])}
+                    className="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded"
+                  >
+                    + Tambah PIC
+                  </button>
+                </div>
+                
+                <div className="space-y-2">
+                  {custPics.map((pic, idx) => (
+                    <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Nama Lengkap"
+                          value={pic.nama_pic}
+                          onChange={(e) => {
+                            const newPics = [...custPics];
+                            newPics[idx].nama_pic = e.target.value;
+                            setCustPics(newPics);
+                          }}
+                          className="w-full px-2 py-1 text-xs rounded border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold"
+                        />
+                      </div>
+                      <div className="w-32">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Jabatan"
+                          value={pic.jabatan_pic}
+                          onChange={(e) => {
+                            const newPics = [...custPics];
+                            newPics[idx].jabatan_pic = e.target.value;
+                            setCustPics(newPics);
+                          }}
+                          className="w-full px-2 py-1 text-xs rounded border border-slate-300 focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <div className="w-32">
+                        <input
+                          type="text"
+                          required
+                          placeholder="No HP"
+                          value={pic.nomor_telepon}
+                          onChange={(e) => {
+                            const newPics = [...custPics];
+                            newPics[idx].nomor_telepon = e.target.value;
+                            setCustPics(newPics);
+                          }}
+                          className="w-full px-2 py-1 text-xs rounded border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-mono"
+                        />
+                      </div>
+                      <div className="w-40">
+                        <input
+                          type="email"
+                          placeholder="Email"
+                          value={pic.email_pic}
+                          onChange={(e) => {
+                            const newPics = [...custPics];
+                            newPics[idx].email_pic = e.target.value;
+                            setCustPics(newPics);
+                          }}
+                          className="w-full px-2 py-1 text-xs rounded border border-slate-300 focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                      {custPics.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newPics = [...custPics];
+                            newPics.splice(idx, 1);
+                            setCustPics(newPics);
+                          }}
+                          className="p-1 text-rose-500 hover:bg-rose-50 rounded"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -778,6 +893,94 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                     onChange={(e) => setSuppAccount(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                   />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2 mt-4">
+                  <label className="block text-xs font-bold text-slate-700">Daftar Kontak (PIC) Supplier</label>
+                  <button
+                    type="button"
+                    onClick={() => setSuppPics([...suppPics, { nama_pic: '', jabatan_pic: '', nomor_telepon: '', email_pic: '' }])}
+                    className="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded"
+                  >
+                    + Tambah PIC
+                  </button>
+                </div>
+                
+                <div className="space-y-2">
+                  {suppPics.map((pic, idx) => (
+                    <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Nama Lengkap"
+                          value={pic.nama_pic}
+                          onChange={(e) => {
+                            const newPics = [...suppPics];
+                            newPics[idx].nama_pic = e.target.value;
+                            setSuppPics(newPics);
+                          }}
+                          className="w-full px-2 py-1 text-xs rounded border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold"
+                        />
+                      </div>
+                      <div className="w-32">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Jabatan"
+                          value={pic.jabatan_pic}
+                          onChange={(e) => {
+                            const newPics = [...suppPics];
+                            newPics[idx].jabatan_pic = e.target.value;
+                            setSuppPics(newPics);
+                          }}
+                          className="w-full px-2 py-1 text-xs rounded border border-slate-300 focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <div className="w-32">
+                        <input
+                          type="text"
+                          required
+                          placeholder="No HP"
+                          value={pic.nomor_telepon}
+                          onChange={(e) => {
+                            const newPics = [...suppPics];
+                            newPics[idx].nomor_telepon = e.target.value;
+                            setSuppPics(newPics);
+                          }}
+                          className="w-full px-2 py-1 text-xs rounded border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-mono"
+                        />
+                      </div>
+                      <div className="w-40">
+                        <input
+                          type="email"
+                          placeholder="Email"
+                          value={pic.email_pic}
+                          onChange={(e) => {
+                            const newPics = [...suppPics];
+                            newPics[idx].email_pic = e.target.value;
+                            setSuppPics(newPics);
+                          }}
+                          className="w-full px-2 py-1 text-xs rounded border border-slate-300 focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                      {suppPics.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newPics = [...suppPics];
+                            newPics.splice(idx, 1);
+                            setSuppPics(newPics);
+                          }}
+                          className="p-1 text-rose-500 hover:bg-rose-50 rounded"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -1057,6 +1260,140 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                 >
                   {t.btnSaveWaste}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* 5. Master BOM */}
+          {activeTab === 'bom' && (
+            <form onSubmit={handleBomSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Item Finished Goods (FG)</label>
+                  <input
+                    type="text"
+                    required
+                    value={bomFgItem}
+                    onChange={(e) => setBomFgItem(e.target.value)}
+                    placeholder="Kode Item FG..."
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Versi BOM</label>
+                  <input
+                    type="text"
+                    required
+                    value={bomVersion}
+                    onChange={(e) => setBomVersion(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Scrap Allowance / Toleransi Susut (%)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  required
+                  value={bomScrap}
+                  onChange={(e) => setBomScrap(Number(e.target.value) || 0)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2 mt-4">
+                  <label className="block text-xs font-bold text-slate-700">Komponen Bahan Baku</label>
+                  <button
+                    type="button"
+                    onClick={() => setBomComponents([...bomComponents, { item_id: '', qty_komposisi_per_base_fg: 0, uom: 'Kg', keterangan: '' }])}
+                    className="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded"
+                  >
+                    + Tambah Material
+                  </button>
+                </div>
+                
+                <div className="space-y-2">
+                  {bomComponents.map((comp, idx) => (
+                    <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Kode Komponen"
+                          value={comp.item_id}
+                          onChange={(e) => {
+                            const newComps = [...bomComponents];
+                            newComps[idx].item_id = e.target.value;
+                            setBomComponents(newComps);
+                          }}
+                          className="w-full px-2 py-1 text-xs rounded border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-mono"
+                        />
+                      </div>
+                      <div className="w-24">
+                        <input
+                          type="number"
+                          step="0.01"
+                          required
+                          placeholder="Qty"
+                          value={comp.qty_komposisi_per_base_fg || ''}
+                          onChange={(e) => {
+                            const newComps = [...bomComponents];
+                            newComps[idx].qty_komposisi_per_base_fg = Number(e.target.value) || 0;
+                            setBomComponents(newComps);
+                          }}
+                          className="w-full px-2 py-1 text-xs rounded border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-mono"
+                        />
+                      </div>
+                      <div className="w-20">
+                        <input
+                          type="text"
+                          required
+                          placeholder="UoM"
+                          value={comp.uom}
+                          onChange={(e) => {
+                            const newComps = [...bomComponents];
+                            newComps[idx].uom = e.target.value;
+                            setBomComponents(newComps);
+                          }}
+                          className="w-full px-2 py-1 text-xs rounded border border-slate-300 focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                      {bomComponents.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newComps = [...bomComponents];
+                            newComps.splice(idx, 1);
+                            setBomComponents(newComps);
+                          }}
+                          className="p-1 text-rose-500 hover:bg-rose-50 rounded"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Simpan Master BOM
                 </button>
               </div>
             </form>

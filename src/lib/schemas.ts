@@ -46,6 +46,12 @@ export type ApiError = z.infer<typeof ApiErrorSchema>;
 
 // ─── HRD Schemas ─────────────────────────────────────────────
 
+export const ChildInfoSchema = z.object({
+  name: z.string(),
+  age: z.number(),
+});
+export type ChildInfo = z.infer<typeof ChildInfoSchema>;
+
 /** Single employee record from GET /hrd/employees */
 export const EmployeeSchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
@@ -65,6 +71,38 @@ export const EmployeeSchema = z.object({
   bankAccountNumber: z.string().optional().nullable(),
   keycloakUserId: z.string().optional().nullable(),
   createdAt: z.string().optional().nullable(),
+
+  // Field Baru
+  userId: z.string().optional().nullable(),
+  npwpNumber: z.string().optional().nullable(),
+  bpjsKesehatan: z.string().optional().nullable(),
+  bpjsKetenagakerjaan: z.string().optional().nullable(),
+  placeOfBirth: z.string().optional().nullable(),
+  dateOfBirth: z.string().optional().nullable(),
+  religion: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  emergencyContactPhone: z.string().optional().nullable(),
+  emergencyContactRelationship: z.string().optional().nullable(),
+  maritalStatus: z.enum(['SINGLE', 'MARRIED']).optional().nullable(),
+  spouseName: z.string().optional().nullable(),
+  children: z.array(ChildInfoSchema).optional().nullable(),
+
+  // Snake-case aliases (if backend sends these without conversion)
+  user_id: z.string().optional().nullable(),
+  full_name: z.string().optional().nullable(),
+  phone_number: z.string().optional().nullable(),
+  employment_status: z.string().optional().nullable(),
+  join_date: z.string().optional().nullable(),
+  identity_card_number: z.string().optional().nullable(),
+  npwp_number: z.string().optional().nullable(),
+  bpjs_kesehatan: z.string().optional().nullable(),
+  bpjs_ketenagakerjaan: z.string().optional().nullable(),
+  place_of_birth: z.string().optional().nullable(),
+  date_of_birth: z.string().optional().nullable(),
+  emergency_contact_phone: z.string().optional().nullable(),
+  emergency_contact_relationship: z.string().optional().nullable(),
+  marital_status: z.enum(['SINGLE', 'MARRIED']).optional().nullable(),
+  spouse_name: z.string().optional().nullable(),
 });
 export type Employee = z.infer<typeof EmployeeSchema>;
 

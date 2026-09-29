@@ -11,6 +11,8 @@ import {
   AlertCircle,
   Plus,
   Navigation,
+  X,
+  Search,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { VehicleBooking, SalesOutdoorVisit } from '../../types';
@@ -18,7 +20,7 @@ import { Can } from '../../components/rbac/Can';
 import { useRBAC } from '../../hooks/useRBAC';
 import { HrdFormsModal } from '../../components/forms/HrdFormsModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getLeaveRequestsApi, getVehicleBookingsApi, getSalesVisitsApi, approveVehicleBookingApi, getAttendanceApi } from '../../services/hrdService';
+import { getLeaveRequestsApi, getVehicleBookingsApi, getSalesVisitsApi, approveVehicleBookingApi, getAttendanceApi, getEmployeesApi } from '../../services/hrdService';
 import { LeaveRequestsTab } from './LeaveRequestsTab';
 
 const CONTENT = {
@@ -101,12 +103,12 @@ export const HrdModule: React.FC = () => {
 
   const { data: leaveRequests = [] } = useQuery({
     queryKey: ['leaveRequests'],
-    queryFn: getLeaveRequestsApi,
+    queryFn: () => getLeaveRequestsApi(),
   });
 
   const { data: vehicleBookings = [] } = useQuery({
     queryKey: ['vehicleBookings'],
-    queryFn: getVehicleBookingsApi,
+    queryFn: () => getVehicleBookingsApi(),
   });
 
   const [attPage, setAttPage] = useState(1);
@@ -122,6 +124,42 @@ export const HrdModule: React.FC = () => {
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  
+  const [dateFilterMode, setDateFilterMode] = useState<'today' | 'week' | 'month' | 'custom'>('custom');
+  const [attSearch, setAttSearch] = useState('');
+  const [viewUserDetail, setViewUserDetail] = useState<any>(null);
+
+  const handleDateFilterModeChange = (mode: 'today' | 'week' | 'month' | 'custom') => {
+    setDateFilterMode(mode);
+    setAttPage(1);
+    if (mode === 'custom') return;
+    
+    const getLocalDateString = (d: Date) => {
+      const offset = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - offset).toISOString().split('T')[0];
+    };
+    
+    const today = new Date();
+    const end = getLocalDateString(today);
+    let start = end;
+    
+    if (mode === 'week') {
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      start = getLocalDateString(weekAgo);
+    } else if (mode === 'month') {
+      const monthAgo = new Date(today);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      start = getLocalDateString(monthAgo);
+    }
+    
+    setStartDate(start);
+    setEndDate(end);
+  };
+
+  React.useEffect(() => {
+    handleDateFilterModeChange('today');
+  }, []);
 
   const { data: attendanceRes, isLoading: loadingAtt } = useQuery({
     queryKey: ['attendanceLogs', attPage, pageSize, startDate, endDate],
@@ -133,6 +171,17 @@ export const HrdModule: React.FC = () => {
   const currentUser = useAppStore((state) => state.currentUser);
   const { isSuperAdmin, isExecutive, hasPermission } = useRBAC();
   const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
+
+  const { data: allEmployeeData } = useQuery({
+    queryKey: ['hrd', 'employees', 'all-metrics'],
+    queryFn: () => getEmployeesApi(1, 1000, ''),
+    enabled: isHrdAdmin,
+  });
+  const allApiUsers = allEmployeeData?.data || [];
+
+  const filteredAttendanceLogs = attendanceLogs.filter((log: any) => 
+    log.employeeName.toLowerCase().includes(attSearch.toLowerCase())
+  );
 
   const [activeTab, setActiveTab] = useState<'attendance_fleet' | 'sales_gps' | 'leave_requests'>(isHrdAdmin ? 'attendance_fleet' : 'leave_requests');
   const [formModalOpen, setFormModalOpen] = useState(false);
@@ -253,33 +302,58 @@ export const HrdModule: React.FC = () => {
 
           {/* Attendance Detail Table */}
           <div className="mt-8 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-500" />
-                Detail Presensi Karyawan Harian
-              </h3>
-              <div className="flex items-center gap-2 text-xs">
-                <input 
-                  type="date" 
-                  value={startDate} 
-                  onChange={(e) => { setStartDate(e.target.value); setAttPage(1); }} 
-                  className="px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-                <span className="text-slate-500 font-medium">s/d</span>
-                <input 
-                  type="date" 
-                  value={endDate} 
-                  onChange={(e) => { setEndDate(e.target.value); setAttPage(1); }} 
-                  className="px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-                {(startDate || endDate) && (
-                  <button 
-                    onClick={() => { setStartDate(''); setEndDate(''); setAttPage(1); }}
-                    className="p-1 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
-                    title="Reset Tanggal"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-indigo-500" />
+                  Detail Presensi Karyawan
+                </h3>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={attSearch}
+                      onChange={(e) => { setAttSearch(e.target.value); setAttPage(1); }}
+                      placeholder="Cari nama karyawan..."
+                      className="pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-64"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex items-center gap-1.5 bg-slate-200/50 dark:bg-slate-800 p-1 rounded-xl w-fit">
+                  <button onClick={() => handleDateFilterModeChange('today')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${dateFilterMode === 'today' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Hari Ini</button>
+                  <button onClick={() => handleDateFilterModeChange('week')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${dateFilterMode === 'week' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>1 Minggu</button>
+                  <button onClick={() => handleDateFilterModeChange('month')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${dateFilterMode === 'month' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>1 Bulan</button>
+                  <button onClick={() => handleDateFilterModeChange('custom')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${dateFilterMode === 'custom' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Custom</button>
+                </div>
+                
+                {dateFilterMode === 'custom' && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <input 
+                      type="date" 
+                      value={startDate} 
+                      onChange={(e) => { setStartDate(e.target.value); setAttPage(1); }} 
+                      className="px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                    <span className="text-slate-500 font-medium">s/d</span>
+                    <input 
+                      type="date" 
+                      value={endDate} 
+                      onChange={(e) => { setEndDate(e.target.value); setAttPage(1); }} 
+                      className="px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                    {(startDate || endDate) && (
+                      <button 
+                        onClick={() => { setStartDate(''); setEndDate(''); setAttPage(1); }}
+                        className="p-1 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
+                        title="Reset Tanggal"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -296,9 +370,17 @@ export const HrdModule: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {attendanceLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                      <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{log.employeeName}</td>
+                  {filteredAttendanceLogs.map((log: any) => (
+                    <tr 
+                      key={log.id} 
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+                      onClick={() => {
+                        const employeeInfo = allApiUsers.find((u: any) => String(u.id) === String(log.employeeId) || u.fullName === log.employeeName) || { full_name: log.employeeName, department: log.department };
+                        setViewUserDetail(employeeInfo);
+                      }}
+                      title="Klik untuk melihat profil lengkap"
+                    >
+                      <td className="px-4 py-3 font-bold text-blue-600 dark:text-blue-400 group-hover:underline">{log.employeeName}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{log.department}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{log.shift}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{log.checkIn}</td>
@@ -314,10 +396,10 @@ export const HrdModule: React.FC = () => {
                       </td>
                     </tr>
                   ))}
-                  {attendanceLogs.length === 0 && (
+                  {filteredAttendanceLogs.length === 0 && (
                     <tr>
                       <td colSpan={6} className="px-4 py-8 text-center text-slate-500 italic">
-                        {loadingAtt ? 'Memuat data presensi...' : 'Tidak ada data presensi hari ini.'}
+                        {loadingAtt ? 'Memuat data presensi...' : 'Tidak ada data presensi yang sesuai.'}
                       </td>
                     </tr>
                   )}
@@ -478,6 +560,149 @@ export const HrdModule: React.FC = () => {
           </div>
         </div>
       ) : null}
+
+      {/* MODAL: View Employee Detail */}
+      {viewUserDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-100">
+          <div className="w-full max-w-3xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-600" />
+                Detail Lengkap Karyawan
+              </h2>
+              <button
+                onClick={() => setViewUserDetail(null)}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Identitas & Pekerjaan</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-slate-500 dark:text-slate-400">Nama Lengkap</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.full_name || viewUserDetail.fullName || viewUserDetail.name || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">NIK</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.nik || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Email</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.email || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">No HP</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.phone_number || viewUserDetail.phoneNumber || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Departemen</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.department || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Status Pegawai</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.employment_status || viewUserDetail.employmentStatus || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Level Akses</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.user_level || viewUserDetail.userLevel || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Tgl Bergabung</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.join_date || viewUserDetail.joinDate || '-'}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Dokumen Resmi & Finansial</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-slate-500 dark:text-slate-400">No. KTP</div>
+                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.identity_card_number || viewUserDetail.identityCardNumber || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">No. NPWP</div>
+                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.npwp_number || viewUserDetail.npwpNumber || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">BPJS Kesehatan</div>
+                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.bpjs_kesehatan || viewUserDetail.bpjsKesehatan || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">BPJS Ketenagakerjaan</div>
+                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.bpjs_ketenagakerjaan || viewUserDetail.bpjsKetenagakerjaan || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Gaji Pokok</div>
+                    <div className="font-bold text-emerald-600 dark:text-emerald-400">Rp {(viewUserDetail.basic_salary || viewUserDetail.basicSalary)?.toLocaleString() || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Bank & Rekening</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">
+                      {viewUserDetail.bank_name || viewUserDetail.bankName || '-'} - {viewUserDetail.bank_account_number || viewUserDetail.bankAccountNumber || '-'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Data Pribadi</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-slate-500 dark:text-slate-400">Tempat Lahir</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.place_of_birth || viewUserDetail.placeOfBirth || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Tanggal Lahir</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.date_of_birth || viewUserDetail.dateOfBirth || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Agama</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.religion || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Status Pernikahan</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.marital_status || viewUserDetail.maritalStatus || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Alamat</div>
+                    <div className="col-span-2 font-medium text-slate-800 dark:text-slate-200 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">{viewUserDetail.address || '-'}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Keluarga & Darurat</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-slate-500 dark:text-slate-400">Kontak Darurat (No)</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_phone || viewUserDetail.emergencyContactPhone || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Relasi Darurat</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_relationship || viewUserDetail.emergencyContactRelationship || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Nama Pasangan</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.spouse_name || viewUserDetail.spouseName || '-'}</div>
+                  </div>
+                  
+                  <div className="mt-3">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">Data Anak:</div>
+                    {(viewUserDetail.children && viewUserDetail.children.length > 0) ? (
+                      <div className="space-y-1">
+                        {viewUserDetail.children.map((child: any, idx: number) => (
+                          <div key={idx} className="flex justify-between p-1.5 bg-slate-50 dark:bg-slate-800 rounded text-xs">
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{child.name}</span>
+                            <span className="text-slate-500 dark:text-slate-400">{child.age} tahun</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-500 dark:text-slate-400 italic">Tidak ada data anak.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Kuota & Sisa Cuti</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="text-slate-500 dark:text-slate-400 mb-1">Hak Cuti Tahunan</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.hak_cuti_tahunan ?? '-'} hari</div>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="text-slate-500 dark:text-slate-400 mb-1">Cuti Terpakai</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.cuti_terpakai ?? '-'} hari</div>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-xl border border-blue-100 dark:border-blue-800">
+                    <div className="text-blue-600 dark:text-blue-400 mb-1">Sisa Cuti Aktif</div>
+                    <div className="font-bold text-blue-700 dark:text-blue-300 text-sm">{viewUserDetail.sisa_cuti_aktif ?? '-'} hari</div>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="text-slate-500 dark:text-slate-400 mb-1">Periode Berlaku</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.periode_berlaku_cuti || '-'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => setViewUserDetail(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-sm font-bold text-slate-800 dark:text-white transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* HRD Forms Modal */}
       <HrdFormsModal

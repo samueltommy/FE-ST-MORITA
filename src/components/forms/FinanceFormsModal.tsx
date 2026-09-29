@@ -11,6 +11,7 @@ const CONTENT = {
     tabRma: '2. Disposisi RMA & Debit Note',
     tabAp: '3. Faktur Hutang (AP)',
     tabAr: '4. Penerimaan Piutang (AR)',
+    tabPettyCash: '5. Bukti Kas Keluar (BKK / Petty Cash)',
     cTicket: 'Nomor Tiket E-Complaint',
     cCust: 'Nama Perusahaan Pelanggan',
     cDoRef: 'Nomor Referensi DO / Surat Jalan',
@@ -80,6 +81,7 @@ const CONTENT = {
     tabRma: '2. RMA & Debit Note Disposition',
     tabAp: '3. Account Payable (AP)',
     tabAr: '4. Account Receivable (AR)',
+    tabPettyCash: '5. Petty Cash Voucher',
     cTicket: 'E-Complaint Ticket Number',
     cCust: 'Customer Company Name',
     cDoRef: 'DO / Delivery Order Reference Number',
@@ -147,14 +149,14 @@ const CONTENT = {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  defaultTab?: 'complaint' | 'ap' | 'ar' | 'rma';
+  defaultTab?: 'complaint' | 'ap' | 'ar' | 'rma' | 'petty_cash';
 }
 
 export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = 'complaint' }) => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
 
-  const [activeTab, setActiveTab] = useState<'complaint' | 'ap' | 'ar' | 'rma'>(defaultTab);
+  const [activeTab, setActiveTab] = useState<'complaint' | 'ap' | 'ar' | 'rma' | 'petty_cash'>(defaultTab);
   const currentUser = useAppStore((state) => state.currentUser);
   const customers = useAppStore((state) => state.customers);
   const suppliers = useAppStore((state) => state.suppliers);
@@ -198,6 +200,13 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
   const [arAmount, setArAmount] = useState(387500000);
   const [arMethod, setArMethod] = useState<ArPaymentRecord['paymentMethod']>('BCA_VIRTUAL_ACCOUNT');
   const [arRefCode, setArRefCode] = useState(`TRX-BCA-${Math.floor(Math.random() * 9000000 + 1000000)}`);
+
+  // Form 5: Petty Cash state
+  const [pcBkk, setPcBkk] = useState(`BKK/SMI/2026/09/00${Math.floor(Math.random() * 90 + 10)}`);
+  const [pcEntity, setPcEntity] = useState('Bpk. Budi (Logistik)');
+  const [pcCoa, setPcCoa] = useState('6102-BIAYA-BENSIN-TOL');
+  const [pcDesc, setPcDesc] = useState('Bensin operasional truk engkel B 1234 CD');
+  const [pcNominal, setPcNominal] = useState(250000);
 
   if (!isOpen) return null;
 
@@ -262,6 +271,17 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
 
     appStore.addVendorInvoice(newAp);
     setSuccessMessage(`${t.msgApSuccess} ${apInvoiceNo} ${t.msgApSuccessFrom} ${apSupplier} ${t.msgApSuccessValue} ${total.toLocaleString()} ${t.msgApSuccessEnd}`);
+    setTimeout(() => {
+      setSuccessMessage(null);
+      onClose();
+    }, 1500);
+  };
+
+  const handlePcSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pcBkk.trim()) return;
+
+    setSuccessMessage(`Bukti Kas Keluar (BKK) ${pcBkk} senilai IDR ${pcNominal.toLocaleString()} berhasil diterbitkan.`);
     setTimeout(() => {
       setSuccessMessage(null);
       onClose();
@@ -360,6 +380,17 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
           >
             <DollarSign className="w-4 h-4" />
             <span>{t.tabAr}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('petty_cash')}
+            className={`px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+              activeTab === 'petty_cash'
+                ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Building className="w-4 h-4" />
+            <span>{t.tabPettyCash}</span>
           </button>
         </div>
 
@@ -749,6 +780,96 @@ export const FinanceFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 >
                   {t.btnAr}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* 5. Bukti Kas Keluar (Petty Cash) */}
+          {activeTab === 'petty_cash' && (
+            <form onSubmit={handlePcSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">No. Bukti Kas Keluar (BKK)</label>
+                  <input
+                    type="text"
+                    required
+                    value={pcBkk}
+                    onChange={(e) => setPcBkk(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Entitas Tujuan / Diberikan Kepada</label>
+                  <input
+                    type="text"
+                    required
+                    value={pcEntity}
+                    onChange={(e) => setPcEntity(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Mata Anggaran (Chart of Account)</label>
+                <select
+                  value={pcCoa}
+                  onChange={(e) => setPcCoa(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-bold"
+                >
+                  <option value="6102-BIAYA-BENSIN-TOL">6102 - Biaya Bensin, Parkir, dan Tol Operasional</option>
+                  <option value="6103-BIAYA-KONSUMSI">6103 - Biaya Konsumsi & Entertainment Klien</option>
+                  <option value="6104-BIAYA-PERAWATAN">6104 - Biaya Perawatan Rutin Bangunan & Mesin</option>
+                  <option value="6105-BIAYA-LAINNYA">6105 - Biaya Umum Lain-lain (Rupa-rupa)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Deskripsi & Rincian Pengeluaran</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={pcDesc}
+                  onChange={(e) => setPcDesc(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nominal (IDR)</label>
+                  <input
+                    type="number"
+                    required
+                    value={pcNominal}
+                    onChange={(e) => setPcNominal(Number(e.target.value) || 0)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Upload Bukti Nota (Opsional)</label>
+                  <input
+                    type="file"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700"
+                >
+                  {t.btnCancel}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs flex items-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Cetak BKK
                 </button>
               </div>
             </form>

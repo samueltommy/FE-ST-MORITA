@@ -513,6 +513,9 @@ export const UserManagementModule: React.FC = () => {
   // Inspect Permissions Modal State
   const [inspectUser, setInspectUser] = useState<UserProfile | null>(null);
 
+  // View Details Modal State
+  const [viewUserDetail, setViewUserDetail] = useState<any>(null);
+
   const authToken = useAuthStore((state) => state.token);
   const isAuthorized = canManageUsers(currentUser);
 
@@ -1113,7 +1116,14 @@ export const UserManagementModule: React.FC = () => {
                     >
                       {/* Name, NIK, Photo */}
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
+                        <div 
+                          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity group"
+                          onClick={() => {
+                            const fullData = apiUsers.find(u => String(u.id) === String(user.id)) || user;
+                            setViewUserDetail(fullData);
+                          }}
+                          title="Klik untuk melihat detail"
+                        >
                           <img
                             src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
                             alt={user.name}
@@ -1299,6 +1309,149 @@ export const UserManagementModule: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* MODAL: View Employee Detail */}
+      {viewUserDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-100">
+          <div className="w-full max-w-3xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-600" />
+                Detail Lengkap Karyawan
+              </h2>
+              <button
+                onClick={() => setViewUserDetail(null)}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Identitas & Pekerjaan</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-slate-500 dark:text-slate-400">Nama Lengkap</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.full_name || viewUserDetail.fullName || viewUserDetail.name || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">NIK</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.nik || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Email</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.email || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">No HP</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.phone_number || viewUserDetail.phoneNumber || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Departemen</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.department || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Status Pegawai</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.employment_status || viewUserDetail.employmentStatus || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Level Akses</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.user_level || viewUserDetail.userLevel || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Tgl Bergabung</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.join_date || viewUserDetail.joinDate || '-'}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Dokumen Resmi & Finansial</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-slate-500 dark:text-slate-400">No. KTP</div>
+                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.identity_card_number || viewUserDetail.identityCardNumber || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">No. NPWP</div>
+                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.npwp_number || viewUserDetail.npwpNumber || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">BPJS Kesehatan</div>
+                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.bpjs_kesehatan || viewUserDetail.bpjsKesehatan || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">BPJS Ketenagakerjaan</div>
+                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.bpjs_ketenagakerjaan || viewUserDetail.bpjsKetenagakerjaan || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Gaji Pokok</div>
+                    <div className="font-bold text-emerald-600 dark:text-emerald-400">Rp {(viewUserDetail.basic_salary || viewUserDetail.basicSalary)?.toLocaleString() || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Bank & Rekening</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">
+                      {viewUserDetail.bank_name || viewUserDetail.bankName || '-'} - {viewUserDetail.bank_account_number || viewUserDetail.bankAccountNumber || '-'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Data Pribadi</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-slate-500 dark:text-slate-400">Tempat Lahir</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.place_of_birth || viewUserDetail.placeOfBirth || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Tanggal Lahir</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.date_of_birth || viewUserDetail.dateOfBirth || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Agama</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.religion || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Status Pernikahan</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.marital_status || viewUserDetail.maritalStatus || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Alamat</div>
+                    <div className="col-span-2 font-medium text-slate-800 dark:text-slate-200 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">{viewUserDetail.address || '-'}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Keluarga & Darurat</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-slate-500 dark:text-slate-400">Kontak Darurat (No)</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_phone || viewUserDetail.emergencyContactPhone || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Relasi Darurat</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_relationship || viewUserDetail.emergencyContactRelationship || '-'}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Nama Pasangan</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.spouse_name || viewUserDetail.spouseName || '-'}</div>
+                  </div>
+                  
+                  <div className="mt-3">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">Data Anak:</div>
+                    {(viewUserDetail.children && viewUserDetail.children.length > 0) ? (
+                      <div className="space-y-1">
+                        {viewUserDetail.children.map((child: any, idx: number) => (
+                          <div key={idx} className="flex justify-between p-1.5 bg-slate-50 dark:bg-slate-800 rounded text-xs">
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{child.name}</span>
+                            <span className="text-slate-500 dark:text-slate-400">{child.age} tahun</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-500 dark:text-slate-400 italic">Tidak ada data anak.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Kuota & Sisa Cuti</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="text-slate-500 dark:text-slate-400 mb-1">Hak Cuti Tahunan</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.hak_cuti_tahunan ?? '-'} hari</div>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="text-slate-500 dark:text-slate-400 mb-1">Cuti Terpakai</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.cuti_terpakai ?? '-'} hari</div>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-xl border border-blue-100 dark:border-blue-800">
+                    <div className="text-blue-600 dark:text-blue-400 mb-1">Sisa Cuti Aktif</div>
+                    <div className="font-bold text-blue-700 dark:text-blue-300 text-sm">{viewUserDetail.sisa_cuti_aktif ?? '-'} hari</div>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="text-slate-500 dark:text-slate-400 mb-1">Periode Berlaku</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.periode_berlaku_cuti || '-'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => setViewUserDetail(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-sm font-bold text-slate-800 dark:text-white transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: Edit User */}
       {isEditModalOpen && (

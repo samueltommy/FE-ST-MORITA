@@ -411,6 +411,7 @@ export interface CustomerMaster {
   contactPerson: string;
   phone: string;
   email: string;
+  kontak_pic?: ContactPIC[];
   createdAt: string;
 }
 
@@ -422,6 +423,7 @@ export interface SupplierMaster {
   address: string;
   phone: string;
   email: string;
+  kontak_pic?: ContactPIC[];
   contactPerson: string;
   paymentTerm: string;
   bankName: string;
@@ -585,4 +587,224 @@ export interface AttendanceRecord {
   checkOut: string;
   status: 'HADIR' | 'TERLAMBAT' | 'CUTI' | 'SAKIT' | 'IZIN' | 'ALPHA';
   notes?: string;
+}
+
+// -------------------------------------------------------------
+// FDD Payload Interfaces for Backend Connectivity
+// -------------------------------------------------------------
+
+export interface LeaveRequestPayload {
+  request_type: 'LEAVE_CUTI' | 'VEHICLE_BOOKING' | 'SALES_VISIT' | string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+  // Field Khusus Kendaraan
+  vehicle_id?: string;
+  start_km?: number;
+  end_km?: number;
+  fuel_indicator_e_f?: string; // e.g., "E", "1/4", "1/2", "3/4", "F"
+  booking_purpose?: string;    // "Dinas Kantor" / "Pribadi"
+  destination?: string;
+}
+
+export interface PRItem {
+  item_id: string;
+  requested_qty: number;
+  uom_id: string;
+  estimated_unit_price: number;
+  // Tambahan FDD
+  forecast_marketing?: number;
+  average_consume?: number;
+  end_stock?: number;
+  otw_qty?: number;
+  eta_warehouse?: string; // YYYY-MM-DD
+}
+
+export interface POCreatePayload {
+  pr_id: string;
+  supplier_id: string;
+  po_date: string;
+  // Tambahan FDD
+  po_category?: string;     // "PO Baru" | "Pajak"
+  ship_to_address?: string; // Alamat Gudang Pengiriman
+  payment_term?: string;
+  delivery_term?: string;
+  delivery_time?: string;
+  purpose?: string;
+}
+
+export interface GoodsReceiptPayload {
+  po_id: string;
+  delivery_note_number: string;
+  // Tambahan FDD Kontainer & Surat
+  container_no?: string;
+  seal_no?: string;
+  packing_list_no?: string;
+  items: Array<{
+    item_id: string;
+    received_qty: number;
+    warehouse_location: string;
+    // Tambahan Ukuran Fisik Real-time
+    size_overall?: string;
+    size_usable?: string;
+  }>;
+}
+
+export interface QCInspectionPayload {
+  qc_type: 'IQC' | 'PQC' | 'OQC';
+  stock_batch_id: string;
+  item_id: string;
+  // Tambahan Pengujian Fisik (Angka)
+  lebar_mm?: number;
+  panjang_m?: number;
+  micron?: number;
+  // Tambahan Pengujian Visual (Boolean/Checkbox)
+  teleskoping?: boolean;
+  kotor?: boolean;
+  penyog?: boolean;
+  berongga?: boolean;
+  berkerut?: boolean;
+  sambungan?: boolean;
+}
+
+export interface ComplaintPayload {
+  sales_invoice_id: string;
+  complaint_description: string;
+  // Tambahan Analisis Masalah
+  discovered_where?: string;
+  symptom?: string;
+  root_cause?: string;
+  preventive_action?: string;
+  corrective_action?: string;
+  reject_qty?: number;
+  percent_reject?: number;
+}
+
+export interface SupplierCreatePayload {
+  supplier_code: string;
+  supplier_name: string;
+  // Checklist 14 Dokumen Legalitas
+  legal_documents_checklist?: Record<string, boolean>; 
+  // Scoring
+  score_quality?: number;
+  score_cost?: number;
+  score_delivery?: number;
+}
+
+// -------------------------------------------------------------
+// FDD Phase 2: Form Payload Interfaces & New Schemas
+// -------------------------------------------------------------
+
+export interface EmployeeLeaveQuota {
+  hak_cuti_tahunan?: number;
+  cuti_terpakai?: number;
+  sisa_cuti_aktif?: number;
+  periode_berlaku_cuti?: string;
+}
+
+export interface ContactPIC {
+  nama_pic: string;
+  jabatan_pic: string;
+  departemen_pic?: string;
+  no_hp_whatsapp: string;
+  email_pic?: string;
+  status_pic_utama: boolean;
+}
+
+export interface TaxAddress {
+  nama_npwp?: string;
+  alamat_pajak_lengkap?: string;
+  rt_rw?: string;
+  kelurahan?: string;
+  kecamatan?: string;
+  kota?: string;
+  kode_pos?: string;
+}
+
+export interface UomConversion {
+  base_uom?: string;
+  purchasing_uom?: string;
+  sales_uom?: string;
+  conversion_factor_purchase?: number;
+  conversion_factor_sales?: number;
+}
+
+export interface WarehouseLocationDetail {
+  kode_gudang?: string;
+  lorong_aisle?: string;
+  rak_rack?: string;
+  tingkat_bin?: string;
+}
+
+export interface RMConsumptionCreate {
+  kode_bahan_baku: string;
+  nomor_batch_terpakai: string;
+  qty_standar_bom: number;
+  qty_aktual_terpakai: number;
+  qty_selisih_variance?: number;
+  keterangan_selisih?: string;
+}
+
+export interface DowntimeCreate {
+  waktu_mulai_stop: string;
+  waktu_selesai_stop: string;
+  total_menit_downtime: number;
+  kategori_downtime: string;
+  keterangan_teknis?: string;
+}
+
+export interface TaxInvoiceDetail {
+  no_seri_faktur_pajak_nsfp?: string;
+  tanggal_faktur_pajak?: string;
+  masa_pajak_bulan?: string;
+  masa_pajak_tahun?: string;
+}
+
+// BOM
+export interface BOMItemCreate {
+  item_id: string;
+  qty_komposisi_per_base_fg: number;
+  uom: string;
+  keterangan?: string;
+}
+
+export interface BOMCreate {
+  fg_item_id: string;
+  versi_bom: string;
+  persentase_scrap_allowance?: number;
+  komponen: BOMItemCreate[];
+  approval_status?: string;
+}
+
+// Stock Opname
+export interface StockOpnameItemCreate {
+  item_id: string;
+  qty_sistem_book: number;
+  qty_fisik_aktual: number;
+  qty_selisih_variance: number;
+  alasan_selisih?: string;
+}
+
+export interface StockOpnameCreate {
+  tanggal_opname: string;
+  kode_gudang: string;
+  pic_opname: string;
+  items: StockOpnameItemCreate[];
+  status_approval?: string;
+}
+
+// Petty Cash
+export interface PettyCashItemCreate {
+  coa_id: string;
+  deskripsi: string;
+  nominal: number;
+}
+
+export interface PettyCashCreate {
+  no_bkk: string;
+  entitas_tujuan: string;
+  items: PettyCashItemCreate[];
+  upload_bukti_nota?: string;
+  total_amount: number;
+  status_approval?: string;
 }

@@ -95,7 +95,7 @@ export const SalesTrackingModule: React.FC = () => {
     queryKey: ['quotations', quotePage, pageSize],
     queryFn: () => getQuotationsApi(quotePage, pageSize),
   });
-  const quotations = quoteRes?.data || [];
+  const quotations: any[] = quoteRes?.data || [];
   const quoteTotalPages = quoteRes?.meta?.totalPages || quoteRes?.meta?.total_pages || 1;
 
   const { data: trackingRes } = useQuery({

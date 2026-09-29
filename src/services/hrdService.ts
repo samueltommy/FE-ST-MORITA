@@ -56,6 +56,18 @@ export interface CreateEmployeePayload {
   department?: string | null;
   bank_name?: string | null;         // maxLength: 50
   bank_account_number?: string | null; // maxLength: 30
+  npwp_number?: string | null;
+  bpjs_kesehatan?: string | null;
+  bpjs_ketenagakerjaan?: string | null;
+  place_of_birth?: string | null;
+  date_of_birth?: string | null;
+  religion?: string | null;
+  address?: string | null;
+  emergency_contact_phone?: string | null;
+  emergency_contact_relationship?: string | null;
+  marital_status?: 'SINGLE' | 'MARRIED' | null;
+  spouse_name?: string | null;
+  children?: { name: string; age: number }[] | null;
 }
 
 export type UpdateEmployeePayload = Partial<Omit<CreateEmployeePayload, 'username' | 'password'>>;
