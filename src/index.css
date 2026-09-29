@@ -6,6 +6,13 @@
     --font-mono: 'JetBrains Mono', monospace;
   }
 
+  html {
+    /* Meningkatkan ukuran dasar (115% dari default 16px = ~18.4px) secara global.
+       Karena tablet sekarang menggunakan menu drawer (seperti mobile), konten utama 
+       mendapatkan lebar penuh, sehingga aman menggunakan ukuran besar di semua perangkat. */
+    font-size: 115%;
+  }
+
   body {
     font-family: var(--font-sans);
     margin: 0;

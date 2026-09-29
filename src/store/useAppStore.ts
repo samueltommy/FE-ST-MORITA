@@ -897,7 +897,7 @@ let globalState: AppState = {
   isCommandPaletteOpen: false,
   isKeyboardShortcutsOpen: false,
   isAuditLogsOpen: false,
-  isSidebarCollapsed: typeof window !== 'undefined' ? localStorage.getItem('stmorita_sidebar_collapsed') === 'true' : false,
+  isSidebarCollapsed: false, // Selalu mulai dalam keadaan terbuka penuh (ter-expand) di PC
   isMobileSidebarOpen: false,
   language: 'id',
   toast: { message: '', type: 'info', visible: false },

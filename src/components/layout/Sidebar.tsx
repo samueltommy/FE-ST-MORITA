@@ -192,7 +192,7 @@ export const Sidebar: React.FC = () => {
       {/* Mobile Drawer Backdrop Overlay */}
       {isMobileSidebarOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-150"
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 lg:hidden animate-in fade-in duration-150"
           onClick={() => appStore.setMobileSidebarOpen(false)}
         />
       )}
@@ -201,7 +201,7 @@ export const Sidebar: React.FC = () => {
       {/* 1. DESKTOP SIDEBAR (Independent scroll, statis tanpa scroll di layar standar) */}
       {/* ========================================================================= */}
       <aside
-        className={`hidden md:flex flex-col justify-between shrink-0 h-full border-r border-slate-200 bg-white transition-all duration-200 ease-in-out select-none z-20 shadow-xs ${
+        className={`hidden lg:flex flex-col justify-between shrink-0 h-full border-r border-slate-200 bg-white transition-all duration-200 ease-in-out select-none z-20 shadow-xs ${
           isSidebarCollapsed ? 'w-[68px]' : 'w-64'
         }`}
       >
@@ -256,13 +256,13 @@ export const Sidebar: React.FC = () => {
                     id={`nav-module-${m.id}`}
                     onClick={() => handleSelectModule(m.id)}
                     title={`${m.label} (${m.shortcut})`}
-                    className={`w-full text-left rounded-xl flex items-center transition-all cursor-pointer relative group ${
+                    className={`text-left rounded-xl flex items-center transition-all cursor-pointer relative group ${
                       isSidebarCollapsed
-                        ? 'p-2 justify-center'
-                        : 'px-2.5 py-2 justify-between'
+                        ? 'w-10 h-10 mx-auto justify-center p-0'
+                        : 'w-full px-2.5 py-2 justify-between'
                     } ${
                       isActive
-                        ? 'bg-blue-600 text-white font-bold shadow-sm shadow-blue-600/25'
+                        ? (isSidebarCollapsed ? '' : 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20')
                         : 'text-slate-700 hover:bg-slate-100 font-medium'
                     }`}
                   >
@@ -270,7 +270,7 @@ export const Sidebar: React.FC = () => {
                       <div
                         className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
                           isActive
-                            ? 'bg-white/20 text-white'
+                            ? (isSidebarCollapsed ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'bg-white/20 text-white')
                             : 'bg-slate-100 text-slate-600 group-hover:text-blue-600'
                         }`}
                       >
@@ -320,13 +320,13 @@ export const Sidebar: React.FC = () => {
                 id="sidebar-nav-users-btn"
                 onClick={() => handleSelectModule('users')}
                 title="Akun Pegawai & RBAC"
-                className={`w-full text-left rounded-xl flex items-center transition-all cursor-pointer ${
+                className={`text-left rounded-xl flex items-center transition-all cursor-pointer ${
                   isSidebarCollapsed
-                    ? 'p-2 justify-center'
-                    : 'px-2.5 py-2 justify-between'
+                    ? 'w-10 h-10 mx-auto justify-center p-0'
+                    : 'w-full px-2.5 py-2 justify-between'
                 } ${
                   activeModule === 'users'
-                    ? 'bg-purple-700 text-white font-bold shadow-sm shadow-purple-700/25'
+                    ? (isSidebarCollapsed ? '' : 'bg-purple-700 text-white font-bold shadow-md shadow-purple-700/20')
                     : 'text-slate-700 hover:bg-slate-100 font-medium'
                 }`}
               >
@@ -334,7 +334,7 @@ export const Sidebar: React.FC = () => {
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                       activeModule === 'users'
-                        ? 'bg-white/20 text-white'
+                        ? (isSidebarCollapsed ? 'bg-purple-700 text-white shadow-md shadow-purple-700/20' : 'bg-white/20 text-white')
                         : 'bg-purple-50 text-purple-600'
                     }`}
                   >
@@ -378,8 +378,8 @@ export const Sidebar: React.FC = () => {
                     id="sidebar-pwa-scanner-btn"
                     onClick={() => appStore.setBarcodeModalOpen(true)}
                     title="Scanner Barcode PWA"
-                    className={`w-full text-left rounded-xl flex items-center text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${
-                      isSidebarCollapsed ? 'p-2 justify-center' : 'px-2.5 py-1.5 justify-between'
+                    className={`text-left rounded-xl flex items-center text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${
+                      isSidebarCollapsed ? 'w-10 h-10 mx-auto justify-center p-0' : 'w-full px-2.5 py-1.5 justify-between'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -401,8 +401,8 @@ export const Sidebar: React.FC = () => {
                     id="sidebar-audit-trail-btn"
                     onClick={() => appStore.setAuditLogsOpen(true)}
                     title="Audit Trail Kepatuhan SHA-256"
-                    className={`w-full text-left rounded-xl flex items-center text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${
-                      isSidebarCollapsed ? 'p-2 justify-center' : 'px-2.5 py-1.5 justify-between'
+                    className={`text-left rounded-xl flex items-center text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${
+                      isSidebarCollapsed ? 'w-10 h-10 mx-auto justify-center p-0' : 'w-full px-2.5 py-1.5 justify-between'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -500,7 +500,7 @@ export const Sidebar: React.FC = () => {
       {/* ========================================================================= */}
       {isMobileSidebarOpen && (
         <aside
-          className="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl flex flex-col justify-between py-4 border-r border-slate-200 md:hidden animate-in slide-in-from-left duration-200"
+          className="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl flex flex-col justify-between py-4 border-r border-slate-200 lg:hidden animate-in slide-in-from-left duration-200"
         >
           {/* Mobile Header */}
           <div className="px-4 pb-3 border-b border-slate-100 flex items-center justify-between">

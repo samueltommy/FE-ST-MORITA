@@ -67,7 +67,7 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => appStore.toggleMobileSidebar()}
-            className="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+            className="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
             title="Buka Menu Navigasi"
             aria-label="Buka Menu Navigasi"
           >
@@ -87,7 +87,7 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Middle Section: Clean, Spacious Search Bar */}
-        <div className="hidden md:flex items-center max-w-md w-full mx-6">
+        <div className="hidden lg:flex items-center max-w-md w-full mx-6">
           <button
             id="open-command-palette-btn"
             onClick={() => appStore.setCommandPaletteOpen(true)}
