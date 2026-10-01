@@ -73,9 +73,18 @@ apiClient.interceptors.response.use(
       }
     } else if (error.response && error.response.status >= 400) {
       // Global error handler for Bad Request (400) / Server Error (500)
-      const msg = error.response.data?.message || error.response.data?.detail || error.message || 'Terjadi kesalahan sistem';
-      if (typeof window !== 'undefined') {
-        toast.error(msg, { id: msg });
+      let msg = error.message || 'Terjadi kesalahan sistem';
+      if (error.response.data) {
+        if (typeof error.response.data.message === 'string') {
+          msg = error.response.data.message;
+        } else if (typeof error.response.data.detail === 'string') {
+          msg = error.response.data.detail;
+        } else if (error.response.data.detail && typeof error.response.data.detail.message === 'string') {
+          msg = error.response.data.detail.message;
+        }
+      }
+      if (typeof window !== 'undefined' && error.response.status !== 403) {
+        toast.error(msg, { id: String(msg) });
       }
     }
     return Promise.reject(error);

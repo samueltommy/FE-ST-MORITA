@@ -13,6 +13,7 @@ import {
   Navigation,
   X,
   Search,
+  Lock,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { VehicleBooking, SalesOutdoorVisit } from '../../types';
@@ -101,10 +102,11 @@ export const HrdModule: React.FC = () => {
   const t = CONTENT[language] || CONTENT.id;
   const queryClient = useQueryClient();
 
-  const { data: leaveRequests = [] } = useQuery({
+  const { data: leaveRequests = [], error: leaveError } = useQuery({
     queryKey: ['leaveRequests'],
     queryFn: () => getLeaveRequestsApi(),
   });
+  const isLeaveForbidden = (leaveError as any)?.response?.status === 403;
 
   const { data: vehicleBookings = [] } = useQuery({
     queryKey: ['vehicleBookings'],
@@ -158,7 +160,7 @@ export const HrdModule: React.FC = () => {
   };
 
   React.useEffect(() => {
-    handleDateFilterModeChange('today');
+    // handleDateFilterModeChange('today');
   }, []);
 
   const { data: attendanceRes, isLoading: loadingAtt } = useQuery({
@@ -198,6 +200,18 @@ export const HrdModule: React.FC = () => {
     setFormModalTab(tab);
     setFormModalOpen(true);
   };
+
+  if (isLeaveForbidden) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400">
+        <Lock className="w-16 h-16 text-slate-300 mb-4" />
+        <h2 className="text-xl font-bold text-slate-600">Akses Terbatas</h2>
+        <p className="mt-2 text-sm text-center max-w-md">
+          Anda tidak memiliki izin (role) yang memadai untuk mengakses modul ini.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

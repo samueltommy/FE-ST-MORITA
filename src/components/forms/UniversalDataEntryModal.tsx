@@ -18,6 +18,7 @@ import { ProductionQcFormsModal } from './ProductionQcFormsModal';
 import { SalesFormsModal } from './SalesFormsModal';
 import { FinanceFormsModal } from './FinanceFormsModal';
 import { useAppStore } from '../../store/useAppStore';
+import { useRBAC } from '../../hooks/useRBAC';
 
 const CONTENT = {
   id: {
@@ -84,6 +85,10 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
   const [activeSubModal, setActiveSubModal] = useState<FormCategory>(null);
   const [subModalTab, setSubModalTab] = useState<string | undefined>(undefined);
 
+  const { canAccessModule, isSuperAdmin, isExecutive, hasPermission } = useRBAC();
+  
+  const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
+
   if (!isOpen && !activeSubModal) return null;
 
   const openForm = (cat: FormCategory, tab?: string) => {
@@ -107,9 +112,9 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
       badge: 'Core 1',
       items: [
         { label: t.hrdItems.leave, tab: 'leave' },
-        { label: t.hrdItems.vehicle, tab: 'vehicle' },
-        { label: t.hrdItems.visit, tab: 'visit' },
-        { label: t.hrdItems.employee, tab: 'employee' },
+        ...(isHrdAdmin ? [{ label: t.hrdItems.vehicle, tab: 'vehicle' }] : []),
+        ...(isHrdAdmin ? [{ label: t.hrdItems.visit, tab: 'visit' }] : []),
+        ...(isHrdAdmin || hasPermission('admin:users:manage') ? [{ label: t.hrdItems.employee, tab: 'employee' }] : []),
       ],
     },
     {
@@ -208,7 +213,10 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
 
             {/* Grid of 6 Core Modules Input Options */}
             <div className="flex-1 min-h-0 p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {formCategories.map((cat) => {
+              {formCategories.filter((cat) => {
+                const moduleId = cat.id === 'master' ? 'master_data' : cat.id === 'production' ? 'qc' : cat.id;
+                return canAccessModule(moduleId);
+              }).map((cat) => {
                 const Icon = cat.icon;
                 return (
                   <div

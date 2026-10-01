@@ -60,6 +60,9 @@ export const useRBAC = () => {
    */
   const canAccessModule = (moduleId: string): boolean => {
     if (isSuperAdmin || isExecutive) return true;
+    
+    // External users cannot access internal ERP core modules directly
+    if (isExternal) return false;
 
     const perms = (user?.permissions ?? []) as string[];
     if (perms.includes('*')) return true;

@@ -180,6 +180,8 @@ export const Sidebar: React.FC = () => {
     },
   ].filter(m => canAccessModule(m.id));
 
+  const hasAnySidebarItems = modules.length > 0 || canAccessAdminUsers() || canAccessTool('barcode') || canAccessTool('audit');
+
   const handleSelectModule = (id: any) => {
     appStore.setActiveModule(id);
     if (isMobileSidebarOpen) {
@@ -209,9 +211,11 @@ export const Sidebar: React.FC = () => {
         <div className="shrink-0 px-3 py-2.5 border-b border-slate-100 flex items-center justify-between">
           {!isSidebarCollapsed ? (
             <>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-2">
-                {t.navMenu}
-              </span>
+              {hasAnySidebarItems && (
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-2">
+                  {t.navMenu}
+                </span>
+              )}
               <button
                 id="sidebar-collapse-btn"
                 onClick={() => appStore.toggleSidebar()}
@@ -240,8 +244,9 @@ export const Sidebar: React.FC = () => {
         {/* Scrollable Navigation Body (Compact & Statis tanpa scroll di layar standar) */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-2 space-y-3">
           {/* Core Modules List */}
-          <div>
-            {!isSidebarCollapsed && (
+          {modules.length > 0 && (
+            <div>
+              {!isSidebarCollapsed && (
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1.5">
                 {t.modules}
               </div>
@@ -306,6 +311,7 @@ export const Sidebar: React.FC = () => {
               })}
             </nav>
           </div>
+          )}
 
           {/* Administration & RBAC Section — hanya tampil untuk yang berhak */}
           {canAccessAdminUsers() && (
@@ -523,10 +529,11 @@ export const Sidebar: React.FC = () => {
 
           {/* Mobile Navigation Links */}
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
-            <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-                {t.mobileTitle}
-              </div>
+            {modules.length > 0 && (
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
+                  {t.mobileTitle}
+                </div>
               <nav className="space-y-1">
                 {modules.map((m) => {
                   const Icon = m.icon;
@@ -566,6 +573,7 @@ export const Sidebar: React.FC = () => {
                 })}
               </nav>
             </div>
+            )}
 
             {/* Mobile RBAC — hanya tampil untuk yang berhak */}
             {canAccessAdminUsers() && (

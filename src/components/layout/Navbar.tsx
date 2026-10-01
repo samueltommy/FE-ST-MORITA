@@ -16,6 +16,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { ROLE_DEFINITIONS, getTierBadge, canManageUsers } from '../../utils/rbac';
 import { UserRole } from '../../types';
 import { UniversalDataEntryModal } from '../forms/UniversalDataEntryModal';
+import { useRBAC } from '../../hooks/useRBAC';
 
 const CONTENT = {
   id: {
@@ -49,6 +50,15 @@ export const Navbar: React.FC = () => {
   const [dataEntryModalOpen, setDataEntryModalOpen] = useState(false);
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language];
+  const { isExternal, canAccessModule } = useRBAC();
+
+  const hasAnyDataEntryAccess = 
+    canAccessModule('hrd') ||
+    canAccessModule('master_data') ||
+    canAccessModule('procurement') ||
+    canAccessModule('qc') ||
+    canAccessModule('sales') ||
+    canAccessModule('finance');
 
   // Use authUser (real backend)
   const displayName = authUser?.name;
@@ -106,16 +116,18 @@ export const Navbar: React.FC = () => {
         {/* Right Section: Universal + Input Data Baru, Profile & Role Switcher */}
         <div className="flex items-center gap-2.5">
           {/* Universal Data Entry Button */}
-          <button
-            id="navbar-universal-data-entry-btn"
-            onClick={() => setDataEntryModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold shadow-sm shadow-blue-600/20 transition-all cursor-pointer"
-            title="Buka Formulir Input Data Transaksi untuk Semua Modul"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">{t.newDataBtn}</span>
-            <span className="sm:hidden">{t.newDataBtnMobile}</span>
-          </button>
+          {!isExternal && hasAnyDataEntryAccess && (
+            <button
+              id="navbar-universal-data-entry-btn"
+              onClick={() => setDataEntryModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold shadow-sm shadow-blue-600/20 transition-all cursor-pointer"
+              title="Buka Formulir Input Data Transaksi untuk Semua Modul"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">{t.newDataBtn}</span>
+              <span className="sm:hidden">{t.newDataBtnMobile}</span>
+            </button>
+          )}
 
           {/* Quick link to User Management for Admin */}
           {isUserAdmin && (

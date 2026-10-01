@@ -13,6 +13,7 @@ import {
   Send,
   Navigation,
   RefreshCw,
+  Lock,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { Quotation, SalesTrackingOrder } from '../../types';
@@ -91,18 +92,20 @@ export const SalesTrackingModule: React.FC = () => {
   const [quotePage, setQuotePage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   
-  const { data: quoteRes } = useQuery({
+  const { data: quoteRes, error: quoteError } = useQuery({
     queryKey: ['quotations', quotePage, pageSize],
     queryFn: () => getQuotationsApi(quotePage, pageSize),
   });
   const quotations: any[] = quoteRes?.data || [];
   const quoteTotalPages = quoteRes?.meta?.totalPages || quoteRes?.meta?.total_pages || 1;
+  const isQuoteForbidden = (quoteError as any)?.response?.status === 403;
 
-  const { data: trackingRes } = useQuery({
+  const { data: trackingRes, error: trackingError } = useQuery({
     queryKey: ['salesTrackingOrders'],
     queryFn: () => getSalesOrdersApi(1, 100),
   });
   const trackingOrders = trackingRes?.data || [];
+  const isTrackingForbidden = (trackingError as any)?.response?.status === 403;
 
   const currentUser = useAppStore((state) => state.currentUser);
 
@@ -129,6 +132,18 @@ export const SalesTrackingModule: React.FC = () => {
   const handleApproveMargin = (quoteId: string) => {
     approveMutation.mutate(quoteId);
   };
+
+  if (isQuoteForbidden && isTrackingForbidden) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400">
+        <Lock className="w-16 h-16 text-slate-300 mb-4" />
+        <h2 className="text-xl font-bold text-slate-600">Akses Terbatas</h2>
+        <p className="mt-2 text-sm text-center max-w-md">
+          Anda tidak memiliki izin (role) yang memadai untuk mengakses modul Sales & E-Tracking.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -202,10 +217,18 @@ export const SalesTrackingModule: React.FC = () => {
               {t.quoteList}
             </h3>
 
-            <div className="space-y-3 overflow-auto max-h-[60vh] 2xl:max-h-[70vh] pr-1">
-              {filteredQuotes.map((q, qIdx) => {
-                const isPending = q.status === 'PENDING_COST_CONTROL';
-                const isLowMargin = q.grossMarginPercent < 18.0;
+            {isQuoteForbidden ? (
+              <div className="flex flex-col items-center justify-center p-8 text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
+                <Lock className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
+                <h4 className="text-sm font-bold text-slate-600 dark:text-slate-400">Akses Terbatas</h4>
+                <p className="text-xs text-center max-w-sm mt-1">Anda tidak memiliki izin (role) yang memadai untuk melihat daftar Penawaran Harga ini.</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-3 overflow-auto max-h-[60vh] 2xl:max-h-[70vh] pr-1">
+                  {filteredQuotes.map((q, qIdx) => {
+                    const isPending = q.status === 'PENDING_COST_CONTROL';
+                    const isLowMargin = q.grossMarginPercent < 18.0;
 
                 return (
                   <div
@@ -332,6 +355,8 @@ export const SalesTrackingModule: React.FC = () => {
                 </button>
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
       ) : (
@@ -362,7 +387,13 @@ export const SalesTrackingModule: React.FC = () => {
             </div>
           </div>
 
-          {activeTracking ? (
+          {isTrackingForbidden ? (
+            <div className="flex flex-col items-center justify-center p-12 text-slate-400 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
+              <Lock className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
+              <h4 className="text-sm font-bold text-slate-600 dark:text-slate-400">Akses Terbatas</h4>
+              <p className="text-xs text-center max-w-sm mt-1">Anda tidak memiliki izin (role) yang memadai untuk melihat pelacakan pesanan (E-Tracking).</p>
+            </div>
+          ) : activeTracking ? (
             <div className="p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                 <div>
