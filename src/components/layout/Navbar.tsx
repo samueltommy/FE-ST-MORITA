@@ -49,6 +49,7 @@ export const Navbar: React.FC = () => {
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [dataEntryModalOpen, setDataEntryModalOpen] = useState(false);
   const language = useAppStore((state) => state.language);
+  const fontSizeMode = useAppStore((state) => state.fontSizeMode);
   const t = CONTENT[language];
   const { isExternal, canAccessModule } = useRBAC();
 
@@ -73,7 +74,7 @@ export const Navbar: React.FC = () => {
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-white/95 backdrop-blur-md border-slate-200 shadow-xs shrink-0">
       <div className="flex items-center justify-between px-4 sm:px-6 h-16 w-full">
-        {/* Left Section: Mobile Menu Toggle + Clean Company Brand */}
+        {/* Left Section: Mobile Menu Toggle + Clean Company Brand (Clickable to Home) */}
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => appStore.toggleMobileSidebar()}
@@ -83,44 +84,100 @@ export const Navbar: React.FC = () => {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-sm bg-blue-700 shadow-blue-700/20 shrink-0">
-            <Building2 className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight tracking-tight">
-              ST. Morita Industries
+          
+          <button
+            onClick={() => appStore.setActiveModule('home')}
+            className="flex items-center gap-2.5 text-left group cursor-pointer hover:opacity-90 transition-opacity"
+            title="Kembali ke Menu Utama (Beranda)"
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-sm bg-blue-700 shadow-blue-700/20 shrink-0 group-hover:scale-105 transition-transform">
+              <Building2 className="w-5 h-5" />
             </div>
-            <div className="text-[10px] sm:text-[11px] font-medium text-slate-500 hidden sm:block">
-              Enterprise ERP Portal
+            <div>
+              <div className="text-sm sm:text-base font-extrabold text-slate-900 leading-tight tracking-tight">
+                ST. Morita Industries
+              </div>
+              <div className="text-xs font-semibold text-blue-600 hidden sm:block">
+                Menu Utama &bull; ERP Manufaktur
+              </div>
             </div>
-          </div>
+          </button>
+        </div>
+
+        {/* Quick Nav Button to Home (Main Menu) */}
+        <div className="hidden md:flex items-center gap-2">
+          <button
+            onClick={() => appStore.setActiveModule('home')}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs sm:text-sm font-extrabold transition-all cursor-pointer shadow-2xs"
+            title="Ke Menu Utama / Beranda Opsi Sederhana"
+          >
+            <span>🏠 Beranda (Menu Utama)</span>
+          </button>
         </div>
 
         {/* Middle Section: Clean, Spacious Search Bar */}
-        <div className="hidden lg:flex items-center max-w-md w-full mx-6">
+        <div className="hidden lg:flex items-center max-w-sm w-full mx-3">
           <button
             id="open-command-palette-btn"
             onClick={() => appStore.setCommandPaletteOpen(true)}
-            className="w-full flex items-center justify-between px-4 py-2 rounded-xl bg-slate-100/80 border border-slate-200 text-slate-500 text-xs hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-between px-3.5 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200 text-slate-600 text-xs sm:text-sm hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer font-medium"
           >
-            <span className="flex items-center gap-2.5">
-              <Search className="w-4 h-4 text-slate-400" />
-              <span>{t.searchPh}</span>
+            <span className="flex items-center gap-2 truncate">
+              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="truncate">{t.searchPh}</span>
             </span>
-            <kbd className="px-2 py-0.5 text-[10px] font-mono bg-white border border-slate-200 rounded text-slate-500 shadow-xs">
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white border border-slate-200 rounded text-slate-500 shadow-xs shrink-0">
               ⌘K
             </kbd>
           </button>
         </div>
 
-        {/* Right Section: Universal + Input Data Baru, Profile & Role Switcher */}
-        <div className="flex items-center gap-2.5">
+        {/* Right Section: Font Size Switcher (Lansia friendly), Input Data Baru, Profile */}
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Quick Font Size Switcher for Senior Staff */}
+          <div className="hidden sm:flex items-center gap-1 p-1 bg-slate-100/90 border border-slate-200 rounded-xl" title="Ubah Ukuran Huruf (Ramah Lansia)">
+            <span className="text-[11px] font-bold text-slate-500 pl-1.5 pr-0.5">Huruf:</span>
+            <button
+              onClick={() => appStore.setFontSizeMode('normal')}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                fontSizeMode === 'normal'
+                  ? 'bg-white text-slate-900 shadow-xs font-black'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Font Ukuran Normal"
+            >
+              Normal
+            </button>
+            <button
+              onClick={() => appStore.setFontSizeMode('large')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                fontSizeMode === 'large'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-blue-700 hover:text-blue-900 font-bold'
+              }`}
+              title="Font Ukuran Besar (Standar Lansia)"
+            >
+              Besar
+            </button>
+            <button
+              onClick={() => appStore.setFontSizeMode('xlarge')}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                fontSizeMode === 'xlarge'
+                  ? 'bg-amber-500 text-white shadow-xs font-black'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Font Ekstra Besar"
+            >
+              Ekstra
+            </button>
+          </div>
+
           {/* Universal Data Entry Button */}
           {!isExternal && hasAnyDataEntryAccess && (
             <button
               id="navbar-universal-data-entry-btn"
               onClick={() => setDataEntryModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold shadow-sm shadow-blue-600/20 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs sm:text-sm font-bold shadow-sm shadow-blue-600/20 transition-all cursor-pointer"
               title="Buka Formulir Input Data Transaksi untuk Semua Modul"
             >
               <PlusCircle className="w-4 h-4" />

@@ -10,6 +10,7 @@ import { SalesTrackingModule } from './features/core5_sales_tracking/SalesTracki
 import { MasterDataModule } from './features/core2_master_data/MasterDataModule';
 import { HrdModule } from './features/core1_hrd/HrdModule';
 import { UserManagementModule } from './features/admin_users/UserManagementModule';
+import { MainHomeLauncher } from './features/home/MainHomeLauncher';
 import { LoginPage } from './features/auth/LoginPage';
 import { ActivationPage } from './features/auth/ActivationPage';
 import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage';
@@ -41,10 +42,13 @@ export default function App() {
   // Session expiry modal state
   const [isSessionExpired, setIsSessionExpired] = useState(false);
 
-  // Ensure light mode is consistently applied across the app
+  // Ensure light mode & elderly font scale are consistently applied across the app
   useEffect(() => {
     document.documentElement.classList.remove('dark');
     document.documentElement.classList.add('light');
+    const savedFontMode = localStorage.getItem('st_font_size_mode') || 'large';
+    document.documentElement.classList.remove('font-normal', 'font-large', 'font-xlarge');
+    document.documentElement.classList.add(`font-${savedFontMode}`);
   }, []);
 
   // Listen for global auth:expired event from apiClient
@@ -111,10 +115,11 @@ export default function App() {
         appStore.toggleSidebar();
       }
 
-      // Alt + 1 through 7 for Fast Module Jump
-      if (e.altKey && ['1', '2', '3', '4', '5', '6', '7'].includes(e.key)) {
+      // Alt + 0 through 7 for Fast Module Jump (Alt+0 = Beranda / Home)
+      if (e.altKey && ['0', '1', '2', '3', '4', '5', '6', '7'].includes(e.key)) {
         e.preventDefault();
         const moduleMap: Record<string, any> = {
+          '0': 'home',
           '1': 'hrd',
           '2': 'master_data',
           '3': 'procurement',
@@ -124,6 +129,12 @@ export default function App() {
           '7': 'users',
         };
         appStore.setActiveModule(moduleMap[e.key]);
+      }
+
+      // Alt + H: Beranda
+      if (e.altKey && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        appStore.setActiveModule('home');
       }
     };
 
@@ -136,7 +147,7 @@ export default function App() {
   // Auto-redirect to first available module if current one is not allowed
   useEffect(() => {
     if (isAuthenticated && !canAccessModule(activeModule)) {
-      const allModules = ['finance', 'qc', 'procurement', 'sales', 'master_data', 'hrd', 'users'];
+      const allModules = ['home', 'finance', 'qc', 'procurement', 'sales', 'master_data', 'hrd', 'users'];
       const firstAllowed = allModules.find(m => canAccessModule(m));
       if (firstAllowed) {
         appStore.setActiveModule(firstAllowed as any);
@@ -227,6 +238,7 @@ export default function App() {
               </div>
             ) : (
               <>
+                {activeModule === 'home' && <MainHomeLauncher />}
                 {activeModule === 'finance' && <FinanceAnalyticsModule />}
                 {activeModule === 'qc' && <ProductionQcModule />}
                 {activeModule === 'procurement' && <ProcurementEximModule />}

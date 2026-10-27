@@ -73,6 +73,8 @@ export const useRBAC = () => {
       );
 
     switch (moduleId) {
+      case 'home':
+        return true;
       case 'finance':
         return hasPrefix(['finance:', 'cost_control:']);
       case 'qc':

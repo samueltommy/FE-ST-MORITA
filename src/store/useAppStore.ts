@@ -844,8 +844,10 @@ const INITIAL_AUDIT_LOGS: AuditLog[] = [
 export interface AppState {
   isAuthenticated: boolean;
   themeMode: 'light' | 'dark';
+  fontSizeMode: 'normal' | 'large' | 'xlarge';
   isHighDensity: boolean;
-  activeModule: 'hrd' | 'master_data' | 'procurement' | 'qc' | 'sales' | 'finance' | 'users' | 'audit' | 'scanner';
+  activeModule: 'home' | 'hrd' | 'master_data' | 'procurement' | 'qc' | 'sales' | 'finance' | 'users' | 'audit' | 'scanner';
+  activeSubFeature: Record<string, string | null>;
   currentUser: UserProfile;
   isBarcodeModalOpen: boolean;
   isCommandPaletteOpen: boolean;
@@ -890,8 +892,18 @@ export interface AppState {
 let globalState: AppState = {
   isAuthenticated: false, // Auth is now managed by useAuthStore (Zustand). This field kept for legacy compat only.
   themeMode: 'light',
+  fontSizeMode: (typeof window !== 'undefined' && (localStorage.getItem('st_font_size_mode') as any)) || 'large',
   isHighDensity: false,
-  activeModule: 'finance', // Start on financial dashboard
+  activeModule: 'home', // Start on the clean option-based Home Page
+  activeSubFeature: {
+    procurement: null,
+    sales: null,
+    qc: null,
+    finance: null,
+    master_data: null,
+    hrd: null,
+    users: null,
+  },
   currentUser: DEMO_USERS.DIREKSI, // Default to Direksi (Level 1) for comprehensive overview
   isBarcodeModalOpen: false,
   isCommandPaletteOpen: false,
@@ -1009,12 +1021,49 @@ export const appStore = {
     appStore.setThemeMode(next);
   },
 
+  setFontSizeMode: (mode: 'normal' | 'large' | 'xlarge') => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.remove('font-normal', 'font-large', 'font-xlarge');
+      document.documentElement.classList.add(`font-${mode}`);
+      localStorage.setItem('st_font_size_mode', mode);
+    }
+    updateGlobalState((prev) => ({ ...prev, fontSizeMode: mode }));
+  },
+
   setHighDensity: (dense: boolean) => {
     updateGlobalState((prev) => ({ ...prev, isHighDensity: dense }));
   },
 
   setActiveModule: (module: AppState['activeModule']) => {
-    updateGlobalState((prev) => ({ ...prev, activeModule: module }));
+    updateGlobalState((prev) => ({
+      ...prev,
+      activeModule: module,
+      activeSubFeature: {
+        ...prev.activeSubFeature,
+        [module]: null, // Always reset subfeature so module shows simple selection menu on entry
+      },
+    }));
+  },
+
+  setActiveSubFeature: (module: string, subFeature: string | null) => {
+    updateGlobalState((prev) => ({
+      ...prev,
+      activeSubFeature: {
+        ...prev.activeSubFeature,
+        [module]: subFeature,
+      },
+    }));
+  },
+
+  navigateToFeature: (module: AppState['activeModule'], subFeature: string | null = null) => {
+    updateGlobalState((prev) => ({
+      ...prev,
+      activeModule: module,
+      activeSubFeature: {
+        ...prev.activeSubFeature,
+        [module]: subFeature,
+      },
+    }));
   },
 
   setCurrentUserRole: (role: UserRole) => {

@@ -13,6 +13,11 @@ import {
   MapPin,
   CheckCircle2,
   AlertCircle,
+  FileText,
+  Users,
+  Truck,
+  Trash2,
+  ArrowRight,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { ItemCategory, MasterItem } from '../../types';
@@ -23,6 +28,9 @@ import { MasterDataFormsModal } from '../../components/forms/MasterDataFormsModa
 import { DataDetailModal } from '../../components/ui/DataDetailModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMasterItemsApi, createMasterItemApi } from '../../services/masterDataService';
+import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
+import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
+import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
 
 const CONTENT = {
   id: {
@@ -119,11 +127,13 @@ export const MasterDataModule: React.FC = () => {
 
   const currentUser = useAppStore((state) => state.currentUser);
   const isHighDensity = useAppStore((state) => state.isHighDensity);
+  const [activeOption, setActiveOption] = useState<string>('catalog');
   const [zebraModalItem, setZebraModalItem] = useState<MasterItem | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [masterFormsOpen, setMasterFormsOpen] = useState(false);
   const [masterFormsTab, setMasterFormsTab] = useState<'customer' | 'supplier' | 'item' | 'waste'>('item');
   const [selectedDetailItem, setSelectedDetailItem] = useState<MasterItem | null>(null);
+  const [selectedZebraItemId, setSelectedZebraItemId] = useState<string>('');
 
   // New item form state
   const [newCode, setNewCode] = useState('');
@@ -197,207 +207,521 @@ export const MasterDataModule: React.FC = () => {
     }
   });
 
+  const options: PageOptionItem[] = [
+    {
+      id: 'catalog',
+      label: '1. Katalog SKU & Stok Gudang',
+      subtitle: 'Daftar stok material, pencarian rak & harga',
+      icon: Boxes,
+      badge: items.length > 0 ? `${items.length} SKU` : undefined,
+    },
+    {
+      id: 'zebra',
+      label: '2. Cetak Label Zebra Thermal',
+      subtitle: 'Generator barcode thermal ZD420 / ZT410',
+      icon: Barcode,
+    },
+    {
+      id: 'forms',
+      label: '3. Pendaftaran & Formulir Master',
+      subtitle: 'Input SKU baru, Customer, Supplier & Waste',
+      icon: Plus,
+    },
+    {
+      id: 'all',
+      label: 'Semua Tampilan',
+      subtitle: 'Tampilkan seluruh panel katalog lengkap',
+      icon: Layers,
+    },
+  ];
+
+  const activeSubFeature = useAppStore((state) => state.activeSubFeature?.master_data);
+
+  // When no feature is selected yet, render simple selection menu hub (matches client reference screenshot 1)
+  if (!activeSubFeature) {
+    const hubItems: ModuleFeatureHubItem[] = [
+      {
+        id: 'catalog',
+        label: 'Katalog SKU & Stok Rak Gudang',
+        subtitle: `Daftar SKU material, pencarian rak simpan, HPP & harga jual (${items.length} SKU)`,
+        icon: Boxes,
+        iconColor: 'text-sky-600',
+        badge: items.length > 0 ? `${items.length} SKU` : undefined,
+        badgeColor: 'bg-sky-100 text-sky-800 border-sky-200',
+        onClick: () => appStore.setActiveSubFeature('master_data', 'catalog'),
+      },
+      {
+        id: 'zebra',
+        label: 'Cetak Label Zebra Thermal (ZD420 / ZT410)',
+        subtitle: 'Generator barcode thermal industrial ukuran 100mm x 50mm untuk lot batch',
+        icon: Barcode,
+        iconColor: 'text-indigo-600',
+        onClick: () => appStore.setActiveSubFeature('master_data', 'zebra'),
+      },
+      {
+        id: 'forms',
+        label: 'Pendaftaran SKU & Formulir Master Baru',
+        subtitle: 'Input item SKU baru, pelanggan (customer), supplier rekanan, dan limbah',
+        icon: Plus,
+        iconColor: 'text-amber-600',
+        badge: 'Input Baru',
+        badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+        onClick: () => {
+          setMasterFormsTab('item');
+          setMasterFormsOpen(true);
+        },
+      },
+      {
+        id: 'all',
+        label: 'Semua Tampilan (Lengkap)',
+        subtitle: 'Tampilkan seluruh panel katalog dan preview label sekaligus',
+        icon: Layers,
+        iconColor: 'text-slate-600',
+        onClick: () => appStore.setActiveSubFeature('master_data', 'all'),
+      },
+    ];
+
+    return (
+      <ModuleFeatureHub
+        moduleCode="Core 2"
+        moduleName="MASTER DATA MANAGEMENT & GUDANG"
+        moduleDescription="Katalog SKU bahan baku & pita perekat, lokasi rak gudang, cetak thermal barcode printer Zebra, dan pendaftaran master."
+        headerBgColor="bg-sky-600"
+        items={hubItems}
+        onBackToHome={() => appStore.setActiveModule('home')}
+      />
+    );
+  }
+
+  const zebraTarget = items.find((it) => it.id === selectedZebraItemId) || items[0] || null;
+  const currentTab = (activeSubFeature as any) || 'catalog';
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div className="flex-1">
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {t.title}
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
-              {t.desc}
-            </p>
+      {/* Senior-Friendly Header with Option Buttons */}
+      <ModulePageHeader
+        moduleCode="Core 2"
+        title={t.title}
+        description={t.desc}
+        badgeColor="bg-amber-50 text-amber-800 border-amber-200"
+        options={options}
+        activeOption={currentTab}
+        onSelectOption={(optId) => appStore.setActiveSubFeature('master_data', optId)}
+        onBackToMenu={() => appStore.setActiveSubFeature('master_data', null)}
+        menuName="Master Data"
+        actionButtons={
+          <button
+            onClick={() => {
+              setMasterFormsTab('item');
+              setMasterFormsOpen(true);
+            }}
+            className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-base font-extrabold shadow-sm flex items-center gap-2.5 transition-all cursor-pointer"
+          >
+            <Plus className="w-5 h-5" />
+            <span>{t.btnForm}</span>
+          </button>
+        }
+      />
+
+      {/* ─── OPTION 3: FORMULIR & PENDAFTARAN MASTER ─── */}
+      {(activeOption === 'forms' || activeOption === 'all') && (
+        <div className="p-6 sm:p-8 rounded-3xl border-2 border-blue-200 bg-linear-to-br from-blue-50/50 via-white to-slate-50 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-blue-100 pb-4">
+            <div>
+              <div className="text-xs font-black uppercase tracking-wider text-blue-700">
+                Pusat Pendaftaran Data Induk
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
+                Pilih Jenis Data Master yang Ingin Ditambahkan
+              </h2>
+            </div>
+            <div className="text-sm font-semibold text-slate-600">
+              Formulir terstandarisasi ERP ST-Morita
+            </div>
           </div>
-          
-          <div className="flex items-center gap-2 shrink-0">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
               onClick={() => {
                 setMasterFormsTab('item');
                 setMasterFormsOpen(true);
               }}
-              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+              className="p-5 rounded-2xl bg-white border-2 border-slate-200 hover:border-blue-600 hover:shadow-md text-left transition-all group cursor-pointer"
+            >
+              <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors mb-3">
+                <Boxes className="w-6 h-6" />
+              </div>
+              <div className="text-base font-black text-slate-900">
+                Barang & SKU Master
+              </div>
+              <div className="text-xs text-slate-600 mt-1">
+                Material baku, jumbo roll, slit tape & finished goods
+              </div>
+              <div className="mt-3 text-xs font-extrabold text-blue-600 flex items-center gap-1">
+                Buka Formulir <ArrowRight className="w-3.5 h-3.5" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setMasterFormsTab('customer');
+                setMasterFormsOpen(true);
+              }}
+              className="p-5 rounded-2xl bg-white border-2 border-slate-200 hover:border-emerald-600 hover:shadow-md text-left transition-all group cursor-pointer"
+            >
+              <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors mb-3">
+                <Users className="w-6 h-6" />
+              </div>
+              <div className="text-base font-black text-slate-900">
+                Mitra Customer / Klien
+              </div>
+              <div className="text-xs text-slate-600 mt-1">
+                Data perusahaan pembeli, NPWP, alamat & TOP kredit
+              </div>
+              <div className="mt-3 text-xs font-extrabold text-emerald-600 flex items-center gap-1">
+                Buka Formulir <ArrowRight className="w-3.5 h-3.5" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setMasterFormsTab('supplier');
+                setMasterFormsOpen(true);
+              }}
+              className="p-5 rounded-2xl bg-white border-2 border-slate-200 hover:border-purple-600 hover:shadow-md text-left transition-all group cursor-pointer"
+            >
+              <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors mb-3">
+                <Truck className="w-6 h-6" />
+              </div>
+              <div className="text-base font-black text-slate-900">
+                Pemasok / Supplier
+              </div>
+              <div className="text-xs text-slate-600 mt-1">
+                Vendor material lokal dan importir luar negeri
+              </div>
+              <div className="mt-3 text-xs font-extrabold text-purple-600 flex items-center gap-1">
+                Buka Formulir <ArrowRight className="w-3.5 h-3.5" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setMasterFormsTab('waste');
+                setMasterFormsOpen(true);
+              }}
+              className="p-5 rounded-2xl bg-white border-2 border-slate-200 hover:border-amber-600 hover:shadow-md text-left transition-all group cursor-pointer"
+            >
+              <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors mb-3">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="text-base font-black text-slate-900">
+                Master Scrap / Waste
+              </div>
+              <div className="text-xs text-slate-600 mt-1">
+                Kategori sisa produksi slitting, trimming & limbah
+              </div>
+              <div className="mt-3 text-xs font-extrabold text-amber-700 flex items-center gap-1">
+                Buka Formulir <ArrowRight className="w-3.5 h-3.5" />
+              </div>
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-blue-100">
+            <span className="text-xs sm:text-sm text-slate-600 font-medium">
+              Ingin mendaftarkan SKU cepat tanpa formulir panjang?
+            </span>
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-extrabold flex items-center gap-2 cursor-pointer shadow-xs"
             >
               <Plus className="w-4 h-4" />
-              <span>{t.btnForm}</span>
+              <span>Registrasi SKU Cepat (Modal)</span>
             </button>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Filter and Search Bar */}
-      <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-1 min-w-[240px]">
-          <div className="relative w-full">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              placeholder={t.searchPl}
-              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden"
-            />
+      {/* ─── OPTION 2: CETAK LABEL ZEBRA THERMAL DEDICATED PANEL ─── */}
+      {(activeOption === 'zebra' || activeOption === 'all') && (
+        <div className="p-6 sm:p-8 rounded-3xl border-2 border-purple-200 bg-white shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+            <div>
+              <div className="text-xs font-black uppercase tracking-wider text-purple-700">
+                Generator Barcode Industri
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1 flex items-center gap-2">
+                <Barcode className="w-6 h-6 text-purple-600" />
+                Cetak Label Zebra Thermal (100mm x 50mm)
+              </h2>
+            </div>
+            <div className="text-xs sm:text-sm font-semibold text-slate-500">
+              Kompatibel Printer Zebra ZD420 / ZT410
+            </div>
           </div>
 
-          <select
-            value={selectedCategory}
-            onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
-            className="text-xs py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-hidden"
-          >
-            <option value="ALL">{t.optAll}</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            {/* Item Selector */}
+            <div className="space-y-4">
+              <label className="block text-sm sm:text-base font-extrabold text-slate-900">
+                Pilih SKU Barang yang Ingin Dicetak:
+              </label>
+              <select
+                value={selectedZebraItemId || (items[0]?.id || '')}
+                onChange={(e) => setSelectedZebraItemId(e.target.value)}
+                className="w-full p-3.5 text-base font-bold rounded-2xl border-2 border-slate-300 bg-slate-50 text-slate-900 focus:border-purple-600 focus:bg-white transition-all outline-hidden cursor-pointer"
+              >
+                {items.map((it) => (
+                  <option key={it.id} value={it.id}>
+                    [{it.code}] {it.name} — Rak: {it.locationRack} (LOT: {it.lotNumber})
+                  </option>
+                ))}
+              </select>
 
-        <div className="text-xs text-slate-400 flex items-center gap-2">
-          <span>{t.showing} <strong>{filteredItems.length} {t.sku}</strong></span>
-        </div>
-      </div>
+              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200 text-purple-900 space-y-2 text-sm sm:text-base">
+                <div className="font-extrabold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                  Informasi Cetak:
+                </div>
+                <div className="text-xs sm:text-sm text-purple-800 leading-relaxed">
+                  Label akan dicetak dengan barcode 1D standar Code 128 dan nomor LOT batch pabrik. Pastikan ukuran kertas thermal di printer Zebra disetel ke 100mm x 50mm.
+                </div>
+              </div>
 
-      {/* High-Density Item Table */}
-      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden flex flex-col">
-        <div className="overflow-auto max-h-[60vh] 2xl:max-h-[70vh]">
-          <table className="w-full text-left text-xs border-collapse relative">
-            <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 shadow-sm">
-              <tr className="text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
-                <th className="py-2.5 px-3 font-bold">{t.thCode}</th>
-                <th className="py-2.5 px-3 font-bold">{t.thDesc}</th>
-                <th className="py-2.5 px-3 font-bold">{t.thCat}</th>
-                <th className="py-2.5 px-3 font-bold text-center">{t.thLot}</th>
-                <th className="py-2.5 px-3 font-bold text-right">{t.thStock}</th>
-                <th className="py-2.5 px-3 font-bold text-center">{t.thRack}</th>
-
-                {/* Role-filtered Columns for Finance/Cost Control */}
-                {canViewCost && (
-                  <>
-                    <th className="py-2.5 px-3 font-bold text-right text-emerald-600">
-                      {t.thCost}
-                    </th>
-                    <th className="py-2.5 px-3 font-bold text-right text-emerald-600">
-                      {t.thMargin}
-                    </th>
-                  </>
-                )}
-
-                <th className="py-2.5 px-3 font-bold text-right">{t.thPrice}</th>
-                <th className="py-2.5 px-3 font-bold text-center">{t.thZebra}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredItems.map((item) => (
-                <tr
-                  key={item.id}
-                  onClick={() => setSelectedDetailItem(item)}
-                  className={`hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer ${
-                    isHighDensity ? 'py-1' : 'py-2.5'
-                  }`}
+              {zebraTarget && (
+                <button
+                  type="button"
+                  onClick={() => setZebraModalItem(zebraTarget)}
+                  className="w-full py-4 rounded-2xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white text-base sm:text-lg font-black shadow-md flex items-center justify-center gap-3 transition-all cursor-pointer"
                 >
-                  <td className="py-2.5 px-3 font-mono font-bold text-blue-600 dark:text-blue-400">
-                    {item.code}
-                  </td>
-                  <td className="py-2.5 px-3">
-                    <div className="font-bold text-slate-900 dark:text-white">
-                      {item.name}
+                  <Printer className="w-5 h-5" />
+                  <span>Buka & Cetak Label Zebra Item Ini</span>
+                </button>
+              )}
+            </div>
+
+            {/* Live Visual Preview of Zebra Label */}
+            {zebraTarget && (
+              <div className="p-5 border-2 border-black bg-white text-black font-sans rounded-2xl shadow-md space-y-3 max-w-md mx-auto w-full">
+                <div className="flex justify-between items-start border-b-2 border-black pb-2">
+                  <div>
+                    <div className="text-xs sm:text-sm font-black uppercase tracking-wider">
+                      ST. MORITA INDUSTRIES
                     </div>
-                    <div className="text-[10px] text-slate-400 font-mono">
-                      Barcode: {item.barcode}
+                    <div className="text-[10px] uppercase font-semibold text-slate-600">
+                      PLANT MANUFAKTUR - INDONESIA
                     </div>
-                  </td>
-                  <td className="py-2.5 px-3">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                      {item.category}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
-                    {item.lotNumber}
-                  </td>
-                  <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
-                    {item.stockQty} {item.unit}
-                  </td>
-                  <td className="py-2.5 px-3 text-center font-mono text-[11px] text-slate-600 dark:text-slate-400">
-                    <span className="flex items-center justify-center gap-1">
-                      <MapPin className="w-3 h-3 text-blue-500" />
-                      {item.locationRack}
-                    </span>
-                  </td>
+                  </div>
+                  <span className="text-[10px] font-black border-2 border-black px-2 py-0.5 rounded">
+                    QC APPROVED
+                  </span>
+                </div>
 
-                  {/* RBAC Protected HPP & Margin Columns */}
-                  {canViewCost && (
-                    <>
-                      <td className="py-2.5 px-3 text-right text-emerald-600 dark:text-emerald-400">
-                        <FinancialMask value={item.unitCost} className="font-semibold" />
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        {item.grossMarginPercent}%
-                      </td>
-                    </>
-                  )}
+                <div className="text-base sm:text-lg font-black leading-tight text-slate-900">
+                  {zebraTarget.name}
+                </div>
 
-                  <td className="py-2.5 px-3 text-right text-slate-900 dark:text-white">
-                    <FinancialMask value={item.sellingPrice} className="font-bold" />
-                  </td>
+                <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm font-mono border-t-2 border-b-2 border-black py-2">
+                  <div>CODE: <strong>{zebraTarget.code}</strong></div>
+                  <div>RAK: <strong>{zebraTarget.locationRack}</strong></div>
+                  <div>LOT: <strong>{zebraTarget.lotNumber}</strong></div>
+                  <div>QTY: <strong>{zebraTarget.stockQty} {zebraTarget.unit}</strong></div>
+                </div>
 
-                  <td className="py-2.5 px-3 text-center">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setZebraModalItem(item);
-                      }}
-                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                      title="Generate & Cetak Label Zebra Thermal"
+                <div className="pt-2 text-center">
+                  <div className="h-12 flex items-center justify-center gap-0.5 overflow-hidden">
+                    {zebraTarget.barcode.split('').map((ch, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-black h-full"
+                        style={{ width: `${(Number(ch) % 4) + 2}px` }}
+                      />
+                    ))}
+                  </div>
+                  <div className="font-mono text-sm tracking-widest mt-1 font-black">
+                    *{zebraTarget.barcode}*
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── OPTION 1 / CATALOG TABLE: KATALOG SKU & STOK GUDANG ─── */}
+      {(activeOption === 'catalog' || activeOption === 'all') && (
+        <div className="space-y-4">
+          {/* Filter and Search Bar with Big Inputs */}
+          <div className="p-4 sm:p-5 rounded-3xl border-2 border-slate-200 bg-white shadow-xs flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  placeholder={t.searchPl}
+                  className="w-full pl-12 pr-4 py-3 text-sm sm:text-base font-semibold rounded-2xl border-2 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:outline-hidden transition-all"
+                />
+              </div>
+
+              <select
+                value={selectedCategory}
+                onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
+                className="text-sm sm:text-base font-bold py-3 px-4 rounded-2xl border-2 border-slate-200 bg-slate-50 text-slate-800 focus:border-blue-600 focus:bg-white focus:outline-hidden transition-all cursor-pointer"
+              >
+                <option value="ALL">{t.optAll}</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="text-sm sm:text-base text-slate-600 font-extrabold flex items-center gap-2">
+              <span>{t.showing} <strong>{filteredItems.length} {t.sku}</strong></span>
+            </div>
+          </div>
+
+          {/* High-Contrast Large Item Table */}
+          <div className="rounded-3xl border-2 border-slate-200 bg-white shadow-xs overflow-hidden flex flex-col">
+            <div className="overflow-auto max-h-[60vh] 2xl:max-h-[70vh]">
+              <table className="w-full text-left text-sm sm:text-base border-collapse relative">
+                <thead className="sticky top-0 z-10 bg-slate-100 shadow-sm border-b-2 border-slate-200">
+                  <tr className="text-slate-700">
+                    <th className="py-4 px-4 font-black">{t.thCode}</th>
+                    <th className="py-4 px-4 font-black">{t.thDesc}</th>
+                    <th className="py-4 px-4 font-black">{t.thCat}</th>
+                    <th className="py-4 px-4 font-black text-center">{t.thLot}</th>
+                    <th className="py-4 px-4 font-black text-right">{t.thStock}</th>
+                    <th className="py-4 px-4 font-black text-center">{t.thRack}</th>
+
+                    {/* Role-filtered Columns for Finance/Cost Control */}
+                    {canViewCost && (
+                      <>
+                        <th className="py-4 px-4 font-black text-right text-emerald-700">
+                          {t.thCost}
+                        </th>
+                        <th className="py-4 px-4 font-black text-right text-emerald-700">
+                          {t.thMargin}
+                        </th>
+                      </>
+                    )}
+
+                    <th className="py-4 px-4 font-black text-right">{t.thPrice}</th>
+                    <th className="py-4 px-4 font-black text-center">{t.thZebra}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {filteredItems.map((item) => (
+                    <tr
+                      key={item.id}
+                      onClick={() => setSelectedDetailItem(item)}
+                      className="hover:bg-blue-50/50 transition-colors cursor-pointer"
                     >
-                      <Barcode className="w-4 h-4 text-blue-600" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* KONTROL PAGINATION MASTER DATA */}
-        <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-500 font-medium">
-              Halaman {currentPage} dari {totalPages}
-            </span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="text-xs font-medium border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 px-2 py-1 text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
-            >
-              <option value={10}>10 Baris</option>
-              <option value={20}>20 Baris</option>
-              <option value={50}>50 Baris</option>
-              <option value={100}>100 Baris</option>
-            </select>
+                      <td className="py-4 px-4 font-mono font-black text-blue-700 text-sm sm:text-base">
+                        {item.code}
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="font-extrabold text-slate-900 text-base sm:text-lg leading-snug">
+                          {item.name}
+                        </div>
+                        <div className="text-xs sm:text-sm text-slate-500 font-mono mt-0.5">
+                          Barcode: {item.barcode}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-xs sm:text-sm font-extrabold px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200">
+                          {item.category}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-center font-mono font-extrabold text-slate-800 text-sm sm:text-base">
+                        {item.lotNumber}
+                      </td>
+                      <td className="py-4 px-4 text-right font-mono font-black text-slate-900 text-sm sm:text-base">
+                        {item.stockQty} {item.unit}
+                      </td>
+                      <td className="py-4 px-4 text-center font-mono text-xs sm:text-sm text-slate-700">
+                        <span className="inline-flex items-center justify-center gap-1.5 font-bold">
+                          <MapPin className="w-4 h-4 text-blue-600" />
+                          {item.locationRack}
+                        </span>
+                      </td>
+
+                      {/* RBAC Protected HPP & Margin Columns */}
+                      {canViewCost && (
+                        <>
+                          <td className="py-4 px-4 text-right text-emerald-700 text-sm sm:text-base">
+                            <FinancialMask value={item.unitCost} className="font-bold" />
+                          </td>
+                          <td className="py-4 px-4 text-right font-mono font-black text-emerald-700 text-sm sm:text-base">
+                            {item.grossMarginPercent}%
+                          </td>
+                        </>
+                      )}
+
+                      <td className="py-4 px-4 text-right text-slate-900 font-black text-sm sm:text-base">
+                        <FinancialMask value={item.sellingPrice} className="font-extrabold" />
+                      </td>
+
+                      <td className="py-4 px-4 text-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setZebraModalItem(item);
+                          }}
+                          className="p-2.5 rounded-xl border-2 border-blue-200 hover:border-blue-600 bg-blue-50/50 hover:bg-blue-600 hover:text-white text-blue-700 transition-all cursor-pointer shadow-2xs"
+                          title="Generate & Cetak Label Zebra Thermal"
+                        >
+                          <Barcode className="w-5 h-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* KONTROL PAGINATION MASTER DATA (Besar & Jelas) */}
+            <div className="flex flex-wrap justify-between items-center p-4 sm:p-5 bg-slate-50 border-t-2 border-slate-200 gap-3">
+              <div className="flex items-center gap-4">
+                <span className="text-sm sm:text-base text-slate-600 font-extrabold">
+                  Halaman {currentPage} dari {totalPages}
+                </span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl bg-white px-3 py-2 text-slate-800 outline-none focus:border-blue-600 transition-colors cursor-pointer"
+                >
+                  <option value={10}>10 Baris per Halaman</option>
+                  <option value={20}>20 Baris per Halaman</option>
+                  <option value={50}>50 Baris per Halaman</option>
+                  <option value={100}>100 Baris per Halaman</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className="px-4 py-2 text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
+                >
+                  &larr; Sebelumnya
+                </button>
+                <button 
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className="px-4 py-2 text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
+                >
+                  Selanjutnya &rarr;
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button 
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              className="px-3 py-1 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
-            >
-              Sebelumnya
-            </button>
-            <button 
-              disabled={currentPage >= totalPages}
-              onClick={() => setCurrentPage(p => p + 1)}
-              className="px-3 py-1 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
-            >
-              Selanjutnya
-            </button>
-          </div>
         </div>
-      </div>
+      )}
 
       {/* Zebra Thermal Label Print Preview Modal */}
       {zebraModalItem && (
@@ -608,6 +932,24 @@ export const MasterDataModule: React.FC = () => {
           </form>
         </div>
       )}
+
+      {/* ─── Client Standard Bottom Action Toolbar with prominent BACK Button ─── */}
+      <ModuleViewFooter
+        onBack={() => appStore.setActiveSubFeature('master_data', null)}
+        backLabel="BACK (KEMBALI KE MENU MASTER DATA)"
+        actions={
+          <button
+            onClick={() => {
+              setMasterFormsTab('item');
+              setMasterFormsOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Pendaftaran Master Baru</span>
+          </button>
+        }
+      />
 
       {/* Master Data Forms Modal */}
       <MasterDataFormsModal

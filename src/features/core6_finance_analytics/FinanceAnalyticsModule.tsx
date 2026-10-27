@@ -19,9 +19,10 @@ import {
   AlertCircle,
   HelpCircle,
   Plus,
+  FileText,
 } from 'lucide-react';
 import { FinancialMask } from "../../components/ui/FinancialMask";
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore, appStore } from '../../store/useAppStore';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
@@ -51,6 +52,9 @@ import { InvoiceFormulaId, DeliveryOrder } from '../../types';
 import { checkPermission } from '../../utils/rbac';
 import { Can } from '../../components/rbac/Can';
 import { FinanceFormsModal } from '../../components/forms/FinanceFormsModal';
+import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
+import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
+import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
 
 const CONTENT = {
   id: {
@@ -199,6 +203,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
   const totalPages = doRes?.meta?.totalPages || doRes?.meta?.total_pages || 1;
 
   const [selectedDoIds, setSelectedDoIds] = useState<Set<string>>(new Set());
+  const [activeOption, setActiveOption] = useState<'do' | 'calc' | 'summary' | 'all'>('do');
 
   const currentUser = useAppStore((state) => state.currentUser);
   const isHighDensity = useAppStore((state) => state.isHighDensity);
@@ -234,6 +239,35 @@ export const FinanceAnalyticsModule: React.FC = () => {
     () => deliveryOrders.filter((d) => selectedDoIds.has(d.id)),
     [deliveryOrders, selectedDoIds]
   );
+
+  const pageOptions: PageOptionItem[] = [
+    {
+      id: 'do',
+      label: '1. Pilih Surat Jalan (DO)',
+      subtitle: `${selectedDos.length} DO dipilih`,
+      icon: Receipt,
+      badge: selectedDos.length > 0 ? `${selectedDos.length} DO` : undefined,
+      badgeColor: 'bg-blue-600 text-white font-bold',
+    },
+    {
+      id: 'calc',
+      label: '2. Hitung Faktur & Pajak',
+      subtitle: 'Kalkulator 13 Rumus & Pajak',
+      icon: Calculator,
+    },
+    {
+      id: 'summary',
+      label: '3. Ringkasan & Margin',
+      subtitle: 'DPP, PPN 11%, Margin Floor',
+      icon: TrendingUp,
+    },
+    {
+      id: 'all',
+      label: 'Semua Tampilan (Lengkap)',
+      subtitle: 'Tampilkan semua bagian sekaligus',
+      icon: CheckSquare,
+    },
+  ];
 
   const debouncedSelectedDoIds = useDebounce(Array.from(selectedDoIds), 500);
   const debouncedParams = useDebounce(customParams, 500);
@@ -328,138 +362,210 @@ export const FinanceAnalyticsModule: React.FC = () => {
     setSelectedDoIds(newSet);
   };
 
+  const activeSubFeature = useAppStore((state) => state.activeSubFeature?.finance);
+
+  // When no feature is selected yet, render simple selection menu hub (matches client reference screenshot 1)
+  if (!activeSubFeature) {
+    const hubItems: ModuleFeatureHubItem[] = [
+      {
+        id: 'do',
+        label: 'Pilih Surat Jalan (Konsolidasi Multi-DO)',
+        subtitle: `Checklist DO pengiriman untuk digabung ke 1 faktur komersial (${deliveryOrders.length} DO Tersedia)`,
+        icon: Receipt,
+        iconColor: 'text-emerald-600',
+        badge: selectedDos.length > 0 ? `${selectedDos.length} Dipilih` : `${deliveryOrders.length} DO`,
+        badgeColor: selectedDos.length > 0 ? 'bg-blue-600 text-white font-bold' : 'bg-slate-100 text-slate-800 border-slate-200',
+        onClick: () => appStore.setActiveSubFeature('finance', 'do'),
+      },
+      {
+        id: 'calc',
+        label: 'Kalkulator 13 Rumus Faktur & Pajak',
+        subtitle: 'Simulasi perhitungan skema formula, PPN 11%, PPh 23, diskon & ongkir freight',
+        icon: Calculator,
+        iconColor: 'text-blue-600',
+        onClick: () => appStore.setActiveSubFeature('finance', 'calc'),
+      },
+      {
+        id: 'summary',
+        label: 'Ringkasan Pajak & Margin Profitability Floor',
+        subtitle: 'Audit proteksi margin gross minimum (≥ 18.0%), rincian DPP & PPN Faktur Pajak',
+        icon: TrendingUp,
+        iconColor: 'text-purple-600',
+        onClick: () => appStore.setActiveSubFeature('finance', 'summary'),
+      },
+      {
+        id: 'form',
+        label: 'Formulir Keuangan & Klaim AP/AR',
+        subtitle: 'Input nota retur cacat RMA, faktur vendor AP & penerimaan piutang AR',
+        icon: FileText,
+        iconColor: 'text-amber-600',
+        badge: 'Input Baru',
+        badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+        onClick: () => {
+          setFinanceModalTab('complaint');
+          setFinanceModalOpen(true);
+        },
+      },
+      {
+        id: 'all',
+        label: 'Semua Tampilan (Lengkap)',
+        subtitle: 'Tampilkan tabel DO, kalkulator 13 rumus dan ringkasan sekaligus',
+        icon: CheckSquare,
+        iconColor: 'text-slate-600',
+        onClick: () => appStore.setActiveSubFeature('finance', 'all'),
+      },
+    ];
+
+    return (
+      <ModuleFeatureHub
+        moduleCode="Core 6"
+        moduleName="KEUANGAN & FAKTUR PENJUALAN"
+        moduleDescription="Konsolidasi multi-surat jalan (DO), 13 formula komersial resmi ST. Morita, kalkulator PPN 11% & PPh 23, serta audit profitabilitas."
+        headerBgColor="bg-emerald-600"
+        items={hubItems}
+        onBackToHome={() => appStore.setActiveModule('home')}
+      />
+    );
+  }
+
+  const currentTab = (activeSubFeature as any) || 'do';
+
   return (
     <div className="space-y-6">
-      {/* Top Banner & Action */}
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs mb-6">
-        <div className="flex-1">
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            {t.title}
-          </h1>
-          <p className="text-sm text-slate-500 mt-1.5">
-            {t.desc}
-          </p>
-        </div>
+      {/* ─── Module Page Header with Senior-Friendly Options ─── */}
+      <ModulePageHeader
+        moduleCode="Core 6"
+        title={t.title}
+        description={t.desc}
+        badgeColor="bg-emerald-50 text-emerald-800 border-emerald-300"
+        options={pageOptions}
+        activeOption={currentTab}
+        onSelectOption={(optId) => appStore.setActiveSubFeature('finance', optId)}
+        onBackToMenu={() => appStore.setActiveSubFeature('finance', null)}
+        menuName="Keuangan"
+        actionButtons={
+          <>
+            <button
+              onClick={() => {
+                setFinanceModalTab('complaint');
+                setFinanceModalOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-800 text-sm sm:text-base font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{t.btnForm}</span>
+            </button>
+            <button
+              onClick={() => handleGenerateInvoice()}
+              disabled={selectedDos.length === 0 || createInvoiceMutation.isPending}
+              className={`px-4 py-2.5 rounded-xl text-sm sm:text-base font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer ${
+                selectedDos.length > 0
+                  ? 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white'
+                  : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+              }`}
+            >
+              <Printer className="w-4 h-4" />
+              <span>{t.btnPrint}</span>
+            </button>
+          </>
+        }
+      />
 
-        {/* Action buttons */}
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <button
-            onClick={() => {
-              setFinanceModalTab('complaint');
-              setFinanceModalOpen(true);
-            }}
-            className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-800 text-sm font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t.btnForm}</span>
-          </button>
-          <button
-            onClick={() => handleGenerateInvoice()}
-            disabled={selectedDos.length === 0 || createInvoiceMutation.isPending}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer ${
-              selectedDos.length > 0
-                ? 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-            }`}
-          >
-            <Printer className="w-4 h-4" />
-            <span>{t.btnPrint}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Metric Row - Clean, Spacious Light Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.kpiSubtotal}</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Receipt className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-xl font-black text-slate-900 mt-2">
-            {<FinancialMask value={calculationResult.subtotalGoods} />}
-          </div>
-          <div className="text-xs text-slate-500 mt-1">
-            {selectedDos.length} {t.doSelected}
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.kpiDpp}</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <Coins className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-xl font-black text-slate-900 mt-2">
-            {<FinancialMask value={calculationResult.taxableBaseDpp} />}
-          </div>
-          <div className="text-xs text-emerald-600 mt-1 font-semibold">
-            {t.ppn11} {<FinancialMask value={calculationResult.ppnAmount} />}
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.kpiTotal}</span>
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-xl font-black text-indigo-600 mt-2">
-            {<FinancialMask value={calculationResult.finalPayableAmount} />}
-          </div>
-          <div className="text-xs text-slate-500 mt-1 truncate">
-            {calculationResult.formulaName}
-          </div>
-        </div>
-
-        {/* Gross Margin Safeguard Metric - Protected by RBAC */}
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.kpiMargin}</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Percent className="w-4 h-4" />
-            </div>
-          </div>
-
-          <Can
-            perform="finance:cost:read"
-            fallback={
-              <div className="mt-3 text-xs text-slate-400 flex items-center gap-1.5 italic">
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                <span>{t.rbacProtected}</span>
+      {/* KPI Metric Row - Displayed for Summary or All View */}
+      {(activeOption === 'summary' || activeOption === 'all') && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in duration-150">
+          <div className="p-5 sm:p-6 rounded-2xl border-2 border-slate-200 bg-white shadow-xs">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-600">{t.kpiSubtotal}</span>
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Receipt className="w-5 h-5" />
               </div>
-            }
-          >
-            <div className="flex items-baseline gap-2 mt-2">
-              <span
-                className={`text-xl font-black ${
-                  calculationResult.marginCheckPassed ? 'text-emerald-600' : 'text-rose-600'
-                }`}
-              >
-                {calculationResult.estimatedMarginPercent}%
-              </span>
-              <span className="text-xs text-slate-400">
-                ({t.marginMin} {customParams.minimumMarginPercent}%)
-              </span>
             </div>
-            <div className="text-xs mt-1">
-              {calculationResult.marginCheckPassed ? (
-                <span className="text-emerald-600 font-bold">{t.marginOk}</span>
-              ) : (
-                <span className="text-rose-600 font-bold">{t.marginLow}</span>
-              )}
+            <div className="text-xl sm:text-2xl font-black text-slate-900 mt-2">
+              {<FinancialMask value={calculationResult.subtotalGoods} />}
             </div>
-          </Can>
-        </div>
-      </div>
+            <div className="text-xs sm:text-sm text-slate-500 mt-1 font-semibold">
+              {selectedDos.length} {t.doSelected}
+            </div>
+          </div>
 
-      {/* Main Content: Multi-DO Table & Formula Calculator */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        {/* Left Column: Multi-DO Selection Table (7 Cols) */}
-        <div className="xl:col-span-7 space-y-4">
+          <div className="p-5 sm:p-6 rounded-2xl border-2 border-slate-200 bg-white shadow-xs">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-600">{t.kpiDpp}</span>
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <Coins className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 mt-2">
+              {<FinancialMask value={calculationResult.taxableBaseDpp} />}
+            </div>
+            <div className="text-xs sm:text-sm text-emerald-600 mt-1 font-bold">
+              {t.ppn11} {<FinancialMask value={calculationResult.ppnAmount} />}
+            </div>
+          </div>
+
+          <div className="p-5 sm:p-6 rounded-2xl border-2 border-slate-200 bg-white shadow-xs">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-600">{t.kpiTotal}</span>
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-indigo-600 mt-2">
+              {<FinancialMask value={calculationResult.finalPayableAmount} />}
+            </div>
+            <div className="text-xs sm:text-sm text-slate-500 mt-1 truncate font-semibold">
+              {calculationResult.formulaName}
+            </div>
+          </div>
+
+          {/* Gross Margin Safeguard Metric - Protected by RBAC */}
+          <div className="p-5 sm:p-6 rounded-2xl border-2 border-slate-200 bg-white shadow-xs">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-600">{t.kpiMargin}</span>
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <Percent className="w-5 h-5" />
+              </div>
+            </div>
+
+            <Can
+              perform="finance:cost:read"
+              fallback={
+                <div className="mt-3 text-xs sm:text-sm text-slate-400 flex items-center gap-1.5 italic font-medium">
+                  <Lock className="w-4 h-4 text-slate-400" />
+                  <span>{t.rbacProtected}</span>
+                </div>
+              }
+            >
+              <div className="flex items-baseline gap-2 mt-2">
+                <span
+                  className={`text-xl sm:text-2xl font-black ${
+                    calculationResult.marginCheckPassed ? 'text-emerald-600' : 'text-rose-600'
+                  }`}
+                >
+                  {calculationResult.estimatedMarginPercent}%
+                </span>
+                <span className="text-xs sm:text-sm text-slate-500 font-bold">
+                  ({t.marginMin} {customParams.minimumMarginPercent}%)
+                </span>
+              </div>
+              <div className="text-xs sm:text-sm mt-1 font-extrabold">
+                {calculationResult.marginCheckPassed ? (
+                  <span className="text-emerald-600 font-bold">{t.marginOk}</span>
+                ) : (
+                  <span className="text-rose-600 font-bold">{t.marginLow}</span>
+                )}
+              </div>
+            </Can>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content: Conditioned by Senior-Friendly Option Buttons */}
+      <div className={activeOption === 'all' ? 'grid grid-cols-1 xl:grid-cols-12 gap-6' : 'space-y-6'}>
+        {/* Left Column: Multi-DO Selection Table */}
+        {(activeOption === 'do' || activeOption === 'all') && (
+          <div className={activeOption === 'all' ? 'xl:col-span-7 space-y-4' : 'w-full space-y-4'}>
           <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
@@ -609,11 +715,49 @@ export const FinanceAnalyticsModule: React.FC = () => {
                 {t.subtotal} {<FinancialMask value={calculationResult.subtotalGoods} />}
               </span>
             </div>
+
+            {/* Navigation button for 'do' mode */}
+            {activeOption === 'do' && (
+              <div className="mt-5 p-5 bg-blue-50/90 rounded-2xl border-2 border-blue-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-sm sm:text-base font-extrabold text-blue-950">
+                  {selectedDos.length > 0
+                    ? `✓ ${selectedDos.length} Surat Jalan telah dipilih. Siap untuk kalkulasi faktur komersial.`
+                    : 'Pilih minimal satu Surat Jalan di atas untuk menghitung faktur komersial.'}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveOption('calc')}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all shrink-0"
+                >
+                  <span>Lanjut ke Hitung Faktur (Opsi 2) &rarr;</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
+        )}
 
-        {/* Right Column: 13-Formula Calculator Widget (5 Cols) */}
-        <div className="xl:col-span-5 space-y-4">
+        {/* Right Column: 13-Formula Calculator Widget (Visible for 'calc' or 'all') */}
+        {(activeOption === 'calc' || activeOption === 'all') && (
+          <div className={activeOption === 'all' ? 'xl:col-span-5 space-y-4' : 'w-full space-y-4'}>
+            {activeOption === 'calc' && (
+              <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-100 rounded-2xl border border-slate-200 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveOption('do')}
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm sm:text-base flex items-center gap-2 cursor-pointer shadow-xs"
+                >
+                  <span>&larr; Kembali ke Pemilihan DO (Opsi 1)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveOption('summary')}
+                  className="px-4 py-2.5 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-sm sm:text-base flex items-center gap-2 cursor-pointer shadow-xs"
+                >
+                  <span>Lihat Ringkasan & Margin (Opsi 3) &rarr;</span>
+                </button>
+              </div>
+            )}
           <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
             <div className="flex items-start justify-between">
               <div>
@@ -933,7 +1077,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
             <button
               onClick={() => handleGenerateInvoice()}
               disabled={selectedDos.length === 0 || createInvoiceMutation.isPending}
-              className={`w-full py-4 rounded-xl text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
+              className={`w-full py-4 rounded-xl text-white font-bold text-sm sm:text-base transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
                 selectedDos.length === 0 || createInvoiceMutation.isPending ? 'bg-slate-200 text-slate-400' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-md active:scale-[0.98]'
               }`}
             >
@@ -942,7 +1086,79 @@ export const FinanceAnalyticsModule: React.FC = () => {
             </button>
           </div>
         </div>
+        )}
       </div>
+
+      {/* Summary View (Active when Option 3 is selected) */}
+      {activeOption === 'summary' && (
+        <div className="bg-white border-2 border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs animate-in fade-in duration-150">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <h3 className="text-lg sm:text-xl font-black text-slate-900">
+                Ringkasan Faktur Penjualan & Profitabilitas
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                Pemeriksaan kepatuhan margin, pajak PPN 11%, dan PPh 23 untuk Surat Jalan terpilih
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleGenerateInvoice()}
+              disabled={selectedDos.length === 0 || createInvoiceMutation.isPending}
+              className={`px-6 py-3 rounded-xl font-black text-sm sm:text-base transition-all flex items-center gap-2 shadow-md cursor-pointer ${
+                selectedDos.length === 0 || createInvoiceMutation.isPending
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              <FileCheck2 className="w-5 h-5" />
+              <span>{createInvoiceMutation.isPending ? 'Memproses...' : t.btnGenerate}</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 font-mono text-sm sm:text-base">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600 font-medium">{t.breakdownSubtotal}</span>
+                <span className="font-black text-slate-900">{<FinancialMask value={calculationResult.subtotalGoods} />}</span>
+              </div>
+              <div className="flex justify-between items-center text-emerald-700 font-semibold">
+                <span>{t.breakdownDpp}</span>
+                <span className="font-black">{<FinancialMask value={calculationResult.taxableBaseDpp} />}</span>
+              </div>
+              <div className="flex justify-between items-center text-blue-700 font-semibold">
+                <span>{t.breakdownPpn}</span>
+                <span className="font-black">+ {<FinancialMask value={calculationResult.ppnAmount} />}</span>
+              </div>
+              <div className="pt-3 border-t border-slate-200 flex justify-between items-center text-base sm:text-lg font-black text-slate-900">
+                <span>{t.totalNetInvoice}</span>
+                <span className="text-blue-700">{<FinancialMask value={calculationResult.finalPayableAmount} />}</span>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-3">
+              <div className="font-extrabold text-amber-950 text-sm sm:text-base flex items-center gap-2">
+                <Percent className="w-5 h-5 text-amber-600" />
+                <span>Safeguard Gross Margin ST. Morita:</span>
+              </div>
+              <p className="text-xs sm:text-sm text-amber-900 leading-relaxed font-medium">
+                Gross margin terhitung sebesar <strong>{calculationResult.estimatedMarginPercent}%</strong> (ambang batas minimum perusahaan: <strong>{customParams.minimumMarginPercent}%</strong>).
+              </p>
+              <div className="pt-2">
+                {calculationResult.marginCheckPassed ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-extrabold text-xs sm:text-sm border border-emerald-300">
+                    ✓ Lolos Standar Profitabilitas Perusahaan
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-100 text-rose-800 font-extrabold text-xs sm:text-sm border border-rose-300">
+                    ⚠ Di Bawah Floor Margin - Memerlukan Otorisasi Direksi!
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Invoice Print Modal */}
       {showPrintInvoiceModal && (
@@ -1046,6 +1262,38 @@ export const FinanceAnalyticsModule: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ─── Client Standard Bottom Action Toolbar with prominent BACK Button ─── */}
+      <ModuleViewFooter
+        onBack={() => appStore.setActiveSubFeature('finance', null)}
+        backLabel="BACK (KEMBALI KE MENU KEUANGAN)"
+        actions={
+          <>
+            <button
+              onClick={() => handleGenerateInvoice()}
+              disabled={selectedDos.length === 0 || createInvoiceMutation.isPending}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
+                selectedDos.length > 0
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              }`}
+            >
+              <Printer className="w-4 h-4" />
+              <span>Cetak Faktur ({selectedDos.length} DO)</span>
+            </button>
+            <button
+              onClick={() => {
+                setFinanceModalTab('complaint');
+                setFinanceModalOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Formulir Finance & Klaim</span>
+            </button>
+          </>
+        }
+      />
 
       {/* Finance & Complaints Forms Modal */}
       <FinanceFormsModal

@@ -20,6 +20,9 @@ import { Can } from '../../components/rbac/Can';
 import { ProductionQcFormsModal } from '../../components/forms/ProductionQcFormsModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getQcRecordsApi, overrideQcHoldApi } from '../../services/productionService';
+import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
+import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
+import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
 
 const CONTENT = {
   id: {
@@ -162,7 +165,48 @@ export const ProductionQcModule: React.FC = () => {
   const [qcFormsOpen, setQcFormsOpen] = useState(false);
   const [qcFormsTab, setQcFormsTab] = useState<'spk' | 'qc_test' | 'hold_override'>('spk');
 
-  const filteredRecords = qcRecords;
+  const [activeOption, setActiveOption] = useState<'all' | 'hold' | 'pass' | 'rework'>('all');
+
+  const pageOptions: PageOptionItem[] = [
+    {
+      id: 'all',
+      label: '1. Semua Batch QC',
+      subtitle: `${qcRecords.length} Total Batch`,
+      icon: ShieldCheck,
+      badge: qcRecords.length,
+    },
+    {
+      id: 'hold',
+      label: '2. Batch Dicekal (QC Hold)',
+      subtitle: `${qcRecords.filter((r) => r.status === 'HOLD').length} Batch Terkunci`,
+      icon: Lock,
+      badge: qcRecords.filter((r) => r.status === 'HOLD').length > 0 ? `${qcRecords.filter((r) => r.status === 'HOLD').length} HOLD` : undefined,
+      badgeColor: 'bg-rose-500 text-white animate-pulse',
+    },
+    {
+      id: 'pass',
+      label: '3. Lulus Uji & COA (PASS)',
+      subtitle: `${qcRecords.filter((r) => r.status === 'PASS').length} Batch Siap Transfer`,
+      icon: CheckCircle2,
+      badge: `${qcRecords.filter((r) => r.status === 'PASS').length} PASS`,
+      badgeColor: 'bg-emerald-600 text-white',
+    },
+    {
+      id: 'rework',
+      label: '4. Treatment Rework Ulang',
+      subtitle: `${qcRecords.filter((r) => r.status === 'REWORK').length} Batch Perbaikan`,
+      icon: AlertTriangle,
+      badge: qcRecords.filter((r) => r.status === 'REWORK').length > 0 ? `${qcRecords.filter((r) => r.status === 'REWORK').length} REWORK` : undefined,
+      badgeColor: 'bg-amber-500 text-white',
+    },
+  ];
+
+  const filteredRecords = qcRecords.filter((rec) => {
+    if (activeOption === 'hold') return rec.status === 'HOLD';
+    if (activeOption === 'pass') return rec.status === 'PASS';
+    if (activeOption === 'rework') return rec.status === 'REWORK';
+    return true;
+  });
 
   const handleOpenOverride = (rec: QcInspectionRecord) => {
     setSelectedRecord(rec);
@@ -184,41 +228,119 @@ export const ProductionQcModule: React.FC = () => {
     overrideHoldMutation.mutate({ id: selectedRecord.id, reason: supervisorReason.trim() });
   };
 
+  const activeSubFeature = useAppStore((state) => state.activeSubFeature?.qc);
+
+  // When no feature is selected yet, render simple selection menu hub (matches client reference screenshot 1)
+  if (!activeSubFeature) {
+    const holdCount = qcRecords.filter((r) => r.status === 'HOLD').length;
+    const passCount = qcRecords.filter((r) => r.status === 'PASS').length;
+    const reworkCount = qcRecords.filter((r) => r.status === 'REWORK').length;
+
+    const hubItems: ModuleFeatureHubItem[] = [
+      {
+        id: 'all',
+        label: 'Semua Batch QC & Inspeksi Mutu',
+        subtitle: `Seluruh lot inspeksi pita perekat & slitting (${qcRecords.length} Total Batch)`,
+        icon: ShieldCheck,
+        iconColor: 'text-rose-600',
+        badge: `${qcRecords.length} Batch`,
+        badgeColor: 'bg-slate-100 text-slate-800 border-slate-200',
+        onClick: () => appStore.setActiveSubFeature('qc', 'all'),
+      },
+      {
+        id: 'hold',
+        label: 'Batch Dicekal (QC Hold Lockout)',
+        subtitle: `Batch dicekal cacat mutu, transfer diblokir mutlak (${holdCount} Terkunci)`,
+        icon: Lock,
+        iconColor: 'text-rose-700',
+        badge: holdCount > 0 ? `${holdCount} HOLD` : undefined,
+        badgeColor: 'bg-rose-500 text-white font-black',
+        onClick: () => appStore.setActiveSubFeature('qc', 'hold'),
+      },
+      {
+        id: 'pass',
+        label: 'Batch Lulus Standar & Sertifikat COA (PASS)',
+        subtitle: `Lulus parameter spesifikasi lab, siap terbit COA & alokasi SPK (${passCount} Lulus)`,
+        icon: CheckCircle2,
+        iconColor: 'text-emerald-600',
+        badge: `${passCount} PASS`,
+        badgeColor: 'bg-emerald-600 text-white font-bold',
+        onClick: () => appStore.setActiveSubFeature('qc', 'pass'),
+      },
+      {
+        id: 'rework',
+        label: 'Antrean Treatment Rework Ulang',
+        subtitle: `Proses penanganan khusus & formulasi ulang sebelum re-test lab (${reworkCount} Batch)`,
+        icon: AlertTriangle,
+        iconColor: 'text-amber-600',
+        badge: reworkCount > 0 ? `${reworkCount} REWORK` : undefined,
+        badgeColor: 'bg-amber-500 text-white font-bold',
+        onClick: () => appStore.setActiveSubFeature('qc', 'rework'),
+      },
+      {
+        id: 'form',
+        label: 'Buat SPK / Formulir Uji QC Baru',
+        subtitle: 'Input Surat Perintah Kerja (SPK) slitting atau formulir pengujian inspeksi baru',
+        icon: Plus,
+        iconColor: 'text-blue-600',
+        badge: 'Input Baru',
+        badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
+        onClick: () => {
+          setQcFormsTab('spk');
+          setQcFormsOpen(true);
+        },
+      },
+    ];
+
+    return (
+      <ModuleFeatureHub
+        moduleCode="Core 4"
+        moduleName="PRODUKSI & QUALITY CONTROL (QC)"
+        moduleDescription="Inspeksi lot bahan baku & hasil slitting roll pita perekat, pencekalan transfer QC Hold, dan penerbitan sertifikat analisis (COA)."
+        headerBgColor="bg-rose-600"
+        items={hubItems}
+        onBackToHome={() => appStore.setActiveModule('home')}
+      />
+    );
+  }
+
+  const currentTab = (activeSubFeature as any) || 'all';
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div className="flex-1">
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {t.title}
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
-              {t.desc}
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+      {/* ─── Module Page Header with Senior-Friendly Options ─── */}
+      <ModulePageHeader
+        moduleCode="Core 4"
+        title={t.title}
+        description={t.desc}
+        badgeColor="bg-rose-50 text-rose-800 border-rose-300"
+        options={pageOptions}
+        activeOption={currentTab}
+        onSelectOption={(optId) => appStore.setActiveSubFeature('qc', optId)}
+        onBackToMenu={() => appStore.setActiveSubFeature('qc', null)}
+        menuName="Produksi & QC"
+        actionButtons={
+          <>
             <button
               onClick={() => {
                 setQcFormsTab('spk');
                 setQcFormsOpen(true);
               }}
-              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm sm:text-base font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>{t.btnForm}</span>
             </button>
             <button
               onClick={() => appStore.setBarcodeModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 text-sm font-bold transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 text-sm sm:text-base font-bold transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
             >
               <QrCode className="w-4 h-4" />
               <span>{t.btnScan}</span>
             </button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* QC Status Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -652,6 +774,24 @@ export const ProductionQcModule: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ─── Client Standard Bottom Action Toolbar with prominent BACK Button ─── */}
+      <ModuleViewFooter
+        onBack={() => appStore.setActiveSubFeature('qc', null)}
+        backLabel="BACK (KEMBALI KE MENU PRODUKSI & QC)"
+        actions={
+          <button
+            onClick={() => {
+              setQcFormsTab('spk');
+              setQcFormsOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Form SPK / QC Baru</span>
+          </button>
+        }
+      />
 
       {/* Production & QC Forms Modal */}
       <ProductionQcFormsModal

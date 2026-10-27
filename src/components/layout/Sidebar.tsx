@@ -17,11 +17,75 @@ import {
   X,
   Building2,
   Keyboard,
+  Home,
+  ChevronDown,
+  FileText,
+  Award,
+  ShieldAlert,
+  AlertCircle,
+  CheckCircle2,
+  Navigation,
+  Calendar,
+  Lock,
+  Plus,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { canManageUsers, getTierBadge } from '../../utils/rbac';
 import { useRBAC } from '../../hooks/useRBAC';
+
+interface ModuleChildItem {
+  id: string;
+  label: string;
+  icon: any;
+  badge?: string;
+  badgeColor?: string;
+}
+
+const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
+  finance: [
+    { id: 'do', label: 'Pilih Surat Jalan (Multi-DO)', icon: FileSpreadsheet },
+    { id: 'calc', label: 'Kalkulator 13 Rumus Faktur', icon: Calculator },
+    { id: 'summary', label: 'Ringkasan Pajak & Margin', icon: ShieldCheck },
+    { id: 'form', label: 'Form Keuangan & Klaim AP/AR', icon: FileText },
+  ],
+  qc: [
+    { id: 'all', label: 'Semua Batch QC & Inspeksi', icon: ShieldCheck },
+    { id: 'hold', label: 'Batch Dicekal (QC Hold Lock)', icon: ShieldAlert, badge: 'HOLD', badgeColor: 'bg-rose-500 text-white' },
+    { id: 'pass', label: 'Lulus Uji & Sertifikat COA', icon: CheckCircle2 },
+    { id: 'rework', label: 'Treatment Rework Ulang', icon: AlertCircle },
+    { id: 'form', label: 'Form SPK & Uji QC Baru', icon: FileText },
+  ],
+  procurement: [
+    { id: 'kanban', label: 'Alur Pengadaan (Kanban PR → PO)', icon: Truck },
+    { id: 'exim_dropzone', label: 'Dokumen Kepabeanan EXIM', icon: ShieldCheck },
+    { id: 'form', label: 'Form Pengadaan / PO Baru', icon: FileText },
+    { id: 'supplier', label: 'Master Supplier & Rekanan', icon: Building2 },
+    { id: 'report', label: 'Rekap Laporan Pengadaan', icon: FileSpreadsheet },
+  ],
+  sales: [
+    { id: 'quotation_gating', label: 'Quotation Gating Cost Control', icon: FileSpreadsheet },
+    { id: 'e_tracking', label: 'Timeline E-Tracking Barcode', icon: ScanLine },
+    { id: 'form', label: 'Form Penjualan & Buat DO', icon: FileText },
+    { id: 'sales_report', label: 'Laporan Penjualan (Incoming Order)', icon: FileSpreadsheet },
+    { id: 'customer', label: 'Master Pelanggan (Customer)', icon: Users },
+  ],
+  master_data: [
+    { id: 'catalog', label: 'Katalog SKU & Stok Gudang', icon: Boxes },
+    { id: 'zebra', label: 'Cetak Label Zebra Thermal', icon: ScanLine },
+    { id: 'forms', label: 'Pendaftaran SKU & Form Master', icon: FileText },
+  ],
+  hrd: [
+    { id: 'attendance_fleet', label: 'Presensi & Armada Pabrik', icon: Users },
+    { id: 'sales_gps', label: 'Log GPS Kunjungan Sales', icon: Navigation },
+    { id: 'leave_requests', label: 'Pengajuan & Status Cuti', icon: Calendar },
+    { id: 'form', label: 'Form HRD & Pengajuan Baru', icon: FileText },
+  ],
+  users: [
+    { id: 'list', label: 'Daftar Akun Pegawai & RBAC', icon: Users },
+    { id: 'new_user', label: 'Buat Akun Pegawai Baru', icon: UserPlus },
+  ],
+};
 
 const CONTENT = {
   id: {
@@ -43,6 +107,8 @@ const CONTENT = {
     mobileTitle: 'Modul Operasional ERP',
     mobileAdmin: 'Administrasi & Akses',
     moduleNames: {
+      home: 'Menu Utama (Beranda)',
+      homeSub: 'Pilihan Opsi Sederhana',
       finance: 'Finance & Analytics',
       financeSub: '13-Rumus Sales Invoice',
       qc: 'Production & QC Hold',
@@ -76,6 +142,8 @@ const CONTENT = {
     mobileTitle: 'ERP Operational Modules',
     mobileAdmin: 'Administration & Access',
     moduleNames: {
+      home: 'Main Menu (Home)',
+      homeSub: 'Simple Option View',
       finance: 'Finance & Analytics',
       financeSub: '13-Formula Sales Invoice',
       qc: 'Production & QC Hold',
@@ -94,6 +162,7 @@ const CONTENT = {
 
 export const Sidebar: React.FC = () => {
   const activeModule = useAppStore((state) => state.activeModule);
+  const activeSubFeature = useAppStore((state) => state.activeSubFeature);
   const authUser = useAuthStore((state) => state.user);
   const authLogout = useAuthStore((state) => state.logout);
   const qcRecords = useAppStore((state) => state.qcRecords);
@@ -103,6 +172,31 @@ export const Sidebar: React.FC = () => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language];
   const { canAccessModule, canAccessAdminUsers, canAccessTool, isSuperAdmin, isExecutive, hasPermission } = useRBAC();
+
+  const [expandedModules, setExpandedModules] = React.useState<Record<string, boolean>>({
+    finance: true,
+    qc: true,
+    procurement: true,
+    sales: true,
+    master_data: true,
+    hrd: true,
+    users: true,
+  });
+
+  const toggleExpand = (modId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedModules((prev) => ({
+      ...prev,
+      [modId]: !prev[modId],
+    }));
+  };
+
+  const handleSelectChild = (moduleId: any, childId: string) => {
+    appStore.navigateToFeature(moduleId, childId);
+    if (isMobileSidebarOpen) {
+      appStore.setMobileSidebarOpen(false);
+    }
+  };
 
   const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
 
@@ -120,6 +214,15 @@ export const Sidebar: React.FC = () => {
   const tierMeta = getTierBadge(authUser?.tier ?? 3);
 
   const modules = [
+    {
+      id: 'home',
+      code: 'Beranda',
+      label: t.moduleNames.home,
+      sublabel: t.moduleNames.homeSub,
+      icon: Home,
+      shortcut: 'Alt+0',
+      color: 'text-blue-600',
+    },
     {
       id: 'finance',
       code: 'Core 6',
@@ -255,58 +358,117 @@ export const Sidebar: React.FC = () => {
               {modules.map((m) => {
                 const Icon = m.icon;
                 const isActive = activeModule === m.id;
+                const children = MODULE_CHILDREN[m.id];
+                const isExpanded = !isSidebarCollapsed && (expandedModules[m.id] ?? true);
+
                 return (
-                  <button
-                    key={m.id}
-                    id={`nav-module-${m.id}`}
-                    onClick={() => handleSelectModule(m.id)}
-                    title={`${m.label} (${m.shortcut})`}
-                    className={`text-left rounded-xl flex items-center transition-all cursor-pointer relative group ${
-                      isSidebarCollapsed
-                        ? 'w-10 h-10 mx-auto justify-center p-0'
-                        : 'w-full px-2.5 py-2 justify-between'
-                    } ${
-                      isActive
-                        ? (isSidebarCollapsed ? '' : 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20')
-                        : 'text-slate-700 hover:bg-slate-100 font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
-                          isActive
-                            ? (isSidebarCollapsed ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'bg-white/20 text-white')
-                            : 'bg-slate-100 text-slate-600 group-hover:text-blue-600'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
+                  <div key={m.id} className="space-y-1">
+                    <button
+                      id={`nav-module-${m.id}`}
+                      onClick={() => handleSelectModule(m.id)}
+                      title={`${m.label} (${m.shortcut})`}
+                      className={`text-left rounded-xl flex items-center transition-all cursor-pointer relative group ${
+                        isSidebarCollapsed
+                          ? 'w-10 h-10 mx-auto justify-center p-0'
+                          : 'w-full px-2.5 py-2 justify-between'
+                      } ${
+                        isActive
+                          ? (isSidebarCollapsed ? '' : 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20')
+                          : 'text-slate-700 hover:bg-slate-100 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
+                            isActive
+                              ? (isSidebarCollapsed ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'bg-white/20 text-white')
+                              : 'bg-slate-100 text-slate-600 group-hover:text-blue-600'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        {!isSidebarCollapsed && (
+                          <div className="min-w-0">
+                            <div className="text-xs flex items-center gap-1.5 leading-tight min-w-0">
+                              <span className="truncate">{m.label}</span>
+                              {m.badge && (
+                                <span
+                                  className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${m.badgeColor}`}
+                                >
+                                  {m.badge}
+                                </span>
+                              )}
+                            </div>
+                            <div
+                              className={`text-[10px] truncate leading-tight mt-0.5 ${
+                                isActive ? 'text-white/80' : 'text-slate-400'
+                              }`}
+                            >
+                              {m.sublabel}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      {!isSidebarCollapsed && (
-                        <div className="min-w-0">
-                          <div className="text-xs flex items-center gap-1.5 leading-tight min-w-0">
-                            <span className="truncate">{m.label}</span>
-                            {m.badge && (
-                              <span
-                                className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${m.badgeColor}`}
-                              >
-                                {m.badge}
-                              </span>
-                            )}
-                          </div>
-                          <div
-                            className={`text-[10px] truncate leading-tight mt-0.5 ${
-                              isActive ? 'text-white/80' : 'text-slate-400'
-                            }`}
-                          >
-                            {m.sublabel}
-                          </div>
+
+                      {!isSidebarCollapsed && children && children.length > 0 && (
+                        <div
+                          onClick={(e) => toggleExpand(m.id, e)}
+                          className="p-1 hover:bg-black/10 rounded-md transition-colors"
+                          title="Tampilkan / Sembunyikan Sub-Fitur"
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                          ) : (
+                            <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                          )}
                         </div>
                       )}
-                    </div>
-                    {isSidebarCollapsed && m.badge && (
-                      <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+
+                      {isSidebarCollapsed && m.badge && (
+                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+                      )}
+                    </button>
+
+                    {/* Sub-features / Child items under module */}
+                    {!isSidebarCollapsed && isExpanded && children && children.length > 0 && (
+                      <div className="ml-5 pl-2.5 border-l-2 border-slate-200 space-y-0.5 my-1">
+                        {children.map((child) => {
+                          const isChildActive = activeModule === m.id && activeSubFeature?.[m.id] === child.id;
+                          const ChildIcon = child.icon;
+                          return (
+                            <button
+                              key={child.id}
+                              type="button"
+                              onClick={() => handleSelectChild(m.id, child.id)}
+                              className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-[11px] transition-all cursor-pointer ${
+                                isChildActive
+                                  ? 'bg-blue-100 text-blue-900 font-extrabold shadow-2xs'
+                                  : 'text-slate-600 hover:text-blue-700 hover:bg-slate-100 font-medium'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <ChildIcon
+                                  className={`w-3.5 h-3.5 shrink-0 ${
+                                    isChildActive ? 'text-blue-700' : 'text-slate-400'
+                                  }`}
+                                />
+                                <span className="truncate">{child.label}</span>
+                              </div>
+                              {child.badge && (
+                                <span
+                                  className={`text-[8px] px-1 py-0.2 rounded-full font-bold uppercase shrink-0 ${
+                                    child.badgeColor || 'bg-slate-200 text-slate-700'
+                                  }`}
+                                >
+                                  {child.badge}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </nav>
@@ -366,7 +528,51 @@ export const Sidebar: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {!isSidebarCollapsed && (
+                  <div
+                    onClick={(e) => toggleExpand('users', e)}
+                    className="p-1 hover:bg-black/10 rounded-md transition-colors"
+                  >
+                    {expandedModules.users ? (
+                      <ChevronDown className={`w-3.5 h-3.5 ${activeModule === 'users' ? 'text-white' : 'text-slate-400'}`} />
+                    ) : (
+                      <ChevronRight className={`w-3.5 h-3.5 ${activeModule === 'users' ? 'text-white' : 'text-slate-400'}`} />
+                    )}
+                  </div>
+                )}
               </button>
+
+              {/* Children for Users Module */}
+              {!isSidebarCollapsed && expandedModules.users && (
+                <div className="ml-5 pl-2.5 border-l-2 border-purple-200 space-y-0.5 my-1">
+                  {MODULE_CHILDREN.users.map((child) => {
+                    const isChildActive = activeModule === 'users' && activeSubFeature?.users === child.id;
+                    const ChildIcon = child.icon;
+                    return (
+                      <button
+                        key={child.id}
+                        type="button"
+                        onClick={() => handleSelectChild('users', child.id)}
+                        className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-[11px] transition-all cursor-pointer ${
+                          isChildActive
+                            ? 'bg-purple-100 text-purple-900 font-extrabold shadow-2xs'
+                            : 'text-slate-600 hover:text-purple-700 hover:bg-slate-100 font-medium'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ChildIcon
+                            className={`w-3.5 h-3.5 shrink-0 ${
+                              isChildActive ? 'text-purple-700' : 'text-slate-400'
+                            }`}
+                          />
+                          <span className="truncate">{child.label}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -534,41 +740,82 @@ export const Sidebar: React.FC = () => {
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
                   {t.mobileTitle}
                 </div>
-              <nav className="space-y-1">
+              <nav className="space-y-1.5">
                 {modules.map((m) => {
                   const Icon = m.icon;
                   const isActive = activeModule === m.id;
+                  const children = MODULE_CHILDREN[m.id];
+                  const isExpanded = expandedModules[m.id] ?? true;
+
                   return (
-                    <button
-                      key={m.id}
-                      onClick={() => handleSelectModule(m.id)}
-                      className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between transition-colors text-xs ${
-                        isActive
-                          ? 'bg-blue-600 text-white font-bold shadow-sm'
-                          : 'text-slate-700 hover:bg-slate-100 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                            isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="truncate font-bold">{m.label}</div>
-                          <div className={`text-[10px] truncate ${isActive ? 'text-white/80' : 'text-slate-400'}`}>
-                            {m.sublabel}
+                    <div key={m.id} className="space-y-1">
+                      <button
+                        onClick={() => handleSelectModule(m.id)}
+                        className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between transition-colors text-xs ${
+                          isActive
+                            ? 'bg-blue-600 text-white font-bold shadow-sm'
+                            : 'text-slate-700 hover:bg-slate-100 font-medium'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                              isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate font-bold">{m.label}</div>
+                            <div className={`text-[10px] truncate ${isActive ? 'text-white/80' : 'text-slate-400'}`}>
+                              {m.sublabel}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      {m.badge && (
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${m.badgeColor}`}>
-                          {m.badge}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {m.badge && (
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${m.badgeColor}`}>
+                              {m.badge}
+                            </span>
+                          )}
+                          {children && children.length > 0 && (
+                            <div onClick={(e) => toggleExpand(m.id, e)} className="p-1">
+                              {isExpanded ? (
+                                <ChevronDown className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                              ) : (
+                                <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Mobile Children */}
+                      {isExpanded && children && children.length > 0 && (
+                        <div className="ml-5 pl-2.5 border-l-2 border-slate-200 space-y-0.5 my-1">
+                          {children.map((child) => {
+                            const isChildActive = activeModule === m.id && activeSubFeature?.[m.id] === child.id;
+                            const ChildIcon = child.icon;
+                            return (
+                              <button
+                                key={child.id}
+                                onClick={() => handleSelectChild(m.id, child.id)}
+                                className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                                  isChildActive
+                                    ? 'bg-blue-100 text-blue-900 font-bold'
+                                    : 'text-slate-600 hover:text-blue-700 hover:bg-slate-100 font-medium'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <ChildIcon className={`w-3.5 h-3.5 shrink-0 ${isChildActive ? 'text-blue-700' : 'text-slate-400'}`} />
+                                  <span className="truncate">{child.label}</span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </nav>
@@ -598,7 +845,39 @@ export const Sidebar: React.FC = () => {
                       <div className="text-[10px] text-slate-400">{t.manageUsersSub}</div>
                     </div>
                   </div>
+                  <div onClick={(e) => toggleExpand('users', e)} className="p-1">
+                    {expandedModules.users ? (
+                      <ChevronDown className={`w-3.5 h-3.5 ${activeModule === 'users' ? 'text-white' : 'text-slate-400'}`} />
+                    ) : (
+                      <ChevronRight className={`w-3.5 h-3.5 ${activeModule === 'users' ? 'text-white' : 'text-slate-400'}`} />
+                    )}
+                  </div>
                 </button>
+
+                {expandedModules.users && (
+                  <div className="ml-5 pl-2.5 border-l-2 border-purple-200 space-y-0.5 my-1">
+                    {MODULE_CHILDREN.users.map((child) => {
+                      const isChildActive = activeModule === 'users' && activeSubFeature?.users === child.id;
+                      const ChildIcon = child.icon;
+                      return (
+                        <button
+                          key={child.id}
+                          onClick={() => handleSelectChild('users', child.id)}
+                          className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                            isChildActive
+                              ? 'bg-purple-100 text-purple-900 font-bold'
+                              : 'text-slate-600 hover:text-purple-700 hover:bg-slate-100 font-medium'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <ChildIcon className={`w-3.5 h-3.5 shrink-0 ${isChildActive ? 'text-purple-700' : 'text-slate-400'}`} />
+                            <span className="truncate">{child.label}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 

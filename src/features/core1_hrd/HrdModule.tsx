@@ -23,6 +23,9 @@ import { HrdFormsModal } from '../../components/forms/HrdFormsModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getLeaveRequestsApi, getVehicleBookingsApi, getSalesVisitsApi, approveVehicleBookingApi, getAttendanceApi, getEmployeesApi } from '../../services/hrdService';
 import { LeaveRequestsTab } from './LeaveRequestsTab';
+import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
+import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
+import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
 
 const CONTENT = {
   id: {
@@ -213,154 +216,229 @@ export const HrdModule: React.FC = () => {
     );
   }
 
+  const leaveList = Array.isArray(leaveRequests) ? leaveRequests : (leaveRequests as any)?.data || [];
+
+  const options: PageOptionItem[] = isHrdAdmin
+    ? [
+        {
+          id: 'attendance_fleet',
+          label: '1. Presensi & Armada Pabrik',
+          subtitle: 'Presensi shift staf pabrik & pemesanan truk operasional',
+          icon: Users,
+          badge: attendanceLogs.length > 0 ? `${attendanceLogs.length} Log` : undefined,
+        },
+        {
+          id: 'sales_gps',
+          label: '2. Log GPS Sales Lapangan',
+          subtitle: 'Geo-tracking check-in kunjungan outdoor sales',
+          icon: Navigation,
+          badge: salesVisits.length > 0 ? `${salesVisits.length} Visit` : undefined,
+        },
+        {
+          id: 'leave_requests',
+          label: '3. Pengajuan Cuti & Izin',
+          subtitle: 'Persetujuan izin sakit, cuti tahunan & dispensasi',
+          icon: Calendar,
+          badge: leaveList.length > 0 ? `${leaveList.length} Pengajuan` : undefined,
+        },
+      ]
+    : [
+        {
+          id: 'leave_requests',
+          label: '1. Pengajuan Cuti & Izin Saya',
+          subtitle: 'Kelola dan ajukan permohonan cuti Anda',
+          icon: Calendar,
+        },
+      ];
+
+  const activeSubFeature = useAppStore((state) => state.activeSubFeature?.hrd);
+
+  // When no feature is selected yet, render simple selection menu hub (matches client reference screenshot 1)
+  if (!activeSubFeature) {
+    const hubItems: ModuleFeatureHubItem[] = isHrdAdmin
+      ? [
+          {
+            id: 'attendance_fleet',
+            label: 'Presensi Kehadiran & Jadwal Armada Truk Pabrik',
+            subtitle: 'Kehadiran shift pagi/siang, fingerprint valid & persetujuan pemakaian armada',
+            icon: Users,
+            iconColor: 'text-violet-600',
+            badge: `${attendanceLogs.length} Log Hari Ini`,
+            badgeColor: 'bg-violet-100 text-violet-800 border-violet-200',
+            onClick: () => appStore.setActiveSubFeature('hrd', 'attendance_fleet'),
+          },
+          {
+            id: 'sales_gps',
+            label: 'Log GPS Kunjungan Lapangan Sales',
+            subtitle: `Rekam jejak koordinat GPS real-time kunjungan klien tim Sales (${salesVisits.length} Kunjungan)`,
+            icon: Navigation,
+            iconColor: 'text-blue-600',
+            badge: `${salesVisits.length} Check-in`,
+            badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
+            onClick: () => appStore.setActiveSubFeature('hrd', 'sales_gps'),
+          },
+          {
+            id: 'leave_requests',
+            label: 'Pengajuan & Persetujuan Cuti Pegawai',
+            subtitle: `Cuti tahunan, izin sakit, surat dokter & verifikasi atasan (${leaveList.length} Pengajuan)`,
+            icon: Calendar,
+            iconColor: 'text-emerald-600',
+            badge: leaveList.length > 0 ? `${leaveList.length} Pengajuan` : undefined,
+            badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+            onClick: () => appStore.setActiveSubFeature('hrd', 'leave_requests'),
+          },
+          {
+            id: 'form',
+            label: 'Formulir HRD & Pengajuan Baru',
+            subtitle: 'Input permohonan cuti, izin kendaraan operasional, atau pendaftaran dinas luar',
+            icon: Plus,
+            iconColor: 'text-amber-600',
+            badge: 'Input Baru',
+            badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+            onClick: () => openFormWithTab('leave'),
+          },
+        ]
+      : [
+          {
+            id: 'leave_requests',
+            label: 'Pengajuan Cuti & Izin Saya',
+            subtitle: `Kelola dan ajukan permohonan cuti atau izin kerja Anda (${leaveList.length} Pengajuan)`,
+            icon: Calendar,
+            iconColor: 'text-violet-600',
+            onClick: () => appStore.setActiveSubFeature('hrd', 'leave_requests'),
+          },
+          {
+            id: 'form',
+            label: 'Buat Pengajuan Cuti Baru',
+            subtitle: 'Formulir pengajuan cuti tahunan, izin sakit atau keperluan mendesak',
+            icon: Plus,
+            iconColor: 'text-emerald-600',
+            badge: 'Ajukan',
+            badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+            onClick: () => openFormWithTab('leave'),
+          },
+        ];
+
+    return (
+      <ModuleFeatureHub
+        moduleCode="Core 1"
+        moduleName="HRD, ARMADA PABRIK & FASILITAS"
+        moduleDescription="Presensi staf shift kerja, jadwal pemesanan kendaraan dinas/truk armada, geo-tracking log visit sales outdoor, dan kelola cuti pegawai."
+        headerBgColor="bg-violet-600"
+        items={hubItems}
+        onBackToHome={() => appStore.setActiveModule('home')}
+      />
+    );
+  }
+
+  const currentTab = (activeSubFeature as any) || (isHrdAdmin ? 'attendance_fleet' : 'leave_requests');
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div className="flex-1">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              {isHrdAdmin ? t.title : 'Pengajuan Cuti'}
-            </h1>
-            <p className="text-sm text-slate-500 mt-1.5">
-              {isHrdAdmin ? t.desc : 'Kelola dan ajukan permohonan cuti atau izin Anda'}
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <button
-              onClick={() => openFormWithTab('leave')}
-              className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-sm font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{isHrdAdmin ? t.btnInput : 'Buat Pengajuan'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tab switchers */}
-        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 self-start overflow-x-auto max-w-full">
-          {isHrdAdmin && (
-            <>
-              <button
-                onClick={() => setActiveTab('attendance_fleet')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${
-                  activeTab === 'attendance_fleet'
-                    ? 'bg-white text-violet-700 shadow-xs border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
-              >
-                {t.tabFleet}
-              </button>
-              <button
-                onClick={() => setActiveTab('sales_gps')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${
-                  activeTab === 'sales_gps'
-                    ? 'bg-white text-violet-700 shadow-xs border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
-              >
-                <Navigation className="w-4 h-4" />
-                <span>{t.tabGps}</span>
-              </button>
-            </>
-          )}
+      {/* Senior-Friendly Header with Option Buttons */}
+      <ModulePageHeader
+        moduleCode="Core 1"
+        title={isHrdAdmin ? t.title : 'Pengajuan Cuti & Izin Staf'}
+        description={isHrdAdmin ? t.desc : 'Kelola dan ajukan permohonan cuti atau izin kerja Anda'}
+        badgeColor="bg-violet-50 text-violet-800 border-violet-200"
+        options={options}
+        activeOption={currentTab}
+        onSelectOption={(opt) => appStore.setActiveSubFeature('hrd', opt)}
+        onBackToMenu={() => appStore.setActiveSubFeature('hrd', null)}
+        menuName="HRD"
+        actionButtons={
           <button
-            onClick={() => setActiveTab('leave_requests')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'leave_requests'
-                ? 'bg-white text-violet-700 shadow-xs border border-slate-200'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-            }`}
+            onClick={() => openFormWithTab('leave')}
+            className="px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-base font-extrabold shadow-sm flex items-center gap-2.5 transition-all cursor-pointer"
           >
-            <Calendar className="w-4 h-4" />
-            <span>{t.tabLeave}</span>
+            <Plus className="w-5 h-5" />
+            <span>{isHrdAdmin ? t.btnInput : 'Buat Pengajuan'}</span>
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {activeTab === 'leave_requests' ? (
         <LeaveRequestsTab onOpenForm={() => openFormWithTab('leave')} />
       ) : activeTab === 'attendance_fleet' && isHrdAdmin ? (
         <div className="space-y-6">
-          {/* Attendance KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-            <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase">{t.kpi1Title}</span>
-              <div className="text-xl font-black text-slate-900 dark:text-white mt-1">{t.kpi1Value}</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">{t.kpi1Desc}</div>
+          {/* Attendance KPI Cards (Enlarged) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-5 sm:p-6 rounded-3xl border-2 border-slate-200 bg-white shadow-xs">
+              <span className="text-xs sm:text-sm font-black text-slate-500 uppercase tracking-wider">{t.kpi1Title}</span>
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-1.5">{t.kpi1Value}</div>
+              <div className="text-xs sm:text-sm font-medium text-slate-500 mt-1">{t.kpi1Desc}</div>
             </div>
 
-            <div className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-xs">
-              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">{t.kpi2Title}</span>
-              <div className="text-xl font-black text-emerald-800 dark:text-emerald-200 mt-1">412 (96.2%)</div>
-              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">{t.kpi2Desc}</div>
+            <div className="p-5 sm:p-6 rounded-3xl border-2 border-emerald-200 bg-emerald-50/50 shadow-xs">
+              <span className="text-xs sm:text-sm font-black text-emerald-800 uppercase tracking-wider">{t.kpi2Title}</span>
+              <div className="text-2xl sm:text-3xl font-black text-emerald-900 mt-1.5">412 (96.2%)</div>
+              <div className="text-xs sm:text-sm font-medium text-emerald-700 mt-1">{t.kpi2Desc}</div>
             </div>
 
-            <div className="p-4 rounded-2xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 shadow-xs">
-              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase">{t.kpi3Title}</span>
-              <div className="text-xl font-black text-amber-800 dark:text-amber-200 mt-1">{t.kpi3Value}</div>
-              <div className="text-[10px] text-amber-600 mt-0.5">{t.kpi3Desc}</div>
+            <div className="p-5 sm:p-6 rounded-3xl border-2 border-amber-200 bg-amber-50/50 shadow-xs">
+              <span className="text-xs sm:text-sm font-black text-amber-800 uppercase tracking-wider">{t.kpi3Title}</span>
+              <div className="text-2xl sm:text-3xl font-black text-amber-900 mt-1.5">{t.kpi3Value}</div>
+              <div className="text-xs sm:text-sm font-medium text-amber-700 mt-1">{t.kpi3Desc}</div>
             </div>
 
-            <div className="p-4 rounded-2xl border border-blue-200 dark:border-blue-800/60 bg-blue-50/50 dark:bg-blue-950/20 shadow-xs">
-              <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase">{t.kpi4Title}</span>
-              <div className="text-xl font-black text-blue-800 dark:text-blue-200 mt-1">{t.kpi4Value}</div>
-              <div className="text-[10px] text-blue-600 mt-0.5">{t.kpi4Desc}</div>
+            <div className="p-5 sm:p-6 rounded-3xl border-2 border-blue-200 bg-blue-50/50 shadow-xs">
+              <span className="text-xs sm:text-sm font-black text-blue-800 uppercase tracking-wider">{t.kpi4Title}</span>
+              <div className="text-2xl sm:text-3xl font-black text-blue-900 mt-1.5">{t.kpi4Value}</div>
+              <div className="text-xs sm:text-sm font-medium text-blue-700 mt-1">{t.kpi4Desc}</div>
             </div>
           </div>
 
-          {/* Attendance Detail Table */}
-          <div className="mt-8 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex flex-col gap-4">
+          {/* Attendance Detail Table (Large & High Contrast) */}
+          <div className="mt-8 bg-white rounded-3xl border-2 border-slate-200 overflow-hidden shadow-xs">
+            <div className="p-5 sm:p-6 border-b-2 border-slate-200 bg-slate-50 flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-indigo-500" />
+                <h3 className="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2.5">
+                  <Calendar className="w-6 h-6 text-indigo-600" />
                   Detail Presensi Karyawan
                 </h3>
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <div className="flex items-center gap-2">
+                  <div className="relative w-full sm:w-80">
+                    <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       value={attSearch}
                       onChange={(e) => { setAttSearch(e.target.value); setAttPage(1); }}
                       placeholder="Cari nama karyawan..."
-                      className="pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-64"
+                      className="pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-200 bg-white text-slate-800 text-sm sm:text-base font-semibold focus:border-indigo-600 outline-none w-full shadow-2xs"
                     />
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex items-center gap-1.5 bg-slate-200/50 dark:bg-slate-800 p-1 rounded-xl w-fit">
-                  <button onClick={() => handleDateFilterModeChange('today')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${dateFilterMode === 'today' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Hari Ini</button>
-                  <button onClick={() => handleDateFilterModeChange('week')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${dateFilterMode === 'week' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>1 Minggu</button>
-                  <button onClick={() => handleDateFilterModeChange('month')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${dateFilterMode === 'month' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>1 Bulan</button>
-                  <button onClick={() => handleDateFilterModeChange('custom')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${dateFilterMode === 'custom' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Custom</button>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5 bg-slate-200/80 p-1.5 rounded-2xl">
+                  <button onClick={() => handleDateFilterModeChange('today')} className={`px-4 py-2 text-sm font-extrabold rounded-xl transition-all cursor-pointer ${dateFilterMode === 'today' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>Hari Ini</button>
+                  <button onClick={() => handleDateFilterModeChange('week')} className={`px-4 py-2 text-sm font-extrabold rounded-xl transition-all cursor-pointer ${dateFilterMode === 'week' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>1 Minggu</button>
+                  <button onClick={() => handleDateFilterModeChange('month')} className={`px-4 py-2 text-sm font-extrabold rounded-xl transition-all cursor-pointer ${dateFilterMode === 'month' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>1 Bulan</button>
+                  <button onClick={() => handleDateFilterModeChange('custom')} className={`px-4 py-2 text-sm font-extrabold rounded-xl transition-all cursor-pointer ${dateFilterMode === 'custom' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>Pilih Tanggal</button>
                 </div>
                 
                 {dateFilterMode === 'custom' && (
-                  <div className="flex items-center gap-2 text-xs">
+                  <div className="flex flex-wrap items-center gap-2 text-sm sm:text-base font-bold">
                     <input 
                       type="date" 
                       value={startDate} 
                       onChange={(e) => { setStartDate(e.target.value); setAttPage(1); }} 
-                      className="px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 outline-none focus:border-indigo-600"
                     />
-                    <span className="text-slate-500 font-medium">s/d</span>
+                    <span className="text-slate-500 font-extrabold">s/d</span>
                     <input 
                       type="date" 
                       value={endDate} 
                       onChange={(e) => { setEndDate(e.target.value); setAttPage(1); }} 
-                      className="px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 outline-none focus:border-indigo-600"
                     />
                     {(startDate || endDate) && (
                       <button 
                         onClick={() => { setStartDate(''); setEndDate(''); setAttPage(1); }}
-                        className="p-1 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
+                        className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                         title="Reset Tanggal"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-5 h-5" />
                       </button>
                     )}
                   </div>
@@ -368,38 +446,38 @@ export const HrdModule: React.FC = () => {
               </div>
             </div>
             <div className="overflow-auto max-h-[60vh] 2xl:max-h-[70vh]">
-              <table className="w-full text-xs text-left relative">
-                <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 shadow-sm text-slate-500 dark:text-slate-400">
-                  <tr className="border-b border-slate-200 dark:border-slate-700">
-                    <th className="px-4 py-3 font-bold">Nama Karyawan</th>
-                    <th className="px-4 py-3 font-bold">Departemen</th>
-                    <th className="px-4 py-3 font-bold">Shift</th>
-                    <th className="px-4 py-3 font-bold">Check In</th>
-                    <th className="px-4 py-3 font-bold">Check Out</th>
-                    <th className="px-4 py-3 font-bold">Status</th>
+              <table className="w-full text-sm sm:text-base text-left relative">
+                <thead className="sticky top-0 z-10 bg-slate-100 shadow-sm text-slate-700 border-b-2 border-slate-200">
+                  <tr>
+                    <th className="px-5 py-4 font-black">Nama Karyawan</th>
+                    <th className="px-5 py-4 font-black">Departemen</th>
+                    <th className="px-5 py-4 font-black">Shift</th>
+                    <th className="px-5 py-4 font-black">Check In</th>
+                    <th className="px-5 py-4 font-black">Check Out</th>
+                    <th className="px-5 py-4 font-black">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-200">
                   {filteredAttendanceLogs.map((log: any) => (
                     <tr 
                       key={log.id} 
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+                      className="hover:bg-indigo-50/40 transition-colors cursor-pointer group"
                       onClick={() => {
                         const employeeInfo = allApiUsers.find((u: any) => String(u.id) === String(log.employeeId) || u.fullName === log.employeeName) || { full_name: log.employeeName, department: log.department };
                         setViewUserDetail(employeeInfo);
                       }}
                       title="Klik untuk melihat profil lengkap"
                     >
-                      <td className="px-4 py-3 font-bold text-blue-600 dark:text-blue-400 group-hover:underline">{log.employeeName}</td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{log.department}</td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{log.shift}</td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{log.checkIn}</td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{log.checkOut}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full ${
-                          log.status === 'HADIR' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' :
-                          log.status === 'TERLAMBAT' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
-                          'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                      <td className="px-5 py-4 font-black text-blue-700 text-base sm:text-lg group-hover:underline">{log.employeeName}</td>
+                      <td className="px-5 py-4 text-slate-800 font-semibold">{log.department}</td>
+                      <td className="px-5 py-4 text-slate-800 font-bold">{log.shift}</td>
+                      <td className="px-5 py-4 font-mono font-bold text-slate-800">{log.checkIn}</td>
+                      <td className="px-5 py-4 font-mono font-bold text-slate-800">{log.checkOut}</td>
+                      <td className="px-5 py-4">
+                        <span className={`px-3 py-1 text-xs sm:text-sm font-black rounded-full ${
+                          log.status === 'HADIR' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                          log.status === 'TERLAMBAT' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                          'bg-rose-100 text-rose-800 border border-rose-300'
                         }`}>
                           {log.status}
                         </span>
@@ -408,7 +486,7 @@ export const HrdModule: React.FC = () => {
                   ))}
                   {filteredAttendanceLogs.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500 italic">
+                      <td colSpan={6} className="px-5 py-10 text-center text-slate-500 font-bold text-base italic">
                         {loadingAtt ? 'Memuat data presensi...' : 'Tidak ada data presensi yang sesuai.'}
                       </td>
                     </tr>
@@ -417,9 +495,9 @@ export const HrdModule: React.FC = () => {
               </table>
             </div>
             {/* KONTROL PAGINATION ATTENDANCE */}
-            <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex flex-wrap justify-between items-center p-5 bg-slate-50 border-t-2 border-slate-200 gap-3">
               <div className="flex items-center gap-4">
-                <span className="text-xs text-slate-500 font-medium">
+                <span className="text-sm sm:text-base text-slate-600 font-extrabold">
                   Halaman {attPage} dari {attTotalPages}
                 </span>
                 <select
@@ -428,102 +506,106 @@ export const HrdModule: React.FC = () => {
                     setPageSize(Number(e.target.value));
                     setAttPage(1);
                   }}
-                  className="text-xs font-medium border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 px-2 py-1 text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+                  className="text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl bg-white px-3 py-2 text-slate-800 outline-none focus:border-indigo-600 transition-colors cursor-pointer"
                 >
-                  <option value={10}>10 Baris</option>
-                  <option value={20}>20 Baris</option>
-                  <option value={50}>50 Baris</option>
-                  <option value={100}>100 Baris</option>
+                  <option value={10}>10 Baris per Halaman</option>
+                  <option value={20}>20 Baris per Halaman</option>
+                  <option value={50}>50 Baris per Halaman</option>
+                  <option value={100}>100 Baris per Halaman</option>
                 </select>
               </div>
               <div className="flex gap-2">
                 <button 
                   disabled={attPage === 1}
                   onClick={() => setAttPage(p => Math.max(1, p - 1))}
-                  className="px-3 py-1 text-xs border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
                 >
-                  Sebelumnya
+                  &larr; Sebelumnya
                 </button>
                 <button 
                   disabled={attPage >= attTotalPages}
                   onClick={() => setAttPage(p => p + 1)}
-                  className="px-3 py-1 text-xs border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
                 >
-                  Selanjutnya
+                  Selanjutnya &rarr;
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Vehicle Fleet Reservation Section */}
-          <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
+          {/* Vehicle Fleet Reservation Section (Large Cards) */}
+          <div className="p-6 sm:p-8 rounded-3xl border-2 border-slate-200 bg-white shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-100 pb-4">
               <div>
-                <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <Car className="w-4 h-4 text-violet-600" />
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-3">
+                  <Car className="w-6 h-6 text-violet-600" />
                   <span>{t.fleetTitle}</span>
                 </h3>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-sm sm:text-base text-slate-600 mt-1 font-medium">
                   {t.fleetDesc}
                 </p>
               </div>
 
-              <div className="text-xs text-slate-500 font-medium">
-                {t.fleetApproveLabel} <strong className="text-violet-600">{t.fleetApproveRole}</strong>
+              <div className="text-sm sm:text-base text-slate-600 font-bold">
+                {t.fleetApproveLabel} <strong className="text-violet-700">{t.fleetApproveRole}</strong>
               </div>
             </div>
 
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y-2 divide-slate-100">
               {vehicleBookings.map((vcl) => {
                 const isPending = vcl.status === 'PENDING' || (vcl.status as string) === 'PENDING_HRD';
                 return (
-                  <div key={vcl.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-slate-900 dark:text-white px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
+                  <div key={vcl.id} className="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="font-mono text-sm sm:text-base font-black text-slate-900 px-3 py-1 rounded-xl bg-slate-100 border border-slate-200">
                           {vcl.vehiclePlate || vcl.licensePlate}
                         </span>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                        <span className="font-extrabold text-base sm:text-lg text-slate-900">
                           {vcl.vehicleModel || vcl.vehicleName}
                         </span>
                         <span
-                          className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase ${
+                          className={`text-xs sm:text-sm font-black px-3 py-1 rounded-full uppercase ${
                             vcl.status === 'APPROVED'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-amber-100 text-amber-800 border border-amber-300'
                           }`}
                         >
                           {vcl.status}
                         </span>
                       </div>
-                      <div className="text-slate-600 dark:text-slate-300 font-medium">
-                        {t.fleetDest} <strong>{vcl.destination}</strong> ({vcl.purpose})
+                      <div className="text-slate-800 text-sm sm:text-base font-medium">
+                        {t.fleetDest} <strong className="font-black text-slate-950">{vcl.destination}</strong> ({vcl.purpose})
                       </div>
-                      <div className="text-[10px] text-slate-400">
-                        {t.fleetDriver} {vcl.driverName} • {t.fleetReq} {vcl.requestedBy || 'Staff Pabrik'} • {t.fleetSched} {vcl.departureDate || vcl.departureTime} {vcl.returnDate ? `${t.fleetSdt} ${vcl.returnDate}` : ''}
+                      <div className="text-xs sm:text-sm text-slate-500 font-semibold flex flex-wrap gap-2">
+                        <span>{t.fleetDriver} <strong>{vcl.driverName}</strong></span>
+                        <span>•</span>
+                        <span>{t.fleetReq} <strong>{vcl.requestedBy || 'Staff Pabrik'}</strong></span>
+                        <span>•</span>
+                        <span>{t.fleetSched} <strong>{vcl.departureDate || vcl.departureTime}</strong> {vcl.returnDate ? `${t.fleetSdt} ${vcl.returnDate}` : ''}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 shrink-0">
                       {isPending ? (
                         <Can
                           perform="hrd:vehicle:approve"
                           fallback={
-                            <span className="text-[11px] text-amber-600 italic">
+                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-xl border border-amber-200">
                               Menunggu Persetujuan HRD
                             </span>
                           }
                         >
                           <button
                             onClick={() => handleApproveVehicle(vcl.id)}
-                            className="px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs shadow-xs"
+                            className="px-5 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-black text-sm sm:text-base shadow-sm cursor-pointer transition-all"
                           >
                             {t.fleetBtnApprove}
                           </button>
                         </Can>
                       ) : (
-                        <div className="text-emerald-600 font-bold text-xs flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        <div className="text-emerald-700 font-black text-sm sm:text-base flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-200">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                           <span>{t.fleetApproved}</span>
                         </div>
                       )}
@@ -535,50 +617,54 @@ export const HrdModule: React.FC = () => {
           </div>
         </div>
       ) : isHrdAdmin ? (
-        /* Sales Outdoor GPS Visit Logs */
-        <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
+        /* Sales Outdoor GPS Visit Logs (Enlarged Cards) */
+        <div className="p-6 sm:p-8 rounded-3xl border-2 border-slate-200 bg-white shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-100 pb-4">
             <div>
-              <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <Navigation className="w-4 h-4 text-violet-600" />
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-3">
+                <Navigation className="w-6 h-6 text-violet-600" />
                 <span>{t.gpsTitle}</span>
               </h3>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-sm sm:text-base text-slate-600 mt-1 font-medium">
                 {t.gpsDesc}
               </p>
             </div>
+            <div className="text-sm font-extrabold text-slate-500">
+              Total: {salesVisits.length} Kunjungan
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {salesVisits.map((vst) => (
               <div
                 key={vst.id}
-                className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-xs space-y-2.5"
+                className="p-5 sm:p-6 rounded-3xl border-2 border-slate-200 bg-slate-50/60 text-sm sm:text-base space-y-3.5 shadow-2xs hover:border-violet-300 transition-all"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 dark:text-white">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-black text-base sm:text-xl text-slate-900 leading-snug">
                     {vst.clientCompany || vst.clientName}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono text-[10px] font-bold">
-                    {vst.status || 'VERIFIED_CHECKIN'}
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs sm:text-sm font-black shrink-0">
+                    {vst.status || 'VERIFIED'}
                   </span>
                 </div>
 
-                <div className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium">
-                  <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                <div className="text-sm sm:text-base text-slate-700 flex items-center gap-2 font-medium">
+                  <MapPin className="w-4 h-4 text-rose-600 shrink-0" />
                   <span>{vst.locationArea || vst.clientAddress}</span>
                 </div>
 
-                <div className="p-2 rounded-xl bg-white dark:bg-slate-900 font-mono text-[10px] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
+                <div className="p-3 rounded-2xl bg-white font-mono text-xs sm:text-sm text-slate-700 border border-slate-200 font-bold">
                   GPS: {vst.gpsCoords || (vst.coordinates ? `${vst.coordinates.lat}, ${vst.coordinates.lng}` : '-6.3245, 107.1382')} • {t.gpsTime} {vst.checkInTime}
                 </div>
 
-                <p className="text-slate-700 dark:text-slate-300 text-[11px] italic">
+                <p className="text-slate-800 text-sm sm:text-base italic bg-white/70 p-3 rounded-2xl border border-slate-200">
                   "{vst.notes || vst.resultNotes || vst.purpose}"
                 </p>
 
-                <div className="text-[10px] text-slate-400 border-t border-slate-200 dark:border-slate-700 pt-1.5">
-                  {t.gpsRep} <strong>{vst.salesRep || vst.salesName}</strong>
+                <div className="text-xs sm:text-sm text-slate-600 border-t border-slate-200 pt-2 font-bold flex items-center justify-between">
+                  <span>{t.gpsRep} <strong className="text-slate-900">{vst.salesRep || vst.salesName}</strong></span>
+                  <span className="text-violet-600 font-mono text-xs">Geo-Verified</span>
                 </div>
               </div>
             ))}
@@ -728,6 +814,21 @@ export const HrdModule: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ─── Client Standard Bottom Action Toolbar with prominent BACK Button ─── */}
+      <ModuleViewFooter
+        onBack={() => appStore.setActiveSubFeature('hrd', null)}
+        backLabel="BACK (KEMBALI KE MENU HRD)"
+        actions={
+          <button
+            onClick={() => openFormWithTab('leave')}
+            className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Form Input HRD</span>
+          </button>
+        }
+      />
 
       {/* HRD Forms Modal */}
       <HrdFormsModal

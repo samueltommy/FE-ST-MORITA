@@ -7,16 +7,32 @@
   }
 
   html {
-    /* Meningkatkan ukuran dasar (115% dari default 16px = ~18.4px) secara global.
-       Karena tablet sekarang menggunakan menu drawer (seperti mobile), konten utama 
-       mendapatkan lebar penuh, sehingga aman menggunakan ukuran besar di semua perangkat. */
-    font-size: 115%;
+    /* Meningkatkan ukuran dasar (125% dari default 16px = 20px) secara global untuk kemudahan membaca staf lansia */
+    font-size: 125%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Mode Ukuran Huruf / Accessibility Font Scale */
+  html.font-normal {
+    font-size: 110%;
+  }
+
+  html.font-large {
+    font-size: 125%;
+  }
+
+  html.font-xlarge {
+    font-size: 140%;
   }
 
   body {
     font-family: var(--font-sans);
     margin: 0;
     padding: 0;
+    line-height: 1.55;
+    color: #0f172a;
   }
 }
 
