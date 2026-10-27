@@ -61,12 +61,12 @@ export const AuditLogsDrawer: React.FC = () => {
                 <h2 className="text-sm font-black text-slate-900 dark:text-white">
                   Audit Trail & Kepatuhan Regulasi
                 </h2>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700 flex items-center gap-1">
+                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
                   SHA-256 Immutability Active
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 Log rekaman perubahan sistem terenkripsi untuk audit ISO 9001 & Bea Cukai Kawasan Berikat
               </p>
             </div>
@@ -133,7 +133,7 @@ export const AuditLogsDrawer: React.FC = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`px-2 py-0.5 rounded font-mono font-bold text-[10px] uppercase tracking-wider ${
+                        className={`px-2 py-0.5 rounded font-mono font-bold text-xs uppercase tracking-wider ${
                           log.action === 'OVERRIDE_HOLD'
                             ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300'
                             : log.action === 'APPROVE'
@@ -148,12 +148,12 @@ export const AuditLogsDrawer: React.FC = () => {
                       <span className="font-bold text-slate-900 dark:text-white">
                         {log.actorName}
                       </span>
-                      <span className="text-[10px] font-mono text-slate-400">
+                      <span className="text-xs font-mono text-slate-400">
                         [{log.actorRole}]
                       </span>
                     </div>
 
-                    <div className="text-[11px] text-slate-400 flex items-center gap-1 font-mono shrink-0">
+                    <div className="text-xs text-slate-400 flex items-center gap-1 font-mono shrink-0">
                       <Clock className="w-3 h-3" />
                       {log.timestamp.replace('T', ' ').slice(0, 19)}
                     </div>
@@ -165,7 +165,7 @@ export const AuditLogsDrawer: React.FC = () => {
                   </p>
 
                   {/* Entity tag & IP */}
-                  <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-3">
                       <span>
                         Entitas: <strong className="text-slate-600 dark:text-slate-300">{log.entity}</strong> ({log.entityId})
@@ -185,15 +185,15 @@ export const AuditLogsDrawer: React.FC = () => {
                   </div>
 
                   {/* Cryptographic SHA-256 Seal */}
-                  <div className="p-2 rounded-lg bg-black/5 dark:bg-black/30 font-mono text-[10px] text-slate-500 dark:text-slate-400 break-all flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-black/5 dark:bg-black/30 font-mono text-xs text-slate-500 dark:text-slate-400 break-all flex items-center gap-2">
                     <Terminal className="w-3 h-3 text-emerald-500 shrink-0" />
                     <span>Hash: {log.sha256Hash}</span>
                   </div>
 
                   {/* State Diff preview if expanded */}
                   {isExpanded && (log.stateBefore || log.stateAfter) && (
-                    <div className="p-3 rounded-xl bg-slate-900 text-slate-200 font-mono text-[11px] space-y-2 mt-2">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase">
+                    <div className="p-3 rounded-xl bg-slate-900 text-slate-200 font-mono text-xs space-y-2 mt-2">
+                      <div className="text-xs font-bold text-slate-400 uppercase">
                         State Transition Diff:
                       </div>
                       {log.stateBefore && (

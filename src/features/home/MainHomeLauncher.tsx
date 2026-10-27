@@ -192,56 +192,6 @@ export const MainHomeLauncher: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Font Size Switcher for Senior Staff */}
-          <div className="shrink-0 bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl flex flex-col gap-2 min-w-[220px]">
-            <div className="text-xs sm:text-sm font-bold text-white flex items-center justify-between">
-              <span>👓 Ukuran Huruf / Text:</span>
-              <span className="text-sky-300 font-extrabold">
-                {fontSizeMode === 'xlarge' ? 'Sangat Besar' : fontSizeMode === 'large' ? 'Besar (Lansia)' : 'Normal'}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              <button
-                type="button"
-                onClick={() => appStore.setFontSizeMode('normal')}
-                className={`py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer ${
-                  fontSizeMode === 'normal'
-                    ? 'bg-white text-blue-900 shadow-md font-extrabold'
-                    : 'bg-white/15 text-white hover:bg-white/25'
-                }`}
-                title="Ukuran Font Normal"
-              >
-                A Normal
-              </button>
-              <button
-                type="button"
-                onClick={() => appStore.setFontSizeMode('large')}
-                className={`py-2 text-sm sm:text-base font-bold rounded-xl transition-all cursor-pointer ${
-                  fontSizeMode === 'large'
-                    ? 'bg-sky-400 text-blue-950 shadow-md font-black ring-2 ring-white'
-                    : 'bg-white/15 text-white hover:bg-white/25'
-                }`}
-                title="Ukuran Font Besar (Rekomendasi Lansia)"
-              >
-                A Besar
-              </button>
-              <button
-                type="button"
-                onClick={() => appStore.setFontSizeMode('xlarge')}
-                className={`py-2 text-base sm:text-lg font-bold rounded-xl transition-all cursor-pointer ${
-                  fontSizeMode === 'xlarge'
-                    ? 'bg-amber-300 text-slate-900 shadow-md font-black ring-2 ring-white'
-                    : 'bg-white/15 text-white hover:bg-white/25'
-                }`}
-                title="Ukuran Font Ekstra Besar"
-              >
-                A+ Ekstra
-              </button>
-            </div>
-            <p className="text-[11px] text-blue-200 mt-0.5 text-center font-medium">
-              Mode ramah lansia: huruf lebih besar & mudah dibaca
-            </p>
-          </div>
         </div>
       </div>
 

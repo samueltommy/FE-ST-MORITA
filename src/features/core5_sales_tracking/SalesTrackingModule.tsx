@@ -284,7 +284,7 @@ export const SalesTrackingModule: React.FC = () => {
             <ShieldAlert className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
             <div>
               <strong className="font-bold">{t.gatingRule}</strong>
-              <div className="text-[11px] mt-0.5 opacity-90">
+              <div className="text-xs mt-0.5 opacity-90">
                 {t.gatingDesc}
               </div>
             </div>
@@ -324,7 +324,7 @@ export const SalesTrackingModule: React.FC = () => {
                             {q.quoteNumber || q.quotationNumber}
                           </span>
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                            className={`text-xs font-bold px-2 py-0.5 rounded-full uppercase ${
                               q.status === 'APPROVED' || (q.status as string) === 'APPROVED_OFFICIAL'
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                                 : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-black animate-pulse'
@@ -336,7 +336,7 @@ export const SalesTrackingModule: React.FC = () => {
                         <div className="text-sm font-bold text-slate-900 dark:text-white mt-1">
                           {q.customerName}
                         </div>
-                        <div className="text-[11px] text-slate-500">{q.itemSummary || q.productName}</div>
+                        <div className="text-xs text-slate-500">{q.itemSummary || q.productName}</div>
                       </div>
 
                       <div className="text-right">
@@ -344,7 +344,7 @@ export const SalesTrackingModule: React.FC = () => {
                           <FinancialMask value={q.totalValue || (q.targetPrice * q.quantity) || 0} className="font-bold" />
                         </div>
                         <div className="flex items-center justify-end gap-1 mt-0.5">
-                          <span className="text-slate-400 text-[11px]">{t.grossMargin}</span>
+                          <span className="text-slate-400 text-xs">{t.grossMargin}</span>
                           <span
                             className={`font-mono font-bold ${
                               isLowMargin ? 'text-rose-600' : 'text-emerald-600'
@@ -357,12 +357,12 @@ export const SalesTrackingModule: React.FC = () => {
                     </div>
 
                     {q.costControlNotes && (
-                      <div className="p-2.5 rounded-xl bg-amber-100/70 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 text-[11px] font-medium">
+                      <div className="p-2.5 rounded-xl bg-amber-100/70 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 text-xs font-medium">
                         {q.costControlNotes}
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400">
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400">
                       <div>
                         {t.salesRep} <strong>{q.salesRep || q.salesRepresentative}</strong> • {t.submitted} {q.submittedAt || q.createdDate}
                       </div>
@@ -489,7 +489,7 @@ export const SalesTrackingModule: React.FC = () => {
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
                   <Barcode className="w-8 h-8 text-slate-800 dark:text-white" />
                   <div>
-                    <div className="text-[10px] text-slate-400 uppercase font-bold">{t.lotBarcode}</div>
+                    <div className="text-xs text-slate-400 uppercase font-bold">{t.lotBarcode}</div>
                     <div className="text-xs font-mono font-bold text-slate-900 dark:text-white">
                       {activeTracking.barcode || `899${activeTracking.ioNumber?.replace(/\D/g, '') || '002849182'}`}
                     </div>
@@ -516,7 +516,7 @@ export const SalesTrackingModule: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-[10px] uppercase tracking-wider text-slate-400">
+                        <span className="font-bold text-xs uppercase tracking-wider text-slate-400">
                           {t.step} 0{idx + 1}
                         </span>
                         {step.completed ? (
@@ -530,15 +530,15 @@ export const SalesTrackingModule: React.FC = () => {
                         {step.stage}
                       </div>
 
-                      <div className="text-[11px] text-slate-500 font-mono">
+                      <div className="text-xs text-slate-500 font-mono">
                         {step.timestamp}
                       </div>
 
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
                         {t.location} <strong className="text-slate-700 dark:text-slate-200">{step.location}</strong>
                       </div>
 
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
                         {t.operator} {step.operator}
                       </div>
                     </div>
@@ -583,7 +583,7 @@ export const SalesTrackingModule: React.FC = () => {
           <div className="p-4 sm:p-6 overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-emerald-50 text-slate-800 font-bold border-y border-emerald-200 text-[11px]">
+                <tr className="bg-emerald-50 text-slate-800 font-bold border-y border-emerald-200 text-xs">
                   <th className="p-2.5 border-r border-slate-200 w-12 text-center">No</th>
                   <th className="p-2.5 border-r border-slate-200 min-w-[220px]">CUSTOMER</th>
                   <th className="p-2.5 border-r border-slate-200 text-right text-blue-700 font-bold">2021</th>
@@ -594,7 +594,7 @@ export const SalesTrackingModule: React.FC = () => {
                   <th className="p-2.5 text-right text-blue-700 font-bold">2026</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
+              <tbody className="divide-y divide-slate-100 font-mono text-xs">
                 {[
                   { no: 106, name: 'Arkos Jaya Mandiri CV', y21: '67,646,904', y22: '49,542,840', y23: '18,680,976', y24: '', y25: '', y26: '' },
                   { no: 107, name: 'ARLENE JAYAMANDIRI PT', y21: '', y22: '', y23: '', y24: '', y25: '', y26: '9,212,500' },
@@ -656,7 +656,7 @@ export const SalesTrackingModule: React.FC = () => {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[11px]">
+              <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-xs">
                 <tr>
                   <th className="p-3">Kode</th>
                   <th className="p-3">Nama Customer</th>
@@ -677,7 +677,7 @@ export const SalesTrackingModule: React.FC = () => {
                       Rp {((c.creditLimit || 500000000)).toLocaleString('id-ID')}
                     </td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
                         {c.status || 'ACTIVE'}
                       </span>
                     </td>

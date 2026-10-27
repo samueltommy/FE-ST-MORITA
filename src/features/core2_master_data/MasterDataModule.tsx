@@ -507,11 +507,11 @@ export const MasterDataModule: React.FC = () => {
                     <div className="text-xs sm:text-sm font-black uppercase tracking-wider">
                       ST. MORITA INDUSTRIES
                     </div>
-                    <div className="text-[10px] uppercase font-semibold text-slate-600">
+                    <div className="text-xs uppercase font-semibold text-slate-600">
                       PLANT MANUFAKTUR - INDONESIA
                     </div>
                   </div>
-                  <span className="text-[10px] font-black border-2 border-black px-2 py-0.5 rounded">
+                  <span className="text-xs font-black border-2 border-black px-2 py-0.5 rounded">
                     QC APPROVED
                   </span>
                 </div>
@@ -746,19 +746,19 @@ export const MasterDataModule: React.FC = () => {
             >
               <div className="flex justify-between items-start border-b border-black pb-1">
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-wider">
+                  <div className="text-xs font-black uppercase tracking-wider">
                     ST. MORITA INDUSTRIES
                   </div>
-                  <div className="text-[8px] uppercase">{t.lblPlant}</div>
+                  <div className="text-xs uppercase">{t.lblPlant}</div>
                 </div>
-                <span className="text-[9px] font-black border border-black px-1">QC APPROVED</span>
+                <span className="text-xs font-black border border-black px-1">QC APPROVED</span>
               </div>
 
               <div className="text-xs font-black leading-tight">
                 {zebraModalItem.name}
               </div>
 
-              <div className="grid grid-cols-2 gap-1 text-[10px] font-mono border-t border-b border-black py-1">
+              <div className="grid grid-cols-2 gap-1 text-xs font-mono border-t border-b border-black py-1">
                 <div>
                   CODE: <strong>{zebraModalItem.code}</strong>
                 </div>

@@ -571,7 +571,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
               <div>
                 <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
                   <span>{t.tableTitle}</span>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">
                     {selectedDos.length} / {deliveryOrders.length} {t.tableSelected}
                   </span>
                 </h2>
@@ -633,7 +633,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                         </td>
                         <td className="py-3 px-3 font-mono font-bold text-slate-800">
                           {d.doNumber}
-                          <div className="text-[10px] text-slate-400 font-normal">
+                          <div className="text-xs text-slate-400 font-normal">
                             Tgl: {d.deliveryDate || d.dispatchDate}
                           </div>
                         </td>
@@ -655,7 +655,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                         <td className="py-3 px-3 text-right font-bold font-mono text-slate-900">
                           {<FinancialMask value={d.totalBeforeTax || d.totalGrossValue || ((d.qtyDelivered || (d.items && d.items.reduce((s: number, it: any) => s + it.quantity, 0)) || 0) * (d.unitPrice || (d.items && d.items[0]?.unitPrice) || 0))} />}
                         </td>
-                        <td className="py-3 px-3 text-center text-[11px] text-slate-500 font-mono">
+                        <td className="py-3 px-3 text-center text-xs text-slate-500 font-mono">
                           {d.truckPlate || d.truckArmada}
                         </td>
                       </tr>
@@ -769,7 +769,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                   {t.calcDesc}
                 </p>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
                 {t.formulas}
               </span>
             </div>
@@ -797,7 +797,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
                           <CheckSquare className="w-4 h-4 text-white" />
                         </div>
                       )}
-                      <div className="text-[10px] font-mono font-bold text-slate-400 mb-1">
+                      <div className="text-xs font-mono font-bold text-slate-400 mb-1">
                         {f.code} &bull; {f.category}
                       </div>
                       <div className={`text-xs font-bold leading-tight ${isSelected ? 'text-blue-900' : 'text-slate-700 group-hover:text-slate-900'}`}>
@@ -822,7 +822,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
             {/* Dynamic Formula Parameter Adjuster */}
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
-              <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+              <div className="text-xs font-bold text-slate-600 uppercase tracking-wider">
                 {t.activeParams}
               </div>
 
@@ -948,16 +948,16 @@ export const FinanceAnalyticsModule: React.FC = () => {
               </h3>
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1">No. Seri Faktur Pajak</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">No. Seri Faktur Pajak</label>
                   <input type="text" value={fakturPajakNo} onChange={(e) => setFakturPajakNo(e.target.value)} placeholder="010.000-24.12345678" className="w-full px-2 py-1.5 text-xs rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Tanggal Faktur</label>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Faktur</label>
                     <input type="date" value={fakturPajakDate} onChange={(e) => setFakturPajakDate(e.target.value)} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Status Pajak</label>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Status Pajak</label>
                     <select value={fakturPajakStatus} onChange={(e) => setFakturPajakStatus(e.target.value)} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <option value="DRAFT">DRAFT</option>
                       <option value="ISSUED">ISSUED</option>
@@ -1063,7 +1063,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
               {/* Total Payable */}
               <div className="mt-4 pt-4 border-t border-slate-200 flex flex-col gap-1">
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-sans">{t.totalNetInvoice}</span>
+                <span className="text-xs uppercase tracking-wider text-slate-500 font-sans">{t.totalNetInvoice}</span>
                 <div className="flex justify-between items-end">
                   <span className="text-2xl font-black text-emerald-600 font-mono leading-none">
                     {<FinancialMask value={calculationResult.finalPayableAmount} />}

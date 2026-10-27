@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+/* Ukuran huruf seragam: text-xs dinaikkan sama dengan text-sm agar tidak ada teks kecil */
+@theme {
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.25rem;
+}
+
+/* Navbar & Sidebar: skala huruf ringkas agar muat rapi (area konten tetap seragam) */
+.compact-chrome {
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.125rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.25rem;
+}
+
 @layer base {
   :root {
     --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -14,17 +30,11 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Mode Ukuran Huruf / Accessibility Font Scale */
-  html.font-normal {
-    font-size: 110%;
-  }
-
-  html.font-large {
-    font-size: 125%;
-  }
-
+  /* Ukuran huruf tunggal (tanpa opsi Normal/Besar/Ekstra) */
+  html.font-normal,
+  html.font-large,
   html.font-xlarge {
-    font-size: 140%;
+    font-size: 125%;
   }
 
   body {

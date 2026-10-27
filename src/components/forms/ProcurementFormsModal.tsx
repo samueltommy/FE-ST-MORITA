@@ -716,7 +716,7 @@ export const ProcurementFormsModal: React.FC<Props> = ({ isOpen, onClose, defaul
                 />
                 <label htmlFor="triggerIqc" className="text-xs text-amber-900 cursor-pointer">
                   <strong className="font-bold">{t.logIqcTrigger}</strong>
-                  <div className="text-[11px] text-amber-800 mt-0.5">
+                  <div className="text-xs text-amber-800 mt-0.5">
                     {t.logIqcDesc}
                   </div>
                 </label>

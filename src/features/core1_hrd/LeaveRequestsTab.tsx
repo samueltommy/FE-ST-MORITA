@@ -70,11 +70,11 @@ export const LeaveRequestsTab: React.FC<Props> = ({ onOpenForm }) => {
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'APPROVED':
-        return <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold flex items-center gap-1 w-max mx-auto"><CheckCircle2 className="w-3 h-3"/> Disetujui</span>;
+        return <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center gap-1 w-max mx-auto"><CheckCircle2 className="w-3 h-3"/> Disetujui</span>;
       case 'REJECTED':
-        return <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold flex items-center gap-1 w-max mx-auto"><XCircle className="w-3 h-3"/> Ditolak</span>;
+        return <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1 w-max mx-auto"><XCircle className="w-3 h-3"/> Ditolak</span>;
       default:
-        return <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold flex items-center gap-1 w-max mx-auto"><Clock className="w-3 h-3"/> Menunggu</span>;
+        return <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex items-center gap-1 w-max mx-auto"><Clock className="w-3 h-3"/> Menunggu</span>;
     }
   };
 
@@ -128,7 +128,7 @@ export const LeaveRequestsTab: React.FC<Props> = ({ onOpenForm }) => {
   const renderTable = (data: LeaveRequestApi[], showActions: boolean) => (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm text-slate-600">
-        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
+        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase text-xs tracking-wider dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
           <tr>
             <th className="px-4 py-3 rounded-tl-xl">Karyawan</th>
             <th className="px-4 py-3">Dept</th>
@@ -150,20 +150,20 @@ export const LeaveRequestsTab: React.FC<Props> = ({ onOpenForm }) => {
               <tr key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                 <td className="px-4 py-3">
                   <div className="font-bold text-slate-800 dark:text-slate-200">{r.employeeName}</div>
-                  <div className="text-[10px] text-slate-400">{r.employeeNik}</div>
+                  <div className="text-xs text-slate-400">{r.employeeNik}</div>
                 </td>
                 <td className="px-4 py-3 text-xs font-medium text-slate-700 dark:text-slate-300">{r.department}</td>
                 <td className="px-4 py-3">
                   <span 
-                    className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full border ${getBadgeClass(findOptionBadge(requestTypes, r.requestType || ''))}`}
+                    className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full border ${getBadgeClass(findOptionBadge(requestTypes, r.requestType || ''))}`}
                     title={findOptionDescription(requestTypes, r.requestType || '')}
                   >
                     {findOptionLabel(requestTypes, r.requestType || '')}
                   </span>
-                  <div className="text-[11px] text-slate-500 max-w-[200px] truncate mt-0.5" title={r.reason || ''}>{r.reason}</div>
+                  <div className="text-xs text-slate-500 max-w-[200px] truncate mt-0.5" title={r.reason || ''}>{r.reason}</div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="text-[11px] flex items-center gap-1 font-medium text-slate-600 dark:text-slate-400">
+                  <div className="text-xs flex items-center gap-1 font-medium text-slate-600 dark:text-slate-400">
                     <Calendar className="w-3.5 h-3.5 text-slate-400"/> 
                     {r.startDate && r.startDate.split('T')[0]} s/d {r.endDate && r.endDate.split('T')[0]}
                   </div>
@@ -212,7 +212,7 @@ export const LeaveRequestsTab: React.FC<Props> = ({ onOpenForm }) => {
                 {isL3 ? 'Daftar Pengajuan Cuti Anda' : isL2 ? 'Daftar Pengajuan Cuti (Tim & Saya)' : 'Dashboard HRD - Semua Pengajuan Cuti'}
               </span>
             </h3>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {isL3 ? 'Pantau status permohonan cuti atau izin Anda.' : 'Kelola dan pantau pengajuan cuti/izin secara terpusat.'}
             </p>
           </div>

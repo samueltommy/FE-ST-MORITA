@@ -32,7 +32,7 @@ export const DataDetailModal: React.FC<DataDetailModalProps> = ({
     if (typeof val === 'boolean') {
       return (
         <span
-          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+          className={`px-2 py-0.5 rounded text-xs font-bold ${
             val
               ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
               : 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-400'
@@ -44,7 +44,7 @@ export const DataDetailModal: React.FC<DataDetailModalProps> = ({
     }
     if (typeof val === 'object') {
       return (
-        <pre className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap mt-1">
+        <pre className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap mt-1">
           {JSON.stringify(val, null, 2)}
         </pre>
       );
@@ -76,7 +76,7 @@ export const DataDetailModal: React.FC<DataDetailModalProps> = ({
           <div className="text-right font-mono text-xs">
             <div className="font-bold text-blue-600 dark:text-blue-400">{displayId}</div>
             {displayStatus && (
-              <div className="text-slate-400 uppercase text-[10px] tracking-wider mt-0.5">
+              <div className="text-slate-400 uppercase text-xs tracking-wider mt-0.5">
                 Status: {displayStatus}
               </div>
             )}
@@ -95,7 +95,7 @@ export const DataDetailModal: React.FC<DataDetailModalProps> = ({
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {Object.entries(data).map(([key, value]) => (
                 <tr key={key} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                  <td className="py-3 px-4 font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                  <td className="py-3 px-4 font-mono text-xs text-slate-500 dark:text-slate-400">
                     {key}
                   </td>
                   <td className="py-3 px-4 break-words">
@@ -109,7 +109,7 @@ export const DataDetailModal: React.FC<DataDetailModalProps> = ({
         
         {/* Footer Actions */}
         <div className="flex justify-between items-center pt-2 shrink-0">
-          <div className="text-[10px] text-slate-400 font-mono hidden sm:block">
+          <div className="text-xs text-slate-400 font-mono hidden sm:block">
             System generated detail view
           </div>
           <div className="flex gap-2">

@@ -424,7 +424,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                   ))}
                 </select>
                 {findOptionDescription(requestTypes, leaveType) && (
-                  <p className="mt-1 text-[11px] text-slate-500 italic">
+                  <p className="mt-1 text-xs text-slate-500 italic">
                     {findOptionDescription(requestTypes, leaveType)}
                   </p>
                 )}
@@ -743,7 +743,7 @@ export const HrdFormsModal: React.FC<Props> = ({ isOpen, onClose, defaultTab = '
                     ))}
                   </select>
                   {findOptionDescription(departments, empDept) && (
-                    <p className="mt-1 text-[10px] text-slate-500 italic truncate" title={findOptionDescription(departments, empDept)}>
+                    <p className="mt-1 text-xs text-slate-500 italic truncate" title={findOptionDescription(departments, empDept)}>
                       {findOptionDescription(departments, empDept)}
                     </p>
                   )}

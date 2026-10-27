@@ -70,11 +70,11 @@ export const BarcodeScannerModal: React.FC = () => {
             <div>
               <h2 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
                 Scanner Barcode & LOT Lapangan
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 uppercase tracking-wider">
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 uppercase tracking-wider">
                   PWA Mobile
                 </span>
               </h2>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 Area Manufaktur - Staging, Handheld Zebra & QC Gate
               </p>
             </div>
@@ -93,34 +93,34 @@ export const BarcodeScannerModal: React.FC = () => {
           <div className="relative w-64 h-32 border-2 border-dashed border-amber-400/80 rounded-xl flex items-center justify-center overflow-hidden">
             {/* Red Laser scan line animation */}
             <div className="absolute inset-x-0 h-0.5 bg-red-500 shadow-lg shadow-red-500 animate-pulse top-1/2 -translate-y-1/2 w-full" />
-            <div className="text-[11px] text-amber-300 font-mono tracking-wider uppercase font-bold bg-black/60 px-2 py-1 rounded">
+            <div className="text-xs text-amber-300 font-mono tracking-wider uppercase font-bold bg-black/60 px-2 py-1 rounded">
               Arahkan ke Barcode / QR
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-400 mt-3 flex items-center gap-2">
+          <div className="text-xs text-slate-400 mt-3 flex items-center gap-2">
             <Camera className="w-3.5 h-3.5" />
             <span>Kamera Terkalibrasi (Handheld Sensor 1D/2D Zebra)</span>
           </div>
 
           {/* Quick Demo Scan Buttons for tester convenience */}
           <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
-            <span className="text-[10px] text-slate-400">Scan Cepat Demo:</span>
+            <span className="text-xs text-slate-400">Scan Cepat Demo:</span>
             <button
               onClick={() => simulateSampleScan('899341200101')}
-              className="text-[10px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono border border-slate-700"
+              className="text-xs px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono border border-slate-700"
             >
               Jumbo Roll Tape (PASS)
             </button>
             <button
               onClick={() => simulateSampleScan('899341200108')}
-              className="text-[10px] px-2 py-0.5 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-mono border border-rose-800 font-bold"
+              className="text-xs px-2 py-0.5 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-mono border border-rose-800 font-bold"
             >
               Acrylic Polymer (HOLD Lock!)
             </button>
             <button
               onClick={() => simulateSampleScan('899723500201')}
-              className="text-[10px] px-2 py-0.5 rounded bg-teal-950/80 hover:bg-teal-900 text-teal-300 font-mono border border-teal-800"
+              className="text-xs px-2 py-0.5 rounded bg-teal-950/80 hover:bg-teal-900 text-teal-300 font-mono border border-teal-800"
             >
               Serum Niacinamide
             </button>
@@ -174,7 +174,7 @@ export const BarcodeScannerModal: React.FC = () => {
                       <p className="text-xs mt-1 font-semibold">
                         {matchedQc?.defectReason || 'Kualitas tidak memenuhi spesifikasi pabrik.'}
                       </p>
-                      <div className="mt-2 text-[11px] p-2 rounded-lg bg-white/80 dark:bg-black/40 font-mono text-rose-800 dark:text-rose-300">
+                      <div className="mt-2 text-xs p-2 rounded-lg bg-white/80 dark:bg-black/40 font-mono text-rose-800 dark:text-rose-300">
                         ⚠ SISTEM MENGUNCI: Pemindahan stok & assignment ke SPK/DO DILARANG tanpa persetujuan QC Manager!
                       </div>
                     </div>
@@ -186,7 +186,7 @@ export const BarcodeScannerModal: React.FC = () => {
               <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase font-mono tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded uppercase font-mono tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                       {matchedItem.category}
                     </span>
                     <h3 className="text-sm font-black text-slate-900 dark:text-white mt-1">
@@ -215,7 +215,7 @@ export const BarcodeScannerModal: React.FC = () => {
                         [{matchedQc.status}]
                       </span>
                     ) : (
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-500">
                         SIAP INSPEKSI
                       </span>
                     )}
@@ -225,26 +225,26 @@ export const BarcodeScannerModal: React.FC = () => {
                 {/* Specs Grid */}
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
                   <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold">No. LOT Batch</span>
+                    <span className="text-xs text-slate-400 uppercase font-bold">No. LOT Batch</span>
                     <div className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-0.5">
                       {matchedItem.lotNumber}
                     </div>
                   </div>
                   <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold">Stok Fisik Gudang</span>
+                    <span className="text-xs text-slate-400 uppercase font-bold">Stok Fisik Gudang</span>
                     <div className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">
                       {matchedItem.stockQty} {matchedItem.unit}
                     </div>
                   </div>
                   <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold">Lokasi Rak Gudang</span>
+                    <span className="text-xs text-slate-400 uppercase font-bold">Lokasi Rak Gudang</span>
                     <div className="font-mono font-semibold text-slate-800 dark:text-slate-200 mt-0.5 flex items-center gap-1">
                       <MapPin className="w-3 h-3 text-blue-500" />
                       {matchedItem.locationRack}
                     </div>
                   </div>
                   <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold">Barcode EAN-13</span>
+                    <span className="text-xs text-slate-400 uppercase font-bold">Barcode EAN-13</span>
                     <div className="font-mono text-slate-800 dark:text-slate-200 mt-0.5">
                       {matchedItem.barcode}
                     </div>
@@ -296,7 +296,7 @@ export const BarcodeScannerModal: React.FC = () => {
               <div className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                 Belum ada data barang yang di-scan
               </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">
+              <div className="text-xs text-slate-400 mt-0.5">
                 Gunakan tombol "Scan Cepat Demo" di atas atau ketik nomor LOT/barcode
               </div>
             </div>

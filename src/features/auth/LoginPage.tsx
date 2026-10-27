@@ -160,11 +160,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             <div>
               <div className="text-lg lg:text-base font-black tracking-tight text-slate-900 flex items-center gap-1.5 leading-none">
                 <span>ST. MORITA</span>
-                <span className="text-[10px] lg:text-[9px] font-semibold tracking-widest text-blue-600 uppercase">
+                <span className="text-xs lg:text-xs font-semibold tracking-widest text-blue-600 uppercase">
                   INDUSTRIES
                 </span>
               </div>
-              <div className="text-[10px] lg:text-[9px] text-slate-500 font-medium tracking-wide mt-1 lg:mt-0.5">
+              <div className="text-xs lg:text-xs text-slate-500 font-medium tracking-wide mt-1 lg:mt-0.5">
                 Adhesives & Industrial Tapes Manufacturing
               </div>
             </div>
@@ -299,7 +299,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                   <button
                     type="button"
                     onClick={() => onNavigate?.('forgot-password')}
-                    className="text-[11px] text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+                    className="text-xs text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
                   >
                     {t.forgotPassword}
                   </button>
@@ -360,7 +360,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
       </main>
 
       {/* Simple, Clean Corporate Footer */}
-      <footer className="w-full max-w-7xl mx-auto pt-2 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-[10px] sm:text-[11px] text-slate-400 gap-2 z-10 shrink-0">
+      <footer className="w-full max-w-7xl mx-auto pt-2 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs sm:text-xs text-slate-400 gap-2 z-10 shrink-0">
         <div>
           &copy; {new Date().getFullYear()} {t.footerRights}
         </div>

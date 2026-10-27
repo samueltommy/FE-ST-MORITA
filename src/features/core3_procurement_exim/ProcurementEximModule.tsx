@@ -22,9 +22,10 @@ import { Can } from '../../components/rbac/Can';
 import { ProcurementFormsModal } from '../../components/forms/ProcurementFormsModal';
 import { DataDetailModal } from '../../components/ui/DataDetailModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getPurchaseOrdersApi, getEximDocsApi, uploadEximDocApi } from '../../services/procurementService';
+import { getPurchaseOrdersApi, getEximDocsApi, uploadEximDocApi, createPurchaseOrderApi } from '../../services/procurementService';
 import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
-import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
+import { QuickActionDashboard } from '../../components/layout/QuickActionDashboard';
+import { PurchaseOrderPaperForm } from './PurchaseOrderPaperForm';
 import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
 
 const CONTENT = {
@@ -175,70 +176,93 @@ export const ProcurementEximModule: React.FC = () => {
   const activeSubFeature = useAppStore((state) => state.activeSubFeature?.procurement);
   const suppliers = useAppStore((state) => state.suppliers) || [];
 
-  // When no feature is selected yet, render simple selection menu hub (matches client reference screenshot 1)
-  if (!activeSubFeature) {
-    const hubItems: ModuleFeatureHubItem[] = [
-      {
-        id: 'kanban',
-        label: 'Purchase Order (PO) & Alur Pengadaan',
-        subtitle: `Alur 5-tahap PR → PO → LOG → IQC → AP (${procurementOrders.length} Pesanan)`,
-        icon: Truck,
-        iconColor: 'text-indigo-600',
-        badge: `${procurementOrders.length} PO`,
-        badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-        onClick: () => appStore.setActiveSubFeature('procurement', 'kanban'),
-      },
-      {
-        id: 'exim_dropzone',
-        label: 'Dokumen Kepabeanan EXIM (BC 2.3 / 2.7 / 4.0)',
-        subtitle: `Kepatuhan berkas pabean Kawasan Berikat & SPPB (${eximDocs.length} Berkas)`,
-        icon: ShieldCheck,
-        iconColor: 'text-blue-600',
-        badge: `${eximDocs.length} Berkas`,
-        badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
-        onClick: () => appStore.setActiveSubFeature('procurement', 'exim_dropzone'),
-      },
-      {
-        id: 'supplier',
-        label: 'Daftar Supplier & Forwarder Rekanan',
-        subtitle: `Database pemasok bahan baku, roll tape & vendor logistik (${suppliers.length} Supplier)`,
-        icon: Building2,
-        iconColor: 'text-emerald-600',
-        badge: `${suppliers.length} Supplier`,
-        badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-        onClick: () => appStore.setActiveSubFeature('procurement', 'supplier'),
-      },
-      {
-        id: 'form',
-        label: 'Formulir Pengadaan / Buat PO ke Supplier',
-        subtitle: 'Input formulir Purchase Requisition (PR), Purchase Order (PO), atau Dokumen Bea Cukai',
-        icon: FileText,
-        iconColor: 'text-amber-600',
-        badge: 'Input Baru',
-        badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-        onClick: () => {
-          setProcurementFormsTab('pr');
-          setProcurementFormsOpen(true);
-        },
-      },
-      {
-        id: 'report',
-        label: 'Rekap Laporan Status Pengadaan',
-        subtitle: 'Monitoring ringkasan status pesanan dan rekapitulasi berkas pabean',
-        icon: FileSpreadsheet,
-        iconColor: 'text-purple-600',
-        onClick: () => appStore.setActiveSubFeature('procurement', 'report'),
-      },
-    ];
-
+  // Halaman input PO bergaya dokumen fisik (Paper-Replica)
+  if (activeSubFeature === 'po_new') {
     return (
-      <ModuleFeatureHub
+      <PurchaseOrderPaperForm
+        onBack={() => appStore.setActiveSubFeature('procurement', null)}
+        onSubmit={async (draft) => {
+          await createPurchaseOrderApi({
+            poNumber: draft.poNumber,
+            vendorName: draft.supplierName,
+            itemsCount: draft.items.length,
+            totalAmount: draft.grandTotal,
+            ...(draft as any),
+          });
+          queryClient.invalidateQueries({ queryKey: ['procurementOrders'] });
+          appStore.setActiveSubFeature('procurement', 'kanban');
+        }}
+      />
+    );
+  }
+
+  // Quick Action Dashboard: tombol besar langsung ke halaman yang dibutuhkan
+  if (!activeSubFeature) {
+    return (
+      <QuickActionDashboard
         moduleCode="Core 3"
         moduleName="PEMBELIAN (SUPPLY CHAIN & EXIM)"
-        moduleDescription="Pusat alur pengadaan pabrik ST. Morita, pesanan PO ke supplier, dan kepatuhan dokumen kepabeanan Bea Cukai Kawasan Berikat."
-        headerBgColor="bg-emerald-600"
-        items={hubItems}
+        moduleDescription="Pilih aksi di bawah untuk langsung menuju halaman yang Anda butuhkan."
         onBackToHome={() => appStore.setActiveModule('home')}
+        primaryActions={[
+          {
+            id: 'po-new',
+            label: '+ Buat PO Baru',
+            description: 'Isi Purchase Order ke supplier langsung seperti bon kertas',
+            icon: Plus,
+            tone: 'green',
+            onClick: () => appStore.setActiveSubFeature('procurement', 'po_new'),
+          },
+          {
+            id: 'po-list',
+            label: 'Lihat Daftar PO',
+            description: 'Alur 5-tahap PR → PO → LOG → IQC → AP',
+            icon: Truck,
+            tone: 'blue',
+            badge: `${procurementOrders.length} PO`,
+            onClick: () => appStore.setActiveSubFeature('procurement', 'kanban'),
+          },
+        ]}
+        groups={[
+          {
+            title: 'Menu Lainnya',
+            items: [
+              {
+                id: 'exim',
+                label: 'Dokumen EXIM',
+                description: 'BC 2.3 / 2.7 / 4.0 & SPPB',
+                icon: ShieldCheck,
+                badge: `${eximDocs.length} Berkas`,
+                onClick: () => appStore.setActiveSubFeature('procurement', 'exim_dropzone'),
+              },
+              {
+                id: 'supplier',
+                label: 'Daftar Supplier',
+                description: 'Database pemasok & forwarder',
+                icon: Building2,
+                badge: `${suppliers.length}`,
+                onClick: () => appStore.setActiveSubFeature('procurement', 'supplier'),
+              },
+              {
+                id: 'pr-form',
+                label: 'Form PR / Pabean',
+                description: 'Purchase Requisition & dokumen Bea Cukai',
+                icon: FileText,
+                onClick: () => {
+                  setProcurementFormsTab('pr');
+                  setProcurementFormsOpen(true);
+                },
+              },
+              {
+                id: 'report',
+                label: 'Rekap Laporan',
+                description: 'Ringkasan status pengadaan',
+                icon: FileSpreadsheet,
+                onClick: () => appStore.setActiveSubFeature('procurement', 'report'),
+              },
+            ],
+          },
+        ]}
       />
     );
   }
@@ -291,9 +315,9 @@ export const ProcurementEximModule: React.FC = () => {
                       <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">
                         {stg.label}
                       </h3>
-                      <div className="text-[10px] text-slate-400 truncate">{stg.dept}</div>
+                      <div className="text-xs text-slate-400 truncate">{stg.dept}</div>
                     </div>
-                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-mono font-bold flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0 ml-1.5">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-xs font-mono font-bold flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0 ml-1.5">
                       {ordersInStage.length}
                     </span>
                   </div>
@@ -301,7 +325,7 @@ export const ProcurementEximModule: React.FC = () => {
                   {/* Order Cards */}
                   <div className="space-y-2.5">
                     {ordersInStage.length === 0 ? (
-                      <div className="py-8 text-center text-slate-400 text-[11px] italic">
+                      <div className="py-8 text-center text-slate-400 text-xs italic">
                         {t.emptyQueue}
                       </div>
                     ) : (
@@ -319,7 +343,7 @@ export const ProcurementEximModule: React.FC = () => {
                               {ord.poNumber}
                             </span>
                             <span
-                              className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                              className={`shrink-0 text-xs font-bold px-1.5 py-0.5 rounded uppercase ${
                                 (ord.status || (ord.stageProgress === 100 ? 'COMPLETED' : 'IN_PROGRESS')) === 'COMPLETED'
                                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                                   : (ord.status || '') === 'INSPECTING'
@@ -338,7 +362,7 @@ export const ProcurementEximModule: React.FC = () => {
                             {ord.vendorName}
                           </div>
 
-                          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                          <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800/80">
                             <span className="shrink-0">{ord.itemsCount} {t.sku}</span>
                             <span className="text-slate-800 dark:text-slate-200 text-xs truncate ml-1 text-right">
                               <FinancialMask value={ord.totalAmount} className="font-bold" />
@@ -347,7 +371,7 @@ export const ProcurementEximModule: React.FC = () => {
 
                           {/* Customs doc indicator */}
                           {(ord.bcDocumentType || ord.stage === 'LOG' || ord.stage === 'IQC') && (
-                            <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] gap-1">
+                            <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs gap-1">
                               <span
                                 className="font-mono font-bold text-slate-600 dark:text-slate-400 truncate"
                                 title={ord.bcDocumentType || 'BC 2.3 Pabean'}
@@ -371,7 +395,7 @@ export const ProcurementEximModule: React.FC = () => {
                             </div>
                           )}
 
-                          <div className="text-[10px] text-slate-400 font-mono truncate">
+                          <div className="text-xs text-slate-400 font-mono truncate">
                             ETA: {ord.etaDate || ord.estimatedArrival || ord.lastUpdate}
                           </div>
                         </div>
@@ -437,14 +461,14 @@ export const ProcurementEximModule: React.FC = () => {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-900 dark:text-indigo-200 text-[10px]">
+                        <span className="font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-900 dark:text-indigo-200 text-xs">
                           {doc.docType}
                         </span>
                         <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
                           {doc.referenceNo || doc.referenceNumber}
                         </span>
                         <span
-                          className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase ${
+                          className={`text-xs font-bold px-1.5 py-0.2 rounded-full uppercase ${
                             doc.status === 'VERIFIED'
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                               : 'bg-amber-100 text-amber-800'
@@ -456,7 +480,7 @@ export const ProcurementEximModule: React.FC = () => {
                       <div className="text-slate-600 dark:text-slate-300 font-medium mt-1">
                         {doc.notes}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">
+                      <div className="text-xs text-slate-400 mt-0.5">
                         {t.file} {doc.fileName} ({doc.fileSize}) • {t.date} {doc.submissionDate || doc.registrationDate}
                       </div>
                     </div>
@@ -468,7 +492,7 @@ export const ProcurementEximModule: React.FC = () => {
                         e.stopPropagation();
                         alert(`${t.alertDl} ${doc.fileName}`);
                       }}
-                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-[11px] text-slate-700 dark:text-slate-300"
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs text-slate-700 dark:text-slate-300"
                     >
                       {t.btnDownload}
                     </button>
@@ -600,7 +624,7 @@ export const ProcurementEximModule: React.FC = () => {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[11px]">
+              <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-xs">
                 <tr>
                   <th className="p-3">Kode</th>
                   <th className="p-3">Nama Supplier</th>
@@ -619,7 +643,7 @@ export const ProcurementEximModule: React.FC = () => {
                     <td className="p-3">{s.phone || '-'}</td>
                     <td className="p-3 text-slate-500">{s.address || '-'}</td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
                         {s.status || 'ACTIVE'}
                       </span>
                     </td>
@@ -640,7 +664,7 @@ export const ProcurementEximModule: React.FC = () => {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[11px]">
+              <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-xs">
                 <tr>
                   <th className="p-3">No. PO</th>
                   <th className="p-3">Vendor / Pemasok</th>
@@ -658,7 +682,7 @@ export const ProcurementEximModule: React.FC = () => {
                     <td className="p-3 font-bold">{ord.stage}</td>
                     <td className="p-3">{ord.stageProgress ?? 100}%</td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
                         {ord.status || 'IN_PROGRESS'}
                       </span>
                     </td>

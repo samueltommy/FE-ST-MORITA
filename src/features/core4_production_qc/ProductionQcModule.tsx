@@ -354,7 +354,7 @@ export const ProductionQcModule: React.FC = () => {
           <div className="text-2xl font-black text-emerald-900 dark:text-emerald-200 mt-1">
             {qcRecords.filter((r) => r.status === 'PASS').length} {t.batch}
           </div>
-          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+          <div className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
             {t.lblPassDesc}
           </div>
         </div>
@@ -370,7 +370,7 @@ export const ProductionQcModule: React.FC = () => {
           <div className="text-2xl font-black text-rose-900 dark:text-rose-200 mt-1">
             {qcRecords.filter((r) => r.status === 'HOLD').length} {t.batch}
           </div>
-          <div className="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5 font-semibold">
+          <div className="text-xs text-rose-700 dark:text-rose-300 mt-0.5 font-semibold">
             {t.lblHoldDesc}
           </div>
         </div>
@@ -385,7 +385,7 @@ export const ProductionQcModule: React.FC = () => {
           <div className="text-2xl font-black text-amber-900 dark:text-amber-200 mt-1">
             {qcRecords.filter((r) => r.status === 'REWORK').length} {t.batch}
           </div>
-          <div className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+          <div className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
             {t.lblReworkDesc}
           </div>
         </div>
@@ -408,11 +408,11 @@ export const ProductionQcModule: React.FC = () => {
           <div className="text-xs text-slate-500 flex items-center gap-2">
             <span>{t.roleActive} <strong>{currentUser.role}</strong></span>
             {currentUser.permissions.includes('qc:hold:override') || currentUser.permissions.includes('*') ? (
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono text-xs font-bold">
                 {t.authOverride}
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-mono text-[10px]">
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-mono text-xs">
                 {t.noOverride}
               </span>
             )}
@@ -456,7 +456,7 @@ export const ProductionQcModule: React.FC = () => {
                       <span className="font-mono font-bold text-xs text-slate-800 dark:text-slate-200">
                         {rec.lotNumber}
                       </span>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-xs text-slate-400">
                         ID: {rec.id} • Batch: {rec.batchSize} {rec.unit}
                       </span>
                     </div>
@@ -490,11 +490,11 @@ export const ProductionQcModule: React.FC = () => {
                   {/* Right Side: Tested Parameters Table & Actions */}
                   <div className="lg:w-96 space-y-2 shrink-0">
                     <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 text-xs space-y-1">
-                      <div className="font-bold text-slate-500 uppercase text-[10px] mb-1">
+                      <div className="font-bold text-slate-500 uppercase text-xs mb-1">
                         {t.labResult}
                       </div>
                       {(rec.testedParameters || []).map((param, pIdx) => (
-                        <div key={pIdx} className="flex justify-between text-[11px] py-0.5">
+                        <div key={pIdx} className="flex justify-between text-xs py-0.5">
                           <span className="text-slate-600 dark:text-slate-400 truncate max-w-[140px]">
                             {param.name}:
                           </span>
@@ -528,7 +528,7 @@ export const ProductionQcModule: React.FC = () => {
                           <Can
                             perform="qc:hold:override"
                             fallback={
-                              <div className="text-[11px] text-rose-600 dark:text-rose-400 font-bold px-2 py-1">
+                              <div className="text-xs text-rose-600 dark:text-rose-400 font-bold px-2 py-1">
                                 {t.btnNoAccess}
                               </div>
                             }
@@ -752,7 +752,7 @@ export const ProductionQcModule: React.FC = () => {
             </div>
 
             <div className="flex justify-between items-center pt-2">
-              <div className="text-[11px] text-slate-400">
+              <div className="text-xs text-slate-400">
                 {t.coaApprovedBy} <strong>{coaModalRecord.inspectorName}</strong>
               </div>
               <div className="flex gap-2">

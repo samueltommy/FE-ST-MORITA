@@ -306,7 +306,7 @@ export const Sidebar: React.FC = () => {
       {/* 1. DESKTOP SIDEBAR (Independent scroll, statis tanpa scroll di layar standar) */}
       {/* ========================================================================= */}
       <aside
-        className={`hidden lg:flex flex-col justify-between shrink-0 h-full border-r border-slate-200 bg-white transition-all duration-200 ease-in-out select-none z-20 shadow-xs ${
+        className={`compact-chrome hidden lg:flex flex-col justify-between shrink-0 h-full border-r border-slate-200 bg-white transition-all duration-200 ease-in-out select-none z-20 shadow-xs ${
           isSidebarCollapsed ? 'w-[68px]' : 'w-64'
         }`}
       >
@@ -315,7 +315,7 @@ export const Sidebar: React.FC = () => {
           {!isSidebarCollapsed ? (
             <>
               {hasAnySidebarItems && (
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-2">
                   {t.navMenu}
                 </span>
               )}
@@ -350,7 +350,7 @@ export const Sidebar: React.FC = () => {
           {modules.length > 0 && (
             <div>
               {!isSidebarCollapsed && (
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1.5">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-1.5">
                 {t.modules}
               </div>
             )}
@@ -393,14 +393,14 @@ export const Sidebar: React.FC = () => {
                               <span className="truncate">{m.label}</span>
                               {m.badge && (
                                 <span
-                                  className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${m.badgeColor}`}
+                                  className={`text-xs px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${m.badgeColor}`}
                                 >
                                   {m.badge}
                                 </span>
                               )}
                             </div>
                             <div
-                              className={`text-[10px] truncate leading-tight mt-0.5 ${
+                              className={`text-xs truncate leading-tight mt-0.5 ${
                                 isActive ? 'text-white/80' : 'text-slate-400'
                               }`}
                             >
@@ -440,7 +440,7 @@ export const Sidebar: React.FC = () => {
                               key={child.id}
                               type="button"
                               onClick={() => handleSelectChild(m.id, child.id)}
-                              className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-[11px] transition-all cursor-pointer ${
+                              className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-all cursor-pointer ${
                                 isChildActive
                                   ? 'bg-blue-100 text-blue-900 font-extrabold shadow-2xs'
                                   : 'text-slate-600 hover:text-blue-700 hover:bg-slate-100 font-medium'
@@ -456,7 +456,7 @@ export const Sidebar: React.FC = () => {
                               </div>
                               {child.badge && (
                                 <span
-                                  className={`text-[8px] px-1 py-0.2 rounded-full font-bold uppercase shrink-0 ${
+                                  className={`text-xs px-1 py-0.2 rounded-full font-bold uppercase shrink-0 ${
                                     child.badgeColor || 'bg-slate-200 text-slate-700'
                                   }`}
                                 >
@@ -479,9 +479,9 @@ export const Sidebar: React.FC = () => {
           {canAccessAdminUsers() && (
             <div className="pt-2 border-t border-slate-100">
               {!isSidebarCollapsed && (
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1 flex items-center justify-between">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-1 flex items-center justify-between">
                   <span>{t.admin}</span>
-                  <span className="text-[9px] text-purple-600 font-bold">{t.adminSub}</span>
+                  <span className="text-xs text-purple-600 font-bold">{t.adminSub}</span>
                 </div>
               )}
               <button
@@ -513,13 +513,13 @@ export const Sidebar: React.FC = () => {
                       <div className="text-xs flex items-center gap-1.5 leading-tight min-w-0">
                         <span>{t.manageUsers}</span>
                         {isUserAdmin && (
-                          <span className="text-[9px] px-1 py-0.5 rounded-full font-bold uppercase bg-purple-500 text-white">
+                          <span className="text-xs px-1 py-0.5 rounded-full font-bold uppercase bg-purple-500 text-white">
                             Admin
                           </span>
                         )}
                       </div>
                       <div
-                        className={`text-[10px] truncate leading-tight mt-0.5 ${
+                        className={`text-xs truncate leading-tight mt-0.5 ${
                           activeModule === 'users' ? 'text-white/80' : 'text-slate-400'
                         }`}
                       >
@@ -554,7 +554,7 @@ export const Sidebar: React.FC = () => {
                         key={child.id}
                         type="button"
                         onClick={() => handleSelectChild('users', child.id)}
-                        className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-[11px] transition-all cursor-pointer ${
+                        className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-all cursor-pointer ${
                           isChildActive
                             ? 'bg-purple-100 text-purple-900 font-extrabold shadow-2xs'
                             : 'text-slate-600 hover:text-purple-700 hover:bg-slate-100 font-medium'
@@ -580,7 +580,7 @@ export const Sidebar: React.FC = () => {
           {(canAccessTool('barcode') || canAccessTool('audit')) && (
             <div className="pt-2 border-t border-slate-100">
               {!isSidebarCollapsed && (
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">
                   {t.tools}
                 </div>
               )}
@@ -601,7 +601,7 @@ export const Sidebar: React.FC = () => {
                       {!isSidebarCollapsed && (
                         <div className="min-w-0">
                           <div className="font-semibold truncate leading-tight text-xs">{t.scanner}</div>
-                          <div className="text-[10px] text-slate-400 truncate leading-tight">{t.scannerSub}</div>
+                          <div className="text-xs text-slate-400 truncate leading-tight">{t.scannerSub}</div>
                         </div>
                       )}
                     </div>
@@ -624,7 +624,7 @@ export const Sidebar: React.FC = () => {
                       {!isSidebarCollapsed && (
                         <div className="min-w-0">
                           <div className="font-semibold truncate leading-tight text-xs">{t.audit}</div>
-                          <div className="text-[10px] text-slate-400 truncate leading-tight">{t.auditSub}</div>
+                          <div className="text-xs text-slate-400 truncate leading-tight">{t.auditSub}</div>
                         </div>
                       )}
                     </div>
@@ -655,14 +655,14 @@ export const Sidebar: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold text-slate-900 truncate">{authUser?.name}</div>
-                  <div className="text-[10px] text-slate-500 font-medium truncate">{authUser?.department}</div>
+                  <div className="text-xs text-slate-500 font-medium truncate">{authUser?.department}</div>
                 </div>
               </div>
               
               <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200/60">
                 <button
                   onClick={() => authLogout()}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   {t.signOut}
@@ -712,7 +712,7 @@ export const Sidebar: React.FC = () => {
       {/* ========================================================================= */}
       {isMobileSidebarOpen && (
         <aside
-          className="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl flex flex-col justify-between py-4 border-r border-slate-200 lg:hidden animate-in slide-in-from-left duration-200"
+          className="compact-chrome fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl flex flex-col justify-between py-4 border-r border-slate-200 lg:hidden animate-in slide-in-from-left duration-200"
         >
           {/* Mobile Header */}
           <div className="px-4 pb-3 border-b border-slate-100 flex items-center justify-between">
@@ -722,7 +722,7 @@ export const Sidebar: React.FC = () => {
               </div>
               <div>
                 <div className="text-xs font-extrabold text-slate-900 leading-tight">ST. Morita Industries</div>
-                <div className="text-[10px] text-slate-500">Enterprise ERP Portal</div>
+                <div className="text-xs text-slate-500">Enterprise ERP Portal</div>
               </div>
             </div>
             <button
@@ -737,7 +737,7 @@ export const Sidebar: React.FC = () => {
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
             {modules.length > 0 && (
               <div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
                   {t.mobileTitle}
                 </div>
               <nav className="space-y-1.5">
@@ -767,14 +767,14 @@ export const Sidebar: React.FC = () => {
                           </div>
                           <div className="min-w-0">
                             <div className="truncate font-bold">{m.label}</div>
-                            <div className={`text-[10px] truncate ${isActive ? 'text-white/80' : 'text-slate-400'}`}>
+                            <div className={`text-xs truncate ${isActive ? 'text-white/80' : 'text-slate-400'}`}>
                               {m.sublabel}
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5">
                           {m.badge && (
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${m.badgeColor}`}>
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold uppercase ${m.badgeColor}`}>
                               {m.badge}
                             </span>
                           )}
@@ -825,7 +825,7 @@ export const Sidebar: React.FC = () => {
             {/* Mobile RBAC — hanya tampil untuk yang berhak */}
             {canAccessAdminUsers() && (
               <div className="pt-2 border-t border-slate-100">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
                   {t.mobileAdmin}
                 </div>
                 <button
@@ -842,7 +842,7 @@ export const Sidebar: React.FC = () => {
                     </div>
                     <div>
                       <div className="font-bold">{t.manageUsers}</div>
-                      <div className="text-[10px] text-slate-400">{t.manageUsersSub}</div>
+                      <div className="text-xs text-slate-400">{t.manageUsersSub}</div>
                     </div>
                   </div>
                   <div onClick={(e) => toggleExpand('users', e)} className="p-1">
@@ -884,7 +884,7 @@ export const Sidebar: React.FC = () => {
             {/* Mobile Tools — filter berdasarkan hak akses */}
             {(canAccessTool('barcode') || canAccessTool('audit')) && (
               <div className="pt-2 border-t border-slate-100">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
                   {t.tools}
                 </div>
                 <div className="space-y-1">
@@ -901,7 +901,7 @@ export const Sidebar: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-bold">{t.scanner}</div>
-                        <div className="text-[10px] text-slate-400">{t.scannerSub2}</div>
+                        <div className="text-xs text-slate-400">{t.scannerSub2}</div>
                       </div>
                     </button>
                   )}
@@ -919,7 +919,7 @@ export const Sidebar: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-bold">{t.audit}</div>
-                        <div className="text-[10px] text-slate-400">{t.auditSub2}</div>
+                        <div className="text-xs text-slate-400">{t.auditSub2}</div>
                       </div>
                     </button>
                   )}
@@ -932,7 +932,7 @@ export const Sidebar: React.FC = () => {
           <div className="px-4 pt-3 border-t border-slate-200 space-y-2">
             <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
               <div className="font-bold text-slate-900">{authUser?.name}</div>
-              <div className="text-[10px] text-slate-500">{authUser?.nik} &bull; {authUser?.role}</div>
+              <div className="text-xs text-slate-500">{authUser?.nik} &bull; {authUser?.role}</div>
             </div>
             <button
               onClick={() => authLogout()}

@@ -79,7 +79,7 @@ export const ModuleFeatureHub: React.FC<ModuleFeatureHubProps> = ({
         <div className={`${headerBgColor} ${headerTextColor} px-5 sm:px-7 py-4 sm:py-5 flex items-center justify-between shadow-xs`}>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-black/15 text-white">
+              <span className="text-xs sm:text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-black/15 text-white">
                 {moduleCode}
               </span>
               <h2 className="text-base sm:text-xl font-black uppercase tracking-wider">

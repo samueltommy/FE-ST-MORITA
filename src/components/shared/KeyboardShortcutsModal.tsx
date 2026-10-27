@@ -80,7 +80,7 @@ export const KeyboardShortcutsModal: React.FC = () => {
                       {s.keys.map((k, kIdx) => (
                         <kbd
                           key={kIdx}
-                          className="px-2 py-1 text-[11px] font-mono font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-md border border-slate-300 dark:border-slate-700 shadow-xs"
+                          className="px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-md border border-slate-300 dark:border-slate-700 shadow-xs"
                         >
                           {k}
                         </kbd>
@@ -96,7 +96,7 @@ export const KeyboardShortcutsModal: React.FC = () => {
             <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-blue-600" />
             <div>
               <div className="font-bold">Tips Efisiensi Operator Pabrik</div>
-              <div className="text-[11px] opacity-90 mt-0.5">
+              <div className="text-xs opacity-90 mt-0.5">
                 Staf Gudang & QC di lapangan dapat menggunakan tombol cepat <kbd className="font-mono font-bold">Alt+B</kbd> untuk membuka kamera barcode scanner tanpa menyentuh mouse.
               </div>
             </div>

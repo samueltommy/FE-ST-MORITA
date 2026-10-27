@@ -595,7 +595,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                     ))}
                   </select>
                   {findOptionDescription(customerTypes, custBusinessType) && (
-                    <p className="mt-1 text-[10px] text-slate-500 italic truncate" title={findOptionDescription(customerTypes, custBusinessType)}>
+                    <p className="mt-1 text-xs text-slate-500 italic truncate" title={findOptionDescription(customerTypes, custBusinessType)}>
                       {findOptionDescription(customerTypes, custBusinessType)}
                     </p>
                   )}
@@ -615,7 +615,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                     ))}
                   </select>
                   {findOptionDescription(pkpStatuses, custPkpStatus) && (
-                    <p className="mt-1 text-[10px] text-slate-500 italic">
+                    <p className="mt-1 text-xs text-slate-500 italic">
                       {findOptionDescription(pkpStatuses, custPkpStatus)}
                     </p>
                   )}
@@ -1046,7 +1046,7 @@ export const MasterDataFormsModal: React.FC<Props> = ({ isOpen, onClose, default
                     ))}
                   </select>
                   {findOptionDescription(itemTypes, itemCategory) && (
-                    <p className="mt-1 text-[10px] text-slate-500 italic truncate" title={findOptionDescription(itemTypes, itemCategory)}>
+                    <p className="mt-1 text-xs text-slate-500 italic truncate" title={findOptionDescription(itemTypes, itemCategory)}>
                       {findOptionDescription(itemTypes, itemCategory)}
                     </p>
                   )}

@@ -49,7 +49,6 @@ export const Navbar: React.FC = () => {
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [dataEntryModalOpen, setDataEntryModalOpen] = useState(false);
   const language = useAppStore((state) => state.language);
-  const fontSizeMode = useAppStore((state) => state.fontSizeMode);
   const t = CONTENT[language];
   const { isExternal, canAccessModule } = useRBAC();
 
@@ -72,8 +71,8 @@ export const Navbar: React.FC = () => {
   const isUserAdmin = canManageUsers(authUser as any);
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b bg-white/95 backdrop-blur-md border-slate-200 shadow-xs shrink-0">
-      <div className="flex items-center justify-between px-4 sm:px-6 h-16 w-full">
+    <header className="compact-chrome sticky top-0 z-30 w-full border-b bg-white/95 backdrop-blur-md border-slate-200 shadow-xs shrink-0">
+      <div className="flex items-center gap-4 px-4 sm:px-6 h-16 w-full">
         {/* Left Section: Mobile Menu Toggle + Clean Company Brand (Clickable to Home) */}
         <div className="flex items-center gap-2 sm:gap-3">
           <button
@@ -104,19 +103,9 @@ export const Navbar: React.FC = () => {
           </button>
         </div>
 
-        {/* Quick Nav Button to Home (Main Menu) */}
-        <div className="hidden md:flex items-center gap-2">
-          <button
-            onClick={() => appStore.setActiveModule('home')}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs sm:text-sm font-extrabold transition-all cursor-pointer shadow-2xs"
-            title="Ke Menu Utama / Beranda Opsi Sederhana"
-          >
-            <span>🏠 Beranda (Menu Utama)</span>
-          </button>
-        </div>
 
         {/* Middle Section: Clean, Spacious Search Bar */}
-        <div className="hidden lg:flex items-center max-w-sm w-full mx-3">
+        <div className="hidden lg:flex items-center flex-1 max-w-xl mx-auto">
           <button
             id="open-command-palette-btn"
             onClick={() => appStore.setCommandPaletteOpen(true)}
@@ -126,51 +115,14 @@ export const Navbar: React.FC = () => {
               <Search className="w-4 h-4 text-slate-400 shrink-0" />
               <span className="truncate">{t.searchPh}</span>
             </span>
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white border border-slate-200 rounded text-slate-500 shadow-xs shrink-0">
+            <kbd className="px-1.5 py-0.5 text-xs font-mono bg-white border border-slate-200 rounded text-slate-500 shadow-xs shrink-0">
               ⌘K
             </kbd>
           </button>
         </div>
 
-        {/* Right Section: Font Size Switcher (Lansia friendly), Input Data Baru, Profile */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* Quick Font Size Switcher for Senior Staff */}
-          <div className="hidden sm:flex items-center gap-1 p-1 bg-slate-100/90 border border-slate-200 rounded-xl" title="Ubah Ukuran Huruf (Ramah Lansia)">
-            <span className="text-[11px] font-bold text-slate-500 pl-1.5 pr-0.5">Huruf:</span>
-            <button
-              onClick={() => appStore.setFontSizeMode('normal')}
-              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                fontSizeMode === 'normal'
-                  ? 'bg-white text-slate-900 shadow-xs font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-              title="Font Ukuran Normal"
-            >
-              Normal
-            </button>
-            <button
-              onClick={() => appStore.setFontSizeMode('large')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                fontSizeMode === 'large'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-blue-700 hover:text-blue-900 font-bold'
-              }`}
-              title="Font Ukuran Besar (Standar Lansia)"
-            >
-              Besar
-            </button>
-            <button
-              onClick={() => appStore.setFontSizeMode('xlarge')}
-              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                fontSizeMode === 'xlarge'
-                  ? 'bg-amber-500 text-white shadow-xs font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-              title="Font Ekstra Besar"
-            >
-              Ekstra
-            </button>
-          </div>
+        {/* Right Section: Input Data Baru, Kelola Akun, Profile */}
+        <div className="flex items-center gap-3 ml-auto shrink-0">
 
           {/* Universal Data Entry Button */}
           {!isExternal && hasAnyDataEntryAccess && (
@@ -213,7 +165,7 @@ export const Navbar: React.FC = () => {
                   className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200"
                 />
               ) : (
-                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold ring-1 ring-blue-500">
+                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-bold ring-1 ring-blue-500">
                   {displayName?.charAt(0)?.toUpperCase() || <User className="w-3.5 h-3.5" />}
                 </div>
               )}
@@ -221,12 +173,12 @@ export const Navbar: React.FC = () => {
                 <div className="text-xs font-bold text-slate-900 leading-tight flex items-center gap-1.5">
                   <span className="truncate max-w-[120px]">{displayName}</span>
                   {displayTier != null && (
-                    <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full border ${tierMeta.badgeClass}`}>
+                    <span className={`text-xs font-extrabold px-1.5 py-0.2 rounded-full border ${tierMeta.badgeClass}`}>
                       L{displayTier}
                     </span>
                   )}
                 </div>
-                <div className="text-[10px] text-slate-500 truncate max-w-[140px]">
+                <div className="text-xs text-slate-500 truncate max-w-[140px]">
                   {displayDepartment || t.genEmployee}
                 </div>
               </div>
@@ -241,7 +193,7 @@ export const Navbar: React.FC = () => {
                     <div className="text-xs font-black text-slate-900">
                       {t.userAccount}
                     </div>
-                    <div className="text-[11px] text-slate-500 truncate max-w-[180px]">
+                    <div className="text-xs text-slate-500 truncate max-w-[180px]">
                       {authUser?.email || displayDepartment}
                     </div>
                   </div>
@@ -254,7 +206,7 @@ export const Navbar: React.FC = () => {
                   <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg">
                     <button
                       onClick={() => appStore.setLanguage('id')}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
                         language === 'id' 
                           ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' 
                           : 'text-slate-500 hover:text-slate-700'
@@ -264,7 +216,7 @@ export const Navbar: React.FC = () => {
                     </button>
                     <button
                       onClick={() => appStore.setLanguage('en')}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
                         language === 'en' 
                           ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' 
                           : 'text-slate-500 hover:text-slate-700'

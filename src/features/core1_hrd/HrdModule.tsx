@@ -692,7 +692,7 @@ export const HrdModule: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Identitas & Pekerjaan</h3>
+                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Identitas & Pekerjaan</h3>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="text-slate-500 dark:text-slate-400">Nama Lengkap</div>
                     <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.full_name || viewUserDetail.fullName || viewUserDetail.name || '-'}</div>
@@ -714,7 +714,7 @@ export const HrdModule: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Dokumen Resmi & Finansial</h3>
+                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Dokumen Resmi & Finansial</h3>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="text-slate-500 dark:text-slate-400">No. KTP</div>
                     <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.identity_card_number || viewUserDetail.identityCardNumber || '-'}</div>
@@ -736,7 +736,7 @@ export const HrdModule: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Data Pribadi</h3>
+                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Data Pribadi</h3>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="text-slate-500 dark:text-slate-400">Tempat Lahir</div>
                     <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.place_of_birth || viewUserDetail.placeOfBirth || '-'}</div>
@@ -752,7 +752,7 @@ export const HrdModule: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Keluarga & Darurat</h3>
+                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Keluarga & Darurat</h3>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="text-slate-500 dark:text-slate-400">Kontak Darurat (No)</div>
                     <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_phone || viewUserDetail.emergencyContactPhone || '-'}</div>
@@ -763,7 +763,7 @@ export const HrdModule: React.FC = () => {
                   </div>
                   
                   <div className="mt-3">
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">Data Anak:</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Data Anak:</div>
                     {(viewUserDetail.children && viewUserDetail.children.length > 0) ? (
                       <div className="space-y-1">
                         {viewUserDetail.children.map((child: any, idx: number) => (
@@ -781,7 +781,7 @@ export const HrdModule: React.FC = () => {
               </div>
 
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Kuota & Sisa Cuti</h3>
+                <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">Kuota & Sisa Cuti</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                   <div className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
                     <div className="text-slate-500 dark:text-slate-400 mb-1">Hak Cuti Tahunan</div>

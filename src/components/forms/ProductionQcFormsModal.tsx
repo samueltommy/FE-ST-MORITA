@@ -583,34 +583,34 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{t.qcThick}</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">{t.qcThick}</label>
                     <input
                       type="text"
                       value={testMicronActual}
                       onChange={(e) => setTestMicronActual(e.target.value)}
                       className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">{t.qcStandard} 135 ± 3 µm</span>
+                    <span className="text-xs text-slate-400 mt-0.5 block">{t.qcStandard} 135 ± 3 µm</span>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{t.qcAdhesion}</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">{t.qcAdhesion}</label>
                     <input
                       type="text"
                       value={testAdhesionActual}
                       onChange={(e) => setTestAdhesionActual(e.target.value)}
                       className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">{t.qcStandard} ≥ 14.0 N</span>
+                    <span className="text-xs text-slate-400 mt-0.5 block">{t.qcStandard} ≥ 14.0 N</span>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{t.qcLiner}</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">{t.qcLiner}</label>
                     <input
                       type="text"
                       value={testLinerActual}
                       onChange={(e) => setTestLinerActual(e.target.value)}
                       className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">{t.qcStandard} 20 - 30 g</span>
+                    <span className="text-xs text-slate-400 mt-0.5 block">{t.qcStandard} 20 - 30 g</span>
                   </div>
                 </div>
               </div>
@@ -635,7 +635,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                     />
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
                     <span className="text-xs font-black block">{t.qcPass}</span>
-                    <span className="text-[10px] text-slate-500">{t.qcPassDesc}</span>
+                    <span className="text-xs text-slate-500">{t.qcPassDesc}</span>
                   </label>
 
                   <label
@@ -655,7 +655,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                     />
                     <Lock className="w-5 h-5 text-rose-600 mx-auto mb-1" />
                     <span className="text-xs font-black block">{t.qcHold}</span>
-                    <span className="text-[10px] text-slate-500">{t.qcHoldDesc}</span>
+                    <span className="text-xs text-slate-500">{t.qcHoldDesc}</span>
                   </label>
 
                   <label
@@ -675,7 +675,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                     />
                     <AlertTriangle className="w-5 h-5 text-amber-600 mx-auto mb-1" />
                     <span className="text-xs font-black block">{t.qcRework}</span>
-                    <span className="text-[10px] text-slate-500">{t.qcReworkDesc}</span>
+                    <span className="text-xs text-slate-500">{t.qcReworkDesc}</span>
                   </label>
                 </div>
               </div>
@@ -721,7 +721,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                 <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                 <div>
                   <strong className="font-bold">{t.overrideTitle}</strong>
-                  <div className="text-[11px] text-rose-800 mt-0.5">
+                  <div className="text-xs text-rose-800 mt-0.5">
                     {t.overrideDesc}
                   </div>
                 </div>
@@ -783,7 +783,7 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                 <FileSpreadsheet className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                 <div>
                   <strong className="font-bold">Log Konsumsi Bahan Baku (Raw Material)</strong>
-                  <div className="text-[11px] text-blue-800 mt-0.5">
+                  <div className="text-xs text-blue-800 mt-0.5">
                     Mencatat penggunaan aktual bahan baku dibandingkan dengan standar BOM (Bill of Materials).
                   </div>
                 </div>
@@ -794,23 +794,23 @@ export const ProductionQcFormsModal: React.FC<Props> = ({ isOpen, onClose, defau
                   <h4 className="text-xs font-bold text-slate-700">Material #{index + 1}</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Kode Bahan Baku</label>
+                      <label className="block text-xs font-bold text-slate-500 mb-1">Kode Bahan Baku</label>
                       <input type="text" value={log.kode_bahan_baku} onChange={(e) => { const newLogs = [...rmLogs]; newLogs[index].kode_bahan_baku = e.target.value; setRmLogs(newLogs); }} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300" required />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Nomor Batch Terpakai</label>
+                      <label className="block text-xs font-bold text-slate-500 mb-1">Nomor Batch Terpakai</label>
                       <input type="text" value={log.nomor_batch_terpakai} onChange={(e) => { const newLogs = [...rmLogs]; newLogs[index].nomor_batch_terpakai = e.target.value; setRmLogs(newLogs); }} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300" required />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Qty Standar BOM</label>
+                      <label className="block text-xs font-bold text-slate-500 mb-1">Qty Standar BOM</label>
                       <input type="number" value={log.qty_standar_bom} onChange={(e) => { const newLogs = [...rmLogs]; newLogs[index].qty_standar_bom = Number(e.target.value); setRmLogs(newLogs); }} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300" required />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Qty Aktual Terpakai</label>
+                      <label className="block text-xs font-bold text-slate-500 mb-1">Qty Aktual Terpakai</label>
                       <input type="number" value={log.qty_aktual_terpakai} onChange={(e) => { const newLogs = [...rmLogs]; newLogs[index].qty_aktual_terpakai = Number(e.target.value); setRmLogs(newLogs); }} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300" required />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Keterangan Selisih (Jika Ada Variance)</label>
+                      <label className="block text-xs font-bold text-slate-500 mb-1">Keterangan Selisih (Jika Ada Variance)</label>
                       <input type="text" value={log.keterangan_selisih} onChange={(e) => { const newLogs = [...rmLogs]; newLogs[index].keterangan_selisih = e.target.value; setRmLogs(newLogs); }} className="w-full px-2 py-1.5 text-xs rounded border border-slate-300" />
                     </div>
                   </div>

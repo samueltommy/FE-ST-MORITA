@@ -904,7 +904,7 @@ export const UserManagementModule: React.FC = () => {
 
             {/* ── Row 1: Identitas Dasar ── */}
             <div>
-              <p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row1Title}</p>
+              <p className="text-xs md:text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row1Title}</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
                 <div>
                   <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fNik} <span className="font-normal text-slate-400">{t.fNikFmt}</span></label>
@@ -931,7 +931,7 @@ export const UserManagementModule: React.FC = () => {
                     minLength={16} maxLength={16} inputMode="numeric"
                     placeholder="16 digit Nomor KTP"
                     className={`w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none ${fKtp.length > 0 && fKtp.length !== 16 ? 'border-rose-400' : 'border-slate-300'}`} />
-                  {fKtp.length > 0 && fKtp.length !== 16 && <p className="text-[10px] md:text-xs text-rose-500 mt-0.5">{fKtp.length}/16 digit</p>}
+                  {fKtp.length > 0 && fKtp.length !== 16 && <p className="text-xs md:text-xs text-rose-500 mt-0.5">{fKtp.length}/16 digit</p>}
                 </div>
                 <div>
                   <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fPhone}</label>
@@ -949,7 +949,7 @@ export const UserManagementModule: React.FC = () => {
 
             {/* ── Row 2: Status & Penempatan ── */}
             <div>
-              <p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row2Title}</p>
+              <p className="text-xs md:text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row2Title}</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
                 <div>
                   <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fStatus}</label>
@@ -967,7 +967,7 @@ export const UserManagementModule: React.FC = () => {
                     ))}
                   </select>
                   {findOptionDescription(employmentStatuses, fEmploymentStatus) && (
-                    <p className="mt-1 text-[10px] md:text-xs text-slate-500 italic">
+                    <p className="mt-1 text-xs md:text-xs text-slate-500 italic">
                       {findOptionDescription(employmentStatuses, fEmploymentStatus)}
                     </p>
                   )}
@@ -990,7 +990,7 @@ export const UserManagementModule: React.FC = () => {
                     ))}
                   </select>
                   {findOptionDescription(departments, fDepartment) && (
-                    <p className="mt-1 text-[10px] md:text-xs text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
+                    <p className="mt-1 text-xs md:text-xs text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
                       {findOptionDescription(departments, fDepartment)}
                     </p>
                   )}
@@ -1006,7 +1006,7 @@ export const UserManagementModule: React.FC = () => {
 
             {/* ── Row 3: Akun Login & RBAC ── */}
             <div className="p-4 md:p-6 rounded-xl bg-slate-50 border border-slate-200 space-y-4 md:space-y-5">
-              <p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-widest">{t.row3Title}</p>
+              <p className="text-xs md:text-xs font-bold text-blue-600 uppercase tracking-widest">{t.row3Title}</p>
               
               {!editingUserId && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
@@ -1043,7 +1043,7 @@ export const UserManagementModule: React.FC = () => {
                     ))}
                   </select>
                   {findOptionDescription(userLevels, fUserLevel) && (
-                    <p className="mt-1.5 text-[11px] md:text-xs text-slate-600 bg-blue-50/70 p-2 md:p-3 rounded-lg border border-blue-100 flex items-start gap-1.5">
+                    <p className="mt-1.5 text-xs md:text-xs text-slate-600 bg-blue-50/70 p-2 md:p-3 rounded-lg border border-blue-100 flex items-start gap-1.5">
                       <Shield className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600 shrink-0 mt-0.5" />
                       <span>{findOptionDescription(userLevels, fUserLevel)}</span>
                     </p>
@@ -1059,18 +1059,18 @@ export const UserManagementModule: React.FC = () => {
                       <Shield className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600" />
                       <span>{t.fPreview} {ROLE_DEFINITIONS[derivedRole].label}</span>
                     </div>
-                    <span className={`text-[9px] md:text-[10px] font-bold px-2 py-0.5 md:px-2.5 md:py-1 rounded-full border ${getBadgeClass(findOptionBadge(userLevels, fUserLevel))}`}>
+                    <span className={`text-xs md:text-xs font-bold px-2 py-0.5 md:px-2.5 md:py-1 rounded-full border ${getBadgeClass(findOptionBadge(userLevels, fUserLevel))}`}>
                       {findOptionLabel(userLevels, fUserLevel) || fUserLevel}
                     </span>
                   </div>
-                  <p className="text-[11px] md:text-xs text-slate-500 mb-2 md:mb-3">
+                  <p className="text-xs md:text-xs text-slate-500 mb-2 md:mb-3">
                     {t.fPreviewDesc}
                     <br /><br />
                     {ROLE_DEFINITIONS[derivedRole].description}
                   </p>
                   <div className="flex flex-wrap gap-1 md:gap-1.5">
                     {ROLE_DEFINITIONS[derivedRole].permissions.map(p => (
-                      <span key={p} className="text-[10px] md:text-[11px] font-mono px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">{p}</span>
+                      <span key={p} className="text-xs md:text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">{p}</span>
                     ))}
                   </div>
                 </div>
@@ -1079,7 +1079,7 @@ export const UserManagementModule: React.FC = () => {
 
             {/* ── Row 4: Informasi Bank (Opsional) ── */}
             <div>
-              <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t.row4Title} <span className="font-normal normal-case">{t.row4Opt}</span></p>
+              <p className="text-xs md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t.row4Title} <span className="font-normal normal-case">{t.row4Opt}</span></p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                 <div>
                   <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fBank}</label>
@@ -1098,7 +1098,7 @@ export const UserManagementModule: React.FC = () => {
 
             {/* Submit */}
             <div className="pt-3 md:pt-4 flex items-center justify-between border-t border-slate-200">
-              <p className="text-[10px] md:text-xs text-slate-400">{t.fReq}</p>
+              <p className="text-xs md:text-xs text-slate-400">{t.fReq}</p>
               <div className="flex items-center gap-3 md:gap-4">
                 <button type="button" onClick={() => { setIsFormOpen(false); setEditingUserId(null); resetForm(); }}
                   className="px-4 py-2 md:px-5 md:py-2.5 rounded-xl border border-slate-300 text-xs md:text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors">
@@ -1297,7 +1297,7 @@ export const UserManagementModule: React.FC = () => {
                             <div className="font-black text-slate-900 text-base sm:text-lg flex items-center gap-2">
                               <span>{user.name}</span>
                               {isCurrent && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 font-black uppercase">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 font-black uppercase">
                                   {t.activeSession}
                                 </span>
                               )}
@@ -1373,7 +1373,7 @@ export const UserManagementModule: React.FC = () => {
                           </span>
                           {user.employmentStatus && (
                             <span
-                              className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md border ${getBadgeClass(findOptionBadge(employmentStatuses, user.employmentStatus))}`}
+                              className={`text-xs sm:text-xs font-bold px-2 py-0.5 rounded-md border ${getBadgeClass(findOptionBadge(employmentStatuses, user.employmentStatus))}`}
                               title={findOptionDescription(employmentStatuses, user.employmentStatus)}
                             >
                               {findOptionLabel(employmentStatuses, user.employmentStatus)}
@@ -1508,7 +1508,7 @@ export const UserManagementModule: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Identitas & Pekerjaan</h3>
+                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Identitas & Pekerjaan</h3>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="text-slate-500 dark:text-slate-400">Nama Lengkap</div>
                     <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.full_name || viewUserDetail.fullName || viewUserDetail.name || '-'}</div>
@@ -1530,7 +1530,7 @@ export const UserManagementModule: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Dokumen Resmi & Finansial</h3>
+                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Dokumen Resmi & Finansial</h3>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="text-slate-500 dark:text-slate-400">No. KTP</div>
                     <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.identity_card_number || viewUserDetail.identityCardNumber || '-'}</div>
@@ -1552,7 +1552,7 @@ export const UserManagementModule: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Data Pribadi</h3>
+                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Data Pribadi</h3>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="text-slate-500 dark:text-slate-400">Tempat Lahir</div>
                     <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.place_of_birth || viewUserDetail.placeOfBirth || '-'}</div>
@@ -1568,7 +1568,7 @@ export const UserManagementModule: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Keluarga & Darurat</h3>
+                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Keluarga & Darurat</h3>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="text-slate-500 dark:text-slate-400">Kontak Darurat (No)</div>
                     <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_phone || viewUserDetail.emergencyContactPhone || '-'}</div>
@@ -1579,7 +1579,7 @@ export const UserManagementModule: React.FC = () => {
                   </div>
                   
                   <div className="mt-3">
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">Data Anak:</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Data Anak:</div>
                     {(viewUserDetail.children && viewUserDetail.children.length > 0) ? (
                       <div className="space-y-1">
                         {viewUserDetail.children.map((child: any, idx: number) => (
@@ -1597,7 +1597,7 @@ export const UserManagementModule: React.FC = () => {
               </div>
 
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Kuota & Sisa Cuti</h3>
+                <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">Kuota & Sisa Cuti</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                   <div className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
                     <div className="text-slate-500 dark:text-slate-400 mb-1">Hak Cuti Tahunan</div>
@@ -1688,7 +1688,7 @@ export const UserManagementModule: React.FC = () => {
                     ))}
                   </select>
                   {findOptionDescription(departments, fDepartment) && (
-                    <p className="mt-1 text-[11px] text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
+                    <p className="mt-1 text-xs text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
                       {findOptionDescription(departments, fDepartment)}
                     </p>
                   )}
@@ -1704,7 +1704,7 @@ export const UserManagementModule: React.FC = () => {
                     ))}
                   </select>
                   {findOptionDescription(userLevels, fUserLevel) && (
-                    <p className="mt-1 text-[11px] text-slate-500 italic">
+                    <p className="mt-1 text-xs text-slate-500 italic">
                       {findOptionDescription(userLevels, fUserLevel)}
                     </p>
                   )}
@@ -1720,7 +1720,7 @@ export const UserManagementModule: React.FC = () => {
                     ))}
                   </select>
                   {findOptionDescription(employmentStatuses, fEmploymentStatus) && (
-                    <p className="mt-1 text-[11px] text-slate-500 italic">
+                    <p className="mt-1 text-xs text-slate-500 italic">
                       {findOptionDescription(employmentStatuses, fEmploymentStatus)}
                     </p>
                   )}
@@ -1782,13 +1782,13 @@ export const UserManagementModule: React.FC = () => {
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     {inspectUser.name}
                   </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {inspectUser.nik} &bull; {inspectUser.department}
                   </p>
                 </div>
               </div>
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getTierBadge(inspectUser.tier).badgeClass
+                className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getTierBadge(inspectUser.tier).badgeClass
                   }`}
               >
                 Level {inspectUser.tier}
@@ -1803,7 +1803,7 @@ export const UserManagementModule: React.FC = () => {
                 {inspectUser.permissions.map((perm) => (
                   <span
                     key={perm}
-                    className="text-[11px] font-mono px-2 py-1 rounded bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-semibold"
+                    className="text-xs font-mono px-2 py-1 rounded bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-semibold"
                   >
                     {perm}
                   </span>
@@ -1811,7 +1811,7 @@ export const UserManagementModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl">
+            <div className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl">
               <span className="font-bold text-slate-700 dark:text-slate-300">{t.modalDesc} </span>
               {ROLE_DEFINITIONS[inspectUser.role]?.description || t.modalDescDef}
             </div>
