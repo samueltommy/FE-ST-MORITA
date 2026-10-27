@@ -45,6 +45,13 @@ import {
 import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
 import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
 import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
+import { CustomAccessMatrix } from '../../components/rbac/CustomAccessMatrix';
+import {
+  AccessMatrix,
+  getDefaultAccessMatrix,
+  matrixToPermissions,
+  permissionsToMatrix,
+} from '../../utils/rbacMatrix';
 
 const CONTENT = {
   id: {
@@ -428,15 +435,25 @@ export const UserManagementModule: React.FC = () => {
   // Optional fields
   const [fDepartment, setFDepartment] = useState('');
 
+  // ─── Granular RBAC Matrix State ─────────────────────────────
+  const [accessMatrix, setAccessMatrix] = useState<AccessMatrix>(() =>
+    getDefaultAccessMatrix('L3_STAFF', '')
+  );
+  const [editAccessMatrix, setEditAccessMatrix] = useState<AccessMatrix>(() =>
+    getDefaultAccessMatrix('L3_STAFF', '')
+  );
+
   React.useEffect(() => {
     if (departments.length > 0 && !fDepartment) {
       setFDepartment(departments[0].value);
+      setAccessMatrix(getDefaultAccessMatrix(fUserLevel || 'L3_STAFF', departments[0].value));
     }
     if (employmentStatuses.length > 0 && !fEmploymentStatus) {
       setFEmploymentStatus(employmentStatuses[0].value as any);
     }
     if (userLevels.length > 0 && !fUserLevel) {
       setFUserLevel(userLevels[0].value as any);
+      setAccessMatrix(getDefaultAccessMatrix(userLevels[0].value, fDepartment || ''));
     }
   }, [departments, employmentStatuses, userLevels, fDepartment, fEmploymentStatus, fUserLevel]);
 
@@ -496,6 +513,16 @@ export const UserManagementModule: React.FC = () => {
     setIsEditModalOpen(true);
     setFormError('');
     setFormSuccessMessage('');
+
+    // Reconstruct Access Matrix for editing
+    const userPerms = origUser.permissions || userProfile.permissions || [];
+    setEditAccessMatrix(
+      permissionsToMatrix(
+        userPerms,
+        origUser.roleId || userProfile.role,
+        origUser.department || userProfile.department
+      )
+    );
   };
 
   const handleDelete = async (userId: string, userName: string) => {
@@ -542,6 +569,7 @@ export const UserManagementModule: React.FC = () => {
     setFEmploymentStatus((employmentStatuses[0]?.value as any) || 'PERMANENT');
     setFJoinDate(new Date().toISOString().split('T')[0]);
     setFDepartment(departments[0]?.value || '');
+    setAccessMatrix(getDefaultAccessMatrix((userLevels[0]?.value as any) || 'L3_STAFF', departments[0]?.value || ''));
     setFormError('');
   };
 
@@ -568,6 +596,7 @@ export const UserManagementModule: React.FC = () => {
       department: fDepartment || null,
       bank_name: fBankName || null,
       bank_account_number: fBankAccount || null,
+      permissions: matrixToPermissions(editingUserId ? editAccessMatrix : accessMatrix),
     };
 
     setIsSubmitting(true);
@@ -976,7 +1005,11 @@ export const UserManagementModule: React.FC = () => {
                   <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fDept}</label>
                   <select
                     value={fDepartment}
-                    onChange={e => setFDepartment(e.target.value)}
+                    onChange={e => {
+                      const newDept = e.target.value;
+                      setFDepartment(newDept);
+                      setAccessMatrix(getDefaultAccessMatrix(fUserLevel, newDept));
+                    }}
                     disabled={loadingDepts}
                     className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   >
@@ -1031,7 +1064,11 @@ export const UserManagementModule: React.FC = () => {
                   <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fLvl}</label>
                   <select
                     value={fUserLevel}
-                    onChange={e => setFUserLevel(e.target.value as any)}
+                    onChange={e => {
+                      const newLvl = e.target.value as any;
+                      setFUserLevel(newLvl);
+                      setAccessMatrix(getDefaultAccessMatrix(newLvl, fDepartment));
+                    }}
                     required
                     disabled={loadingLevels}
                     className="w-full px-3 py-2.5 md:px-4 md:py-3 rounded-xl bg-white border border-slate-300 text-xs md:text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -1051,30 +1088,15 @@ export const UserManagementModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Role Preview */}
-              {ROLE_DEFINITIONS[derivedRole] && (
-                <div className="text-xs md:text-sm p-3 md:p-4 rounded-lg bg-blue-50/50 border border-blue-200">
-                  <div className="flex items-center justify-between mb-1 md:mb-2">
-                    <div className="font-bold text-slate-800 flex items-center gap-1.5 md:gap-2">
-                      <Shield className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600" />
-                      <span>{t.fPreview} {ROLE_DEFINITIONS[derivedRole].label}</span>
-                    </div>
-                    <span className={`text-xs md:text-xs font-bold px-2 py-0.5 md:px-2.5 md:py-1 rounded-full border ${getBadgeClass(findOptionBadge(userLevels, fUserLevel))}`}>
-                      {findOptionLabel(userLevels, fUserLevel) || fUserLevel}
-                    </span>
-                  </div>
-                  <p className="text-xs md:text-xs text-slate-500 mb-2 md:mb-3">
-                    {t.fPreviewDesc}
-                    <br /><br />
-                    {ROLE_DEFINITIONS[derivedRole].description}
-                  </p>
-                  <div className="flex flex-wrap gap-1 md:gap-1.5">
-                    {ROLE_DEFINITIONS[derivedRole].permissions.map(p => (
-                      <span key={p} className="text-xs md:text-xs font-mono px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">{p}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Granular RBAC Matrix Custom Access */}
+              <div className="pt-2">
+                <CustomAccessMatrix
+                  value={accessMatrix}
+                  onChange={setAccessMatrix}
+                  userLevel={fUserLevel}
+                  department={fDepartment}
+                />
+              </div>
             </div>
 
             {/* ── Row 4: Informasi Bank (Opsional) ── */}
@@ -1490,108 +1512,115 @@ export const UserManagementModule: React.FC = () => {
 
       {/* MODAL: View Employee Detail */}
       {viewUserDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-100">
-          <div className="w-full max-w-3xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-600" />
-                Detail Lengkap Karyawan
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-3xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
+            {/* Fixed Header */}
+            <div className="px-6 py-4.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
+              <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Users className="w-5 h-5" />
+                </div>
+                <span>Detail Lengkap Karyawan</span>
               </h2>
               <button
                 onClick={() => setViewUserDetail(null)}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Tutup Modal"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Identitas & Pekerjaan</h3>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="text-slate-500 dark:text-slate-400">Nama Lengkap</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.full_name || viewUserDetail.fullName || viewUserDetail.name || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">NIK</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.nik || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Email</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.email || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">No HP</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.phone_number || viewUserDetail.phoneNumber || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Departemen</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.department || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Status Pegawai</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.employment_status || viewUserDetail.employmentStatus || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Level Akses</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.user_level || viewUserDetail.userLevel || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Tgl Bergabung</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.join_date || viewUserDetail.joinDate || '-'}</div>
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Identitas & Pekerjaan</h3>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="text-slate-500 dark:text-slate-400">Nama Lengkap</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.full_name || viewUserDetail.fullName || viewUserDetail.name || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">NIK</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.nik || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Email</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.email || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">No HP</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.phone_number || viewUserDetail.phoneNumber || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Departemen</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.department || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Status Pegawai</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.employment_status || viewUserDetail.employmentStatus || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Level Akses</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.user_level || viewUserDetail.userLevel || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Tgl Bergabung</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.join_date || viewUserDetail.joinDate || '-'}</div>
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Dokumen Resmi & Finansial</h3>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="text-slate-500 dark:text-slate-400">No. KTP</div>
-                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.identity_card_number || viewUserDetail.identityCardNumber || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">No. NPWP</div>
-                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.npwp_number || viewUserDetail.npwpNumber || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">BPJS Kesehatan</div>
-                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.bpjs_kesehatan || viewUserDetail.bpjsKesehatan || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">BPJS Ketenagakerjaan</div>
-                    <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.bpjs_ketenagakerjaan || viewUserDetail.bpjsKetenagakerjaan || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Gaji Pokok</div>
-                    <div className="font-bold text-emerald-600 dark:text-emerald-400">Rp {(viewUserDetail.basic_salary || viewUserDetail.basicSalary)?.toLocaleString() || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Bank & Rekening</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">
-                      {viewUserDetail.bank_name || viewUserDetail.bankName || '-'} - {viewUserDetail.bank_account_number || viewUserDetail.bankAccountNumber || '-'}
+                  <div>
+                    <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Dokumen Resmi & Finansial</h3>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="text-slate-500 dark:text-slate-400">No. KTP</div>
+                      <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.identity_card_number || viewUserDetail.identityCardNumber || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">No. NPWP</div>
+                      <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.npwp_number || viewUserDetail.npwpNumber || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">BPJS Kesehatan</div>
+                      <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.bpjs_kesehatan || viewUserDetail.bpjsKesehatan || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">BPJS Ketenagakerjaan</div>
+                      <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.bpjs_ketenagakerjaan || viewUserDetail.bpjsKetenagakerjaan || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Gaji Pokok</div>
+                      <div className="font-bold text-emerald-600 dark:text-emerald-400">Rp {(viewUserDetail.basic_salary || viewUserDetail.basicSalary)?.toLocaleString() || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Bank & Rekening</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">
+                        {viewUserDetail.bank_name || viewUserDetail.bankName || '-'} - {viewUserDetail.bank_account_number || viewUserDetail.bankAccountNumber || '-'}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Data Pribadi</h3>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="text-slate-500 dark:text-slate-400">Tempat Lahir</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.place_of_birth || viewUserDetail.placeOfBirth || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Tanggal Lahir</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.date_of_birth || viewUserDetail.dateOfBirth || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Agama</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.religion || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Status Pernikahan</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.marital_status || viewUserDetail.maritalStatus || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Alamat</div>
-                    <div className="col-span-2 font-medium text-slate-800 dark:text-slate-200 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">{viewUserDetail.address || '-'}</div>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Data Pribadi</h3>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="text-slate-500 dark:text-slate-400">Tempat Lahir</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.place_of_birth || viewUserDetail.placeOfBirth || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Tanggal Lahir</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.date_of_birth || viewUserDetail.dateOfBirth || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Agama</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.religion || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Status Pernikahan</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.marital_status || viewUserDetail.maritalStatus || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Alamat</div>
+                      <div className="col-span-2 font-medium text-slate-800 dark:text-slate-200 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">{viewUserDetail.address || '-'}</div>
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Keluarga & Darurat</h3>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="text-slate-500 dark:text-slate-400">Kontak Darurat (No)</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_phone || viewUserDetail.emergencyContactPhone || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Relasi Darurat</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_relationship || viewUserDetail.emergencyContactRelationship || '-'}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Nama Pasangan</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.spouse_name || viewUserDetail.spouseName || '-'}</div>
-                  </div>
-                  
-                  <div className="mt-3">
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Data Anak:</div>
-                    {(viewUserDetail.children && viewUserDetail.children.length > 0) ? (
-                      <div className="space-y-1">
-                        {viewUserDetail.children.map((child: any, idx: number) => (
-                          <div key={idx} className="flex justify-between p-1.5 bg-slate-50 dark:bg-slate-800 rounded text-xs">
-                            <span className="font-medium text-slate-800 dark:text-slate-200">{child.name}</span>
-                            <span className="text-slate-500 dark:text-slate-400">{child.age} tahun</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-xs text-slate-500 dark:text-slate-400 italic">Tidak ada data anak.</div>
-                    )}
+                  <div>
+                    <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Keluarga & Darurat</h3>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="text-slate-500 dark:text-slate-400">Kontak Darurat (No)</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_phone || viewUserDetail.emergencyContactPhone || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Relasi Darurat</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_relationship || viewUserDetail.emergencyContactRelationship || '-'}</div>
+                      <div className="text-slate-500 dark:text-slate-400">Nama Pasangan</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.spouse_name || viewUserDetail.spouseName || '-'}</div>
+                    </div>
+                    
+                    <div className="mt-3">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Data Anak:</div>
+                      {(viewUserDetail.children && viewUserDetail.children.length > 0) ? (
+                        <div className="space-y-1">
+                          {viewUserDetail.children.map((child: any, idx: number) => (
+                            <div key={idx} className="flex justify-between p-1.5 bg-slate-50 dark:bg-slate-800 rounded text-xs">
+                              <span className="font-medium text-slate-800 dark:text-slate-200">{child.name}</span>
+                              <span className="text-slate-500 dark:text-slate-400">{child.age} tahun</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-500 dark:text-slate-400 italic">Tidak ada data anak.</div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1619,10 +1648,11 @@ export const UserManagementModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-800">
+            {/* Fixed Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 shrink-0 flex items-center justify-end">
               <button
                 onClick={() => setViewUserDetail(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-sm font-bold text-slate-800 dark:text-white transition-colors"
+                className="px-5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-white transition-colors cursor-pointer"
               >
                 Tutup
               </button>
@@ -1633,134 +1663,183 @@ export const UserManagementModule: React.FC = () => {
 
       {/* MODAL: Edit User */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-100">
-          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white">Edit Data Pegawai</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150">
+            {/* Fixed Header */}
+            <div className="px-6 py-4.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight">
+                    Edit Data Pegawai & Hak Akses
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Perbarui informasi penempatan dan sesuaikan hak akses modul karyawan bersangkutan.
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => {
                   setIsEditModalOpen(false);
                   setEditingUserId(null);
                   resetForm();
                 }}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Tutup Modal"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             
-            <form onSubmit={handleCreateAccount} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* ── TERKUNCI (READ-ONLY) ── */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">NIK (Nomor Induk Karyawan)</label>
-                  <input type="text" value={fNik} disabled
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-sm cursor-not-allowed" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Nomor KTP</label>
-                  <input type="text" value={fKtp} disabled
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-sm cursor-not-allowed" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Email Internal</label>
-                  <input type="email" value={fEmail} disabled
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-sm cursor-not-allowed" />
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleCreateAccount} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {/* ── TERKUNCI (READ-ONLY) ── */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">NIK (Nomor Induk Karyawan)</label>
+                    <input type="text" value={fNik} disabled
+                      className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-xs font-mono cursor-not-allowed" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Nomor KTP</label>
+                    <input type="text" value={fKtp} disabled
+                      className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-xs font-mono cursor-not-allowed" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Email Internal</label>
+                    <input type="email" value={fEmail} disabled
+                      className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-xs font-mono cursor-not-allowed" />
+                  </div>
+
+                  {/* ── BISA DIUBAH (EDITABLE) ── */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
+                    <input type="text" value={fFullName} onChange={e => setFFullName(e.target.value)} required 
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Departemen</label>
+                    <select
+                      value={fDepartment}
+                      onChange={e => {
+                        const newDept = e.target.value;
+                        setFDepartment(newDept);
+                        setEditAccessMatrix(getDefaultAccessMatrix(fUserLevel, newDept));
+                      }}
+                      disabled={loadingDepts}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="" disabled>
+                        {loadingDepts ? 'Memuat data...' : '-- Pilih Department --'}
+                      </option>
+                      {departments.map((dept) => (
+                        <option key={dept.value} value={dept.value} title={dept.description}>
+                          {dept.label}
+                        </option>
+                      ))}
+                    </select>
+                    {findOptionDescription(departments, fDepartment) && (
+                      <p className="mt-1 text-xs text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
+                        {findOptionDescription(departments, fDepartment)}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tingkat Akses (Role)</label>
+                    <select
+                      value={fUserLevel}
+                      onChange={e => {
+                        const newLvl = e.target.value as any;
+                        setFUserLevel(newLvl);
+                        setEditAccessMatrix(getDefaultAccessMatrix(newLvl, fDepartment));
+                      }}
+                      disabled={loadingLevels}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs focus:ring-2 focus:ring-blue-500"
+                    >
+                      {userLevels.map((lvl) => (
+                        <option key={lvl.value} value={lvl.value} title={lvl.description}>
+                          {lvl.label}
+                        </option>
+                      ))}
+                    </select>
+                    {findOptionDescription(userLevels, fUserLevel) && (
+                      <p className="mt-1 text-xs text-slate-500 italic truncate">
+                        {findOptionDescription(userLevels, fUserLevel)}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status Kepegawaian</label>
+                    <select value={fEmploymentStatus} onChange={e => setFEmploymentStatus(e.target.value as any)} disabled={loadingStatuses}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs focus:ring-2 focus:ring-blue-500 font-bold">
+                      {employmentStatuses.map((st) => (
+                        <option key={st.value} value={st.value} title={st.description}>
+                          {st.label}
+                        </option>
+                      ))}
+                    </select>
+                    {findOptionDescription(employmentStatuses, fEmploymentStatus) && (
+                      <p className="mt-1 text-xs text-slate-500 italic truncate">
+                        {findOptionDescription(employmentStatuses, fEmploymentStatus)}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Gaji Pokok</label>
+                    <input type="number" value={fSalary} onChange={e => setFSalary(Number(e.target.value))} required 
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs focus:ring-2 focus:ring-blue-500 font-mono" />
+                  </div>
                 </div>
 
-                {/* ── BISA DIUBAH (EDITABLE) ── */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
-                  <input type="text" value={fFullName} onChange={e => setFFullName(e.target.value)} required 
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500" />
+                {/* Granular RBAC Matrix Custom Access di Edit Modal */}
+                <div className="pt-2">
+                  <CustomAccessMatrix
+                    value={editAccessMatrix}
+                    onChange={setEditAccessMatrix}
+                    userLevel={fUserLevel}
+                    department={fDepartment}
+                  />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Departemen</label>
-                  <select value={fDepartment} onChange={e => setFDepartment(e.target.value)} disabled={loadingDepts}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500">
-                    <option value="" disabled>
-                      {loadingDepts ? 'Memuat data...' : '-- Pilih Department --'}
-                    </option>
-                    {departments.map((dept) => (
-                      <option key={dept.value} value={dept.value} title={dept.description}>
-                        {dept.label}
-                      </option>
-                    ))}
-                  </select>
-                  {findOptionDescription(departments, fDepartment) && (
-                    <p className="mt-1 text-xs text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
-                      {findOptionDescription(departments, fDepartment)}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tingkat Akses (Role)</label>
-                  <select value={fUserLevel} onChange={e => setFUserLevel(e.target.value as any)} disabled={loadingLevels}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500">
-                    {userLevels.map((lvl) => (
-                      <option key={lvl.value} value={lvl.value} title={lvl.description}>
-                        {lvl.label}
-                      </option>
-                    ))}
-                  </select>
-                  {findOptionDescription(userLevels, fUserLevel) && (
-                    <p className="mt-1 text-xs text-slate-500 italic">
-                      {findOptionDescription(userLevels, fUserLevel)}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status Kepegawaian</label>
-                  <select value={fEmploymentStatus} onChange={e => setFEmploymentStatus(e.target.value as any)} disabled={loadingStatuses}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500 font-bold">
-                    {employmentStatuses.map((st) => (
-                      <option key={st.value} value={st.value} title={st.description}>
-                        {st.label}
-                      </option>
-                    ))}
-                  </select>
-                  {findOptionDescription(employmentStatuses, fEmploymentStatus) && (
-                    <p className="mt-1 text-xs text-slate-500 italic">
-                      {findOptionDescription(employmentStatuses, fEmploymentStatus)}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Gaji Pokok</label>
-                  <input type="number" value={fSalary} onChange={e => setFSalary(Number(e.target.value))} required 
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500" />
-                </div>
+                
+                {formError && (
+                  <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl flex items-start gap-2 border border-rose-200">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <p>{formError}</p>
+                  </div>
+                )}
+                {formSuccessMessage && (
+                  <div className="p-3 bg-emerald-50 text-emerald-700 text-xs rounded-xl flex items-start gap-2 border border-emerald-200">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                    <p>{formSuccessMessage}</p>
+                  </div>
+                )}
               </div>
-              
-              {formError && (
-                <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <p>{formError}</p>
+
+              {/* Fixed Footer Toolbar */}
+              <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 shrink-0 flex items-center justify-between gap-3">
+                <p className="text-xs text-slate-400 hidden sm:block">
+                  Perubahan hak akses berlaku segera setelah disimpan.
+                </p>
+                <div className="flex items-center gap-2.5 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => { setIsEditModalOpen(false); setEditingUserId(null); resetForm(); }}
+                    className="px-4 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-extrabold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    <span>Simpan Perubahan</span>
+                  </button>
                 </div>
-              )}
-              {formSuccessMessage && (
-                <div className="p-3 bg-emerald-50 text-emerald-700 text-xs rounded-xl flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <p>{formSuccessMessage}</p>
-                </div>
-              )}
-              
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => { setIsEditModalOpen(false); setEditingUserId(null); resetForm(); }}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold text-sm"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-2 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 flex items-center gap-2"
-                >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                  Simpan Perubahan
-                </button>
               </div>
             </form>
           </div>
@@ -1769,57 +1848,79 @@ export const UserManagementModule: React.FC = () => {
 
       {/* MODAL: Inspect Permissions Claims */}
       {inspectUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-100">
-          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150">
+            {/* Fixed Header */}
+            <div className="px-6 py-4.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
               <div className="flex items-center gap-3">
                 <img
                   src={inspectUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(inspectUser.name)}&background=random`}
                   alt={inspectUser.name}
-                  className="w-10 h-10 rounded-xl object-cover"
+                  className="w-10 h-10 rounded-xl object-cover ring-1 ring-slate-200"
                 />
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
                     {inspectUser.name}
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     {inspectUser.nik} &bull; {inspectUser.department}
                   </p>
                 </div>
               </div>
-              <span
-                className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getTierBadge(inspectUser.tier).badgeClass
-                  }`}
-              >
-                Level {inspectUser.tier}
-              </span>
-            </div>
-
-            <div>
-              <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                {t.modalTitle}
-              </div>
-              <div className="max-h-60 overflow-y-auto p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-wrap gap-1.5">
-                {inspectUser.permissions.map((perm) => (
-                  <span
-                    key={perm}
-                    className="text-xs font-mono px-2 py-1 rounded bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-semibold"
-                  >
-                    {perm}
-                  </span>
-                ))}
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs font-bold px-3 py-1 rounded-full border ${getTierBadge(inspectUser.tier).badgeClass}`}
+                >
+                  Level {inspectUser.tier}
+                </span>
+                <button
+                  onClick={() => setInspectUser(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Tutup Modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
-            <div className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl">
-              <span className="font-bold text-slate-700 dark:text-slate-300">{t.modalDesc} </span>
-              {ROLE_DEFINITIONS[inspectUser.role]?.description || t.modalDescDef}
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div>
+                <CustomAccessMatrix
+                  value={permissionsToMatrix(inspectUser.permissions, inspectUser.role, inspectUser.department)}
+                  readOnly={true}
+                  userLevel={inspectUser.userLevel}
+                  department={inspectUser.department}
+                />
+              </div>
+
+              <div>
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">
+                  {t.modalTitle}
+                </div>
+                <div className="max-h-36 overflow-y-auto p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-wrap gap-1.5">
+                  {inspectUser.permissions.map((perm) => (
+                    <span
+                      key={perm}
+                      className="text-xs font-mono px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-semibold"
+                    >
+                      {perm}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <span className="font-bold text-slate-700 dark:text-slate-300">{t.modalDesc} </span>
+                {ROLE_DEFINITIONS[inspectUser.role]?.description || t.modalDescDef}
+              </div>
             </div>
 
-            <div className="flex justify-end pt-2">
+            {/* Fixed Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 shrink-0 flex items-center justify-end">
               <button
                 onClick={() => setInspectUser(null)}
-                className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-white transition-colors"
+                className="px-5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-white transition-colors cursor-pointer"
               >
                 {t.modalClose}
               </button>

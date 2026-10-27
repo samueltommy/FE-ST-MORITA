@@ -413,6 +413,11 @@ export interface CustomerMaster {
   email: string;
   kontak_pic?: ContactPIC[];
   createdAt: string;
+  code?: string;
+  name?: string;
+  industrySegment?: string;
+  picPhone?: string;
+  status?: string;
 }
 
 export interface SupplierMaster {
@@ -429,6 +434,9 @@ export interface SupplierMaster {
   bankName: string;
   bankAccountNumber: string;
   status: 'ACTIVE' | 'INACTIVE';
+  code?: string;
+  name?: string;
+  category?: string;
 }
 
 export interface PurchaseRequest {
