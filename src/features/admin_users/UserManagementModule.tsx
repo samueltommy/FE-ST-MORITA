@@ -899,29 +899,41 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
       {/* ─── OPTION 1 / LIST: DAFTAR AKUN PEGAWAI ─── */}
       {(activeOption === 'list' || activeOption === 'all') && (
         <div className="space-y-4">
-          {/* Filter Status Tabs (Large & Clear) & Create Button */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
-              <button
-                onClick={() => setStatusFilter('ACTIVE')}
-                className={`px-5 py-2.5 text-sm sm:text-base font-extrabold rounded-xl transition-all cursor-pointer ${
-                  statusFilter === 'ACTIVE'
-                    ? 'bg-white shadow-xs text-blue-700'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+          {/* SEARCH & FILTERS BAR - Ringkas & Satu Baris */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:flex-1">
+              <div className="relative w-full flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t.searchPlc}
+                  className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-600 outline-none transition-all"
+                />
+              </div>
+
+              <select
+                value={selectedDeptFilter}
+                onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl px-3 py-2 focus:border-blue-600 focus:bg-white outline-none w-full sm:w-auto min-w-[200px] transition-all cursor-pointer"
               >
-                Karyawan Aktif ({activeCount})
-              </button>
-              <button
-                onClick={() => setStatusFilter('INACTIVE')}
-                className={`px-5 py-2.5 text-sm sm:text-base font-extrabold rounded-xl transition-all cursor-pointer ${
-                  statusFilter === 'INACTIVE'
-                    ? 'bg-white shadow-xs text-rose-700'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                <option value="ALL">Semua Divisi / Departemen</option>
+                {departments.map((d: any) => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
+                ))}
+              </select>
+
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                className="bg-slate-50 border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl px-3 py-2 focus:border-blue-600 focus:bg-white outline-none w-full sm:w-auto transition-all cursor-pointer"
               >
-                Non-Aktif / Resigned ({resignedCount})
-              </button>
+                <option value="name_asc">Urutkan: Nama (A-Z)</option>
+                <option value="name_desc">Urutkan: Nama (Z-A)</option>
+                <option value="date_desc">Bergabung Terbaru</option>
+                <option value="date_asc">Bergabung Terlama</option>
+              </select>
             </div>
 
             {isAuthorized && (
@@ -930,323 +942,191 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
                   setEditingUserId(null);
                   setIsFormOpen(true);
                 }}
-                className="px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-sm sm:text-base flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer shrink-0 self-stretch sm:self-auto justify-center"
               >
-                <UserPlus className="w-5 h-5" />
-                <span>Tambah Karyawan Baru</span>
+                <UserPlus className="w-4 h-4" />
+                <span>Tambah Karyawan</span>
               </button>
             )}
           </div>
 
-      {/* SEARCH & FILTERS BAR (Enlarged) */}
-      <div className="p-5 sm:p-6 rounded-3xl bg-white border-2 border-slate-200 shadow-xs flex flex-col gap-4">
-        {/* Row 1: Search, Dept, and Sort */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3 w-full">
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:flex-1">
-            <div className="relative w-full flex-1">
-              <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t.searchPlc}
-                className="w-full pl-12 pr-4 py-3 rounded-2xl bg-slate-50 border-2 border-slate-200 text-sm sm:text-base font-semibold text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-600 outline-none transition-all"
-              />
-            </div>
-            <select
-              value={selectedDeptFilter}
-              onChange={(e) => setSelectedDeptFilter(e.target.value)}
-              className="bg-slate-50 border-2 border-slate-200 text-slate-800 text-sm sm:text-base font-bold rounded-2xl px-4 py-3 focus:border-blue-600 focus:bg-white outline-none w-full sm:w-auto min-w-[220px] transition-all cursor-pointer"
-            >
-              <option value="ALL">Semua Divisi / Departemen</option>
-              {departments.map((d: any) => (
-                <option key={d.value} value={d.value}>{d.label}</option>
-              ))}
-            </select>
-          </div>
+          {/* REGISTERED EMPLOYEES TABLE */}
+          <div className="rounded-xl bg-white border border-slate-200 shadow-xs overflow-hidden flex flex-col">
+            <div className="overflow-auto max-h-[65vh]">
+              <table className="w-full text-left text-xs sm:text-sm relative border-collapse">
+                <thead className="sticky top-0 z-10 bg-slate-100/90 backdrop-blur-xs shadow-xs border-b border-slate-200">
+                  <tr className="text-slate-600 font-bold text-xs uppercase tracking-wider">
+                    <th className="py-2.5 px-4">{t.colEmp}</th>
+                    <th className="py-2.5 px-4">{t.colDept}</th>
+                    <th className="py-2.5 px-4">{t.colRole}</th>
+                    <th className="py-2.5 px-4 text-right">{t.colAction}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-400">
+                        {t.emptyTable}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map((user) => {
+                      const tierMeta = getTierBadge(user.tier);
+                      const isCurrent = currentUser.id === user.id;
 
-          <div className="w-full md:w-auto shrink-0 flex items-center">
-            <select
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value)}
-              className="bg-slate-50 border-2 border-slate-200 text-slate-800 text-sm sm:text-base font-bold rounded-2xl px-4 py-3 focus:border-blue-600 focus:bg-white outline-none w-full md:w-auto transition-all cursor-pointer"
-            >
-              <option value="name_asc">Urutkan: Nama (A-Z)</option>
-              <option value="name_desc">Urutkan: Nama (Z-A)</option>
-              <option value="date_desc">Urutkan: Bergabung Terbaru</option>
-              <option value="date_asc">Urutkan: Bergabung Terlama</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Row 2: Tier Filters (Large Buttons) */}
-        <div className="flex flex-wrap items-center gap-3 w-full pt-3 border-t-2 border-slate-100">
-          <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500 shrink-0">
-            <Filter className="w-4 h-4" />
-            <span>Filter Tingkat:</span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-1.5 rounded-2xl text-sm font-extrabold">
-            {isLoadingEmployees && <Loader2 className="w-5 h-5 animate-spin text-blue-600 mr-2" />}
-            <button
-              onClick={() => setSelectedTierFilter('ALL')}
-              className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
-                selectedTierFilter === 'ALL'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Semua ({users.length})
-            </button>
-            <button
-              onClick={() => setSelectedTierFilter('1')}
-              className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
-                selectedTierFilter === '1'
-                  ? 'bg-amber-100 text-amber-900 shadow-xs border border-amber-300'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              L1 Direksi ({l1Count})
-            </button>
-            <button
-              onClick={() => setSelectedTierFilter('0')}
-              className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
-                selectedTierFilter === '0'
-                  ? 'bg-purple-100 text-purple-900 shadow-xs border border-purple-300'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              L0 Admin ({l0Count})
-            </button>
-            <button
-              onClick={() => setSelectedTierFilter('2')}
-              className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
-                selectedTierFilter === '2'
-                  ? 'bg-blue-100 text-blue-900 shadow-xs border border-blue-300'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              L2 Manager ({l2Count})
-            </button>
-            <button
-              onClick={() => setSelectedTierFilter('3')}
-              className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
-                selectedTierFilter === '3'
-                  ? 'bg-slate-200 text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              L3 Staff ({l3Count})
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* REGISTERED EMPLOYEES TABLE */}
-      <div className="rounded-3xl bg-white border-2 border-slate-200 shadow-sm overflow-hidden flex flex-col">
-        <div className="overflow-auto max-h-[60vh] 2xl:max-h-[70vh]">
-          <table className="w-full text-left text-sm sm:text-base relative border-collapse">
-            <thead className="sticky top-0 z-10 bg-slate-100 shadow-sm border-b-2 border-slate-200">
-              <tr className="text-slate-700 font-black">
-                <th className="py-4 px-5">{t.colEmp}</th>
-                <th className="py-4 px-5">{t.colDept}</th>
-                <th className="py-4 px-5">{t.colRole}</th>
-                <th className="py-4 px-5">{t.colPerm}</th>
-                <th className="py-4 px-5">{t.colStatus}</th>
-                <th className="py-4 px-5 text-right">{t.colAction}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400">
-                    {t.emptyTable}
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map((user) => {
-                  const tierMeta = getTierBadge(user.tier);
-                  const isCurrent = currentUser.id === user.id;
-
-                  return (
-                    <tr
-                      key={user.id}
-                      className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors ${isCurrent ? 'bg-blue-50/40 dark:bg-blue-950/20' : ''
-                        }`}
-                    >
-                      {/* Name, NIK, Photo */}
-                      <td className="py-4 px-5">
-                        <div 
-                          className="flex items-center gap-3.5 cursor-pointer hover:opacity-80 transition-opacity group"
+                      return (
+                        <tr
+                          key={user.id}
+                          className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${
+                            isCurrent ? 'bg-blue-50/40' : ''
+                          }`}
                           onClick={() => {
                             const fullData = apiUsers.find(u => String(u.id) === String(user.id)) || user;
                             setViewUserDetail(fullData);
                           }}
-                          title="Klik untuk melihat detail lengkap"
+                          title="Klik baris untuk melihat detail lengkap & dokumen karyawan"
                         >
-                          <img
-                            src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
-                            alt={user.name}
-                            className="w-11 h-11 rounded-2xl object-cover ring-2 ring-slate-200 shrink-0"
-                          />
-                          <div>
-                            <div className="font-black text-slate-900 text-base sm:text-lg flex items-center gap-2">
-                              <span>{user.name}</span>
-                              {isCurrent && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 font-black uppercase">
-                                  {t.activeSession}
+                          {/* Name, NIK, Photo */}
+                          <td className="py-2.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
+                                alt={user.name}
+                                className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
+                              />
+                              <div>
+                                <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-2">
+                                  <span>{user.name}</span>
+                                  {isCurrent && (
+                                    <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-blue-100 text-blue-900 font-bold uppercase">
+                                      {t.activeSession}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs font-mono text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                  <span className="font-medium text-slate-600">{user.nik}</span>
+                                  <span>&bull;</span>
+                                  <span>{user.email}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Department & Location */}
+                          <td className="py-2.5 px-4">
+                            <div className="font-semibold text-slate-800 text-xs sm:text-sm">
+                              {findOptionLabel(departments, user.department) || user.department}
+                            </div>
+                            <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span>{user.plantLocation}</span>
+                            </div>
+                          </td>
+
+                          {/* Role & Tier Badge */}
+                          <td className="py-2.5 px-4">
+                            <div className="flex flex-col gap-0.5 items-start">
+                              {user.userLevel ? (
+                                <span
+                                  className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${getBadgeClass(findOptionBadge(userLevels, user.userLevel))}`}
+                                  title={findOptionDescription(userLevels, user.userLevel)}
+                                >
+                                  {findOptionLabel(userLevels, user.userLevel)}
+                                </span>
+                              ) : (
+                                <span
+                                  className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${tierMeta.badgeClass}`}
+                                >
+                                  {tierMeta.pillText} &bull; Level {user.tier}
                                 </span>
                               )}
+                              <span className="text-xs text-slate-500 font-medium">
+                                {ROLE_DEFINITIONS[user.role]?.label || user.role}
+                              </span>
                             </div>
-                            <div className="text-xs sm:text-sm font-mono text-slate-500 flex items-center gap-2 mt-0.5">
-                              <span className="font-bold text-slate-700">{user.nik}</span>
-                              <span>•</span>
-                              <span>{user.email}</span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-2.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* View Detail */}
+                              <button
+                                onClick={() => {
+                                  const fullData = apiUsers.find(u => String(u.id) === String(user.id)) || user;
+                                  setViewUserDetail(fullData);
+                                }}
+                                className="p-1.5 rounded-lg border border-sky-200 text-sky-700 hover:bg-sky-50 transition-colors cursor-pointer"
+                                title="Lihat Detail Lengkap & Dokumen"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+
+                              {/* Toggle Active / Suspended */}
+                              {isAuthorized && (
+                                <button
+                                  onClick={() => handleSuspend(user.id, user.status, user.name)}
+                                  className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${user.status === 'ACTIVE'
+                                      ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
+                                      : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                                    }`}
+                                  title={user.status === 'ACTIVE' ? t.actionSuspend : t.actionActivate}
+                                >
+                                  {user.status === 'ACTIVE' ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                                </button>
+                              )}
+
+                              {/* Edit User */}
+                              {isAuthorized && (
+                                <button 
+                                   onClick={() => handleEdit(user)} 
+                                   className="p-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer" 
+                                   title="Edit Data Pegawai"
+                                >
+                                   <Pencil className="w-4 h-4" />
+                                </button>
+                              )}
+                              
+                              {/* Delete User */}
+                              {isAuthorized && (
+                                <button 
+                                   onClick={() => handleDelete(user.id, user.name)} 
+                                   className="p-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer" 
+                                   title="Hapus Pegawai"
+                                >
+                                   <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+
+                              {/* Reset Password */}
+                              {isAuthorized && (
+                                <button
+                                  onClick={() => {
+                                    const tempPass = prompt(`Masukkan password sementara untuk ${user.name}:`);
+                                    if (tempPass) {
+                                      updateEmployeeApi(user.id, { password: tempPass } as any)
+                                        .then(() => alert(`Password sementara untuk ${user.name} berhasil diatur menjadi: ${tempPass}`))
+                                        .catch((err) => alert(`Gagal mengatur password: ${err.message}`));
+                                    }
+                                  }}
+                                  className="p-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                                  title={t.actionReset}
+                                >
+                                  <Key className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Department & Location */}
-                      <td className="py-4 px-5">
-                        <div className="font-extrabold text-slate-900 text-sm sm:text-base">
-                          {findOptionLabel(departments, user.department) || user.department}
-                        </div>
-                        <div className="text-xs sm:text-sm text-slate-500 flex items-center gap-1.5 mt-0.5">
-                          <Building2 className="w-4 h-4 text-slate-400" />
-                          <span>{user.plantLocation}</span>
-                        </div>
-                      </td>
-
-                      {/* Role & Tier Badge */}
-                      <td className="py-4 px-5">
-                        <div className="flex flex-col gap-1 items-start">
-                          {user.userLevel ? (
-                            <span
-                              className={`text-xs sm:text-sm font-black px-3 py-1 rounded-full border ${getBadgeClass(findOptionBadge(userLevels, user.userLevel))}`}
-                              title={findOptionDescription(userLevels, user.userLevel)}
-                            >
-                              {findOptionLabel(userLevels, user.userLevel)}
-                            </span>
-                          ) : (
-                            <span
-                              className={`text-xs sm:text-sm font-black px-3 py-1 rounded-full border ${tierMeta.badgeClass}`}
-                            >
-                              {tierMeta.pillText} &bull; Level {user.tier}
-                            </span>
-                          )}
-                          <span className="text-xs sm:text-sm font-bold text-slate-700">
-                            {ROLE_DEFINITIONS[user.role]?.label || user.role}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Permissions Claim button */}
-                      <td className="py-4 px-5">
-                        <button
-                          onClick={() => setInspectUser(user)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/70 hover:bg-blue-600 hover:text-white border border-blue-200 text-xs sm:text-sm font-extrabold text-blue-700 transition-all cursor-pointer"
-                        >
-                          <Shield className="w-4 h-4 text-blue-600" />
-                          <span>{user.permissions.includes('*') ? t.allPerms : `${user.permissions.length} ${t.nPerms}`}</span>
-                        </button>
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-4 px-5">
-                        <div className="flex flex-col gap-1 items-start">
-                          <span
-                            className={`inline-flex items-center gap-1.5 text-xs sm:text-sm font-black px-3 py-1 rounded-full ${user.status === 'ACTIVE'
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                : 'bg-rose-100 text-rose-800 border border-rose-300'
-                              }`}
-                          >
-                            <span
-                              className={`w-2 h-2 rounded-full ${user.status === 'ACTIVE' ? 'bg-emerald-600' : 'bg-rose-600'
-                                }`}
-                            />
-                            {user.status === 'ACTIVE' ? t.statusActive : t.statusSuspended}
-                          </span>
-                          {user.employmentStatus && (
-                            <span
-                              className={`text-xs sm:text-xs font-bold px-2 py-0.5 rounded-md border ${getBadgeClass(findOptionBadge(employmentStatuses, user.employmentStatus))}`}
-                              title={findOptionDescription(employmentStatuses, user.employmentStatus)}
-                            >
-                              {findOptionLabel(employmentStatuses, user.employmentStatus)}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-4 px-5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* Toggle Active / Suspended */}
-                          {isAuthorized && (
-                            <button
-                              onClick={() => handleSuspend(user.id, user.status, user.name)}
-                              className={`p-2 rounded-xl border transition-all cursor-pointer ${user.status === 'ACTIVE'
-                                  ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
-                                  : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                                }`}
-                              title={user.status === 'ACTIVE' ? t.actionSuspend : t.actionActivate}
-                            >
-                              {user.status === 'ACTIVE' ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                            </button>
-                          )}
-
-                          {/* Edit User */}
-                          {isAuthorized && (
-                            <button 
-                               onClick={() => handleEdit(user)} 
-                               className="p-2 rounded-xl border border-blue-200 text-blue-700 hover:bg-blue-50 transition-all cursor-pointer" 
-                               title="Edit Data Pegawai"
-                            >
-                               <Pencil className="w-4 h-4" />
-                            </button>
-                          )}
-                          
-                          {/* Delete User */}
-                          {isAuthorized && (
-                            <button 
-                               onClick={() => handleDelete(user.id, user.name)} 
-                               className="p-2 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 transition-all cursor-pointer" 
-                               title="Hapus Pegawai"
-                            >
-                               <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-
-                          {/* Reset Password */}
-                          {isAuthorized && (
-                            <button
-                              onClick={() => {
-                                const tempPass = prompt(`Masukkan password sementara untuk ${user.name}:`);
-                                if (tempPass) {
-                                  updateEmployeeApi(user.id, { password: tempPass } as any)
-                                    .then(() => alert(`Password sementara untuk ${user.name} berhasil diatur menjadi: ${tempPass}`))
-                                    .catch((err) => alert(`Gagal mengatur password: ${err.message}`));
-                                }
-                              }}
-                              className="p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
-                              title={t.actionReset}
-                            >
-                              <Key className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
           </table>
         </div>
-        {/* KONTROL PAGINATION USER MANAGEMENT (Large & Clear) */}
-        <div className="flex flex-wrap justify-between items-center p-5 bg-slate-50 border-t-2 border-slate-200 gap-3">
-          <div className="flex items-center gap-4">
-            <span className="text-sm sm:text-base text-slate-600 font-extrabold">
+        {/* KONTROL PAGINATION USER MANAGEMENT */}
+        <div className="flex flex-wrap justify-between items-center px-4 py-2.5 bg-slate-50 border-t border-slate-200 gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-600 font-semibold">
               Halaman {currentPage} dari {totalPages}
             </span>
             <select
@@ -1255,7 +1135,7 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
                 setPageSize(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl bg-white px-3 py-2 text-slate-800 outline-none focus:border-blue-600 transition-colors cursor-pointer"
+              className="text-xs font-semibold border border-slate-200 rounded-lg bg-white px-2.5 py-1 text-slate-800 outline-none focus:border-blue-600 transition-colors cursor-pointer"
             >
               <option value={10}>10 Baris per Halaman</option>
               <option value={20}>20 Baris per Halaman</option>
@@ -1263,18 +1143,18 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
               <option value={100}>100 Baris per Halaman</option>
             </select>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button 
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              className="px-4 py-2 text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
+              className="px-3 py-1 text-xs font-semibold border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-40 transition-colors cursor-pointer"
             >
               &larr; Sebelumnya
             </button>
             <button 
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage(p => p + 1)}
-              className="px-4 py-2 text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
+              className="px-3 py-1 text-xs font-semibold border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-40 transition-colors cursor-pointer"
             >
               Selanjutnya &rarr;
             </button>

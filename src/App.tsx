@@ -9,7 +9,6 @@ import { ProcurementEximModule } from './features/core3_procurement_exim/Procure
 import { SalesTrackingModule } from './features/core5_sales_tracking/SalesTrackingModule';
 import { MasterDataModule } from './features/core2_master_data/MasterDataModule';
 import { HrdModule } from './features/core1_hrd/HrdModule';
-import { UserManagementModule } from './features/admin_users/UserManagementModule';
 import { DeliveryDivisionModule } from './features/delivery/DeliveryDivisionModule';
 import { WarehousePpicDivisionModule } from './features/warehouse_ppic/WarehousePpicDivisionModule';
 import { RndDivisionModule } from './features/rnd/RndDivisionModule';
@@ -49,7 +48,7 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.remove('dark');
     document.documentElement.classList.add('light');
-    const savedFontMode = localStorage.getItem('st_font_size_mode') || 'large';
+    const savedFontMode = localStorage.getItem('st_font_size_mode') || 'normal';
     document.documentElement.classList.remove('font-normal', 'font-large', 'font-xlarge');
     document.documentElement.classList.add(`font-${savedFontMode}`);
   }, []);
@@ -253,8 +252,7 @@ export default function App() {
                 {(activeModule === 'purchasing' || activeModule === 'procurement') && <ProcurementEximModule />}
                 {activeModule === 'finance' && <FinanceAnalyticsModule />}
                 {activeModule === 'rnd' && <RndDivisionModule />}
-                {activeModule === 'hrd' && <HrdModule />}
-                {activeModule === 'users' && <UserManagementModule />}
+                {(activeModule === 'hrd' || activeModule === 'users') && <HrdModule />}
               </>
             )}
           </div>

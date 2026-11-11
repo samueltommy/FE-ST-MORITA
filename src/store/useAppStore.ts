@@ -893,7 +893,7 @@ export interface AppState {
 let globalState: AppState = {
   isAuthenticated: false, // Auth is now managed by useAuthStore (Zustand). This field kept for legacy compat only.
   themeMode: 'light',
-  fontSizeMode: (typeof window !== 'undefined' && (localStorage.getItem('st_font_size_mode') as any)) || 'large',
+  fontSizeMode: (typeof window !== 'undefined' && (localStorage.getItem('st_font_size_mode') as any)) || 'normal',
   isHighDensity: false,
   activeModule: 'home', // Start on the clean option-based Home Page
   activeSubFeature: {

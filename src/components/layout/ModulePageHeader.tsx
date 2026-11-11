@@ -27,7 +27,7 @@ interface ModulePageHeaderProps {
 export const ModulePageHeader: React.FC<ModulePageHeaderProps> = ({
   moduleCode,
   title,
-  description,
+  description: _description,
   badgeColor = 'bg-blue-50 text-blue-700 border-blue-200',
   actionButtons,
   options,
@@ -37,116 +37,69 @@ export const ModulePageHeader: React.FC<ModulePageHeaderProps> = ({
   menuName,
 }) => {
   return (
-    <div className="w-full space-y-6 pb-2">
-      {/* ─── Top Bar: Navigation Back Buttons ─── */}
+    <div className="w-full pb-3 border-b border-slate-200 mb-4 space-y-2.5">
+      {/* ─── Compact Single Row: Back Button + Module Badge + Title + Action Buttons ─── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {onBackToMenu && (
             <button
               type="button"
               onClick={onBackToMenu}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white text-sm sm:text-base font-black shadow-xs transition-all cursor-pointer group"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
               title={`Kembali ke Pilihan Fitur ${menuName || ''}`}
             >
-              <ArrowLeft className="w-4 h-4 stroke-[2.5] group-hover:-translate-x-0.5 transition-transform" />
-              <span>&larr; Pilihan Fitur {menuName ? `(${menuName})` : ''}</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Kembali</span>
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => appStore.setActiveModule('home')}
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white border-2 border-slate-300 hover:border-blue-600 hover:bg-blue-50/60 text-slate-700 hover:text-blue-700 text-xs sm:text-sm font-bold shadow-2xs transition-all cursor-pointer group"
-            title="Kembali ke Halaman Menu Utama Beranda"
-          >
-            <Home className="w-4 h-4 text-slate-500 group-hover:text-blue-600" />
-            <span>Menu Utama (Beranda)</span>
-          </button>
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${badgeColor}`}>
+            {moduleCode}
+          </span>
+
+          <h1 className="text-sm sm:text-base font-bold text-slate-800 tracking-tight">
+            {title}
+          </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {actionButtons}
         </div>
       </div>
 
-      {/* ─── Title & Description (Large, High Contrast) ─── */}
-      <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-7 shadow-xs space-y-2">
-        <div className="flex items-center gap-2.5">
-          <span className={`text-xs sm:text-sm font-extrabold px-3 py-1 rounded-full border ${badgeColor}`}>
-            {moduleCode}
-          </span>
-          <span className="text-xs sm:text-sm text-slate-500 font-semibold">
-            ST. Morita Industries ERP
-          </span>
-        </div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
-          {title}
-        </h1>
-        <p className="text-sm sm:text-base lg:text-lg text-slate-600 font-medium max-w-4xl leading-relaxed">
-          {description}
-        </p>
-
-        {/* ─── Big Option Buttons ("Button of Option" on every page) ─── */}
-        {options && options.length > 0 && (
-          <div className="pt-4 border-t border-slate-100 mt-4 space-y-2.5">
-            <div className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-500">
-              Pilih Opsi Tampilan & Aktivitas:
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {options.map((opt) => {
-                const Icon = opt.icon;
-                const isActive = activeOption === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => onSelectOption && onSelectOption(opt.id)}
-                    className={`text-left p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-xs ${
-                      isActive
-                        ? 'border-blue-600 bg-blue-50/80 text-blue-900 ring-2 ring-blue-500/20 shadow-md font-bold'
-                        : 'border-slate-200 bg-slate-50/60 hover:bg-white hover:border-slate-300 text-slate-800'
+      {/* ─── Sleek Sub-Feature Tab Strip (No Big Box, No Description, No Extra Scroll) ─── */}
+      {options && options.length > 1 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5">
+          {options.map((opt) => {
+            const Icon = opt.icon;
+            const isActive = activeOption === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onSelectOption && onSelectOption(opt.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shrink-0 border ${
+                  isActive
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
+                <span>{opt.label.replace(/\s*\(\/.*\)/g, '')}</span>
+                {opt.badge && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      isActive ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'
                     }`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      {Icon && (
-                        <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                            isActive
-                              ? 'bg-blue-600 text-white shadow-sm'
-                              : 'bg-white border border-slate-200 text-slate-600'
-                          }`}
-                        >
-                          <Icon className="w-5 h-5" />
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <div className="text-sm sm:text-base font-extrabold truncate leading-tight">
-                          {opt.label}
-                        </div>
-                        {opt.subtitle && (
-                          <div className={`text-xs sm:text-sm font-medium truncate mt-0.5 ${isActive ? 'text-blue-700' : 'text-slate-500'}`}>
-                            {opt.subtitle}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {opt.badge && (
-                      <span
-                        className={`text-xs px-2.5 py-0.5 rounded-full font-extrabold shrink-0 ${
-                          opt.badgeColor || (isActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700')
-                        }`}
-                      >
-                        {opt.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
+                    {opt.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

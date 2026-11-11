@@ -138,19 +138,6 @@ export const Navbar: React.FC = () => {
             </button>
           )}
 
-          {/* Quick link to User Management for Admin */}
-          {isUserAdmin && (
-            <button
-              id="navbar-admin-users-btn"
-              onClick={() => appStore.setActiveModule('users')}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold transition-colors cursor-pointer"
-              title="Kelola Akun Pegawai & RBAC"
-            >
-              <UserPlus className="w-3.5 h-3.5 text-purple-600" />
-              <span>{t.manageAccounts}</span>
-            </button>
-          )}
-
           {/* User Profile & Dropdown */}
           <div className="relative">
             <button
@@ -232,7 +219,7 @@ export const Navbar: React.FC = () => {
                   {isUserAdmin && (
                     <button
                       onClick={() => {
-                        appStore.setActiveModule('users');
+                        appStore.navigateToFeature('hrd', 'employees');
                         setRoleDropdownOpen(false);
                       }}
                       className="w-full py-2 px-2.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
