@@ -200,7 +200,7 @@ export const ProcurementEximModule: React.FC = () => {
   if (!activeSubFeature) {
     return (
       <QuickActionDashboard
-        moduleCode="Core 3"
+        moduleCode="PURCHASING"
         moduleName="PEMBELIAN (SUPPLY CHAIN & EXIM)"
         moduleDescription="Pilih aksi di bawah untuk langsung menuju halaman yang Anda butuhkan."
         onBackToHome={() => appStore.setActiveModule('home')}
@@ -273,7 +273,7 @@ export const ProcurementEximModule: React.FC = () => {
     <div className="space-y-6">
       {/* ─── Module Page Header with Senior-Friendly Options ─── */}
       <ModulePageHeader
-        moduleCode="Core 3"
+        moduleCode="PURCHASING"
         title={t.title}
         description={t.desc}
         badgeColor="bg-indigo-50 text-indigo-800 border-indigo-300"

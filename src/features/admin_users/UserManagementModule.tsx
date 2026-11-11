@@ -52,6 +52,9 @@ import {
   matrixToPermissions,
   permissionsToMatrix,
 } from '../../utils/rbacMatrix';
+import { useRBAC } from '../../hooks/useRBAC';
+import { EmployeeFormModal, getDerivedRole as getDerivedRole8 } from './EmployeeFormModal';
+import { EmployeeDetailModal } from './EmployeeDetailModal';
 
 const CONTENT = {
   id: {
@@ -308,40 +311,10 @@ const ROLE_TO_USER_LEVEL: Record<UserRole, CreateEmployeePayload['user_level']> 
   PPIC_PLANNER: 'L3_STAFF',
 };
 
-const getDerivedRole = (level: string, department: string): UserRole => {
-  if (level === 'L0_SUPER_ADMIN') return 'SUPER_ADMIN';
-  if (level === 'L1_DIREKSI') return 'DIREKSI';
+// Peran fungsional diturunkan dari user_level + 8 kode divisi
+const getDerivedRole = (level: string, department: string): UserRole => getDerivedRole8(level, department);
 
-  if (level === 'L2_MANAGER') {
-    switch (department) {
-      case 'FINANCE': return 'FINANCE_MANAGER';
-      case 'HRD': return 'HRD_MANAGER';
-      case 'PPIC': return 'PPIC_MANAGER';
-      case 'QC': return 'QC_MANAGER';
-      case 'SALES': return 'SALES_MANAGER';
-      case 'WAREHOUSE': return 'WAREHOUSE_MANAGER';
-      case 'EXTERNAL_PORTAL': return 'PURCHASING_MANAGER';
-      case 'RND': return 'QC_MANAGER';
-      default: return 'HRD_MANAGER';
-    }
-  }
-
-  if (level === 'L4_EXTERNAL') return 'PURCHASING';
-
-  switch (department) {
-    case 'FINANCE': return 'FINANCE_ACCT';
-    case 'HRD': return 'HRD_STAFF';
-    case 'PPIC': return 'OPERATOR_PROD';
-    case 'QC': return 'QC_INSPECTOR';
-    case 'SALES': return 'SALES_EXEC';
-    case 'WAREHOUSE': return 'WAREHOUSE';
-    case 'EXTERNAL_PORTAL': return 'PURCHASING';
-    case 'RND': return 'QC_INSPECTOR';
-    default: return 'OPERATOR_PROD';
-  }
-};
-
-export const UserManagementModule: React.FC = () => {
+export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false }) => {
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
 
@@ -493,10 +466,12 @@ export const UserManagementModule: React.FC = () => {
 
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<any>(null);
 
   const handleEdit = (userProfile: any) => {
     // Find original backend employee data to populate form completely
     const origUser = apiUsers.find(u => String(u.id) === String(userProfile.id)) || {};
+    setEditingEmployee(origUser);
     
     setEditingUserId(userProfile.id);
     setFNik(origUser.nik || userProfile.nik || '');
@@ -546,7 +521,9 @@ export const UserManagementModule: React.FC = () => {
   const [viewUserDetail, setViewUserDetail] = useState<any>(null);
 
   const authToken = useAuthStore((state) => state.token);
-  const isAuthorized = canManageUsers(currentUser);
+  const { canViewSensitiveHrdData, canAccessAdminUsers } = useRBAC();
+  const canViewSensitive = canViewSensitiveHrdData();
+  const isAuthorized = canManageUsers(currentUser) || canAccessAdminUsers();
 
   // Auto-fill email & username when full_name changes
   const handleNameChange = (val: string) => {
@@ -712,7 +689,7 @@ export const UserManagementModule: React.FC = () => {
   const activeSubFeature = useAppStore((state) => state.activeSubFeature?.users);
 
   // When no feature is selected yet, render simple selection menu hub (matches client reference screenshot 1)
-  if (!activeSubFeature) {
+  if (!activeSubFeature && !hideHeader) {
     const hubItems: ModuleFeatureHubItem[] = [
       {
         id: 'list',
@@ -756,40 +733,42 @@ export const UserManagementModule: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Senior-Friendly Header with Option Buttons */}
-      <ModulePageHeader
-        moduleCode="Admin & RBAC"
-        title={t.title}
-        description={t.desc}
-        badgeColor="bg-blue-50 text-blue-800 border-blue-200"
-        options={options}
-        activeOption={currentTab}
-        onSelectOption={(opt) => {
-          if (opt === 'create') {
-            setIsFormOpen(true);
-            appStore.setActiveSubFeature('users', 'new_user');
-          } else {
-            appStore.setActiveSubFeature('users', 'list');
+      {!hideHeader && (
+        <ModulePageHeader
+          moduleCode="Admin & RBAC"
+          title={t.title}
+          description={t.desc}
+          badgeColor="bg-blue-50 text-blue-800 border-blue-200"
+          options={options}
+          activeOption={currentTab}
+          onSelectOption={(opt) => {
+            if (opt === 'create') {
+              setIsFormOpen(true);
+              appStore.setActiveSubFeature('users', 'new_user');
+            } else {
+              appStore.setActiveSubFeature('users', 'list');
+            }
+          }}
+          onBackToMenu={() => appStore.setActiveSubFeature('users', null)}
+          menuName="Pengguna"
+          actionButtons={
+            isAuthorized && (
+              <button
+                id="open-create-user-btn"
+                onClick={() => {
+                  const nextState = !isFormOpen;
+                  setIsFormOpen(nextState);
+                  if (nextState) setActiveOption('create');
+                }}
+                className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-base font-extrabold shadow-sm flex items-center gap-2.5 transition-all cursor-pointer"
+              >
+                {isFormOpen ? <X className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
+                <span>{isFormOpen ? t.btnFormClose : t.btnFormOpen}</span>
+              </button>
+            )
           }
-        }}
-        onBackToMenu={() => appStore.setActiveSubFeature('users', null)}
-        menuName="Pengguna"
-        actionButtons={
-          isAuthorized && (
-            <button
-              id="open-create-user-btn"
-              onClick={() => {
-                const nextState = !isFormOpen;
-                setIsFormOpen(nextState);
-                if (nextState) setActiveOption('create');
-              }}
-              className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-base font-extrabold shadow-sm flex items-center gap-2.5 transition-all cursor-pointer"
-            >
-              {isFormOpen ? <X className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
-              <span>{isFormOpen ? t.btnFormClose : t.btnFormOpen}</span>
-            </button>
-          )
-        }
-      />
+        />
+      )}
 
       {/* Success Notification Alert */}
       {formSuccessMessage && (
@@ -903,265 +882,60 @@ export const UserManagementModule: React.FC = () => {
         </div>
       )}
 
-      {/* FORM: Buat Akun Pegawai Baru — Sinkron dengan BE EmployeeCreate schema */}
+      {/* MODAL: Tambah Karyawan Baru (17 field + upload dokumen Cara A) */}
       {(isFormOpen || activeOption === 'create') && isAuthorized && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-blue-300 shadow-md animate-in fade-in duration-150">
-          <div className="flex items-center justify-between pb-4 border-b-2 border-slate-100">
-            <div>
-              <h2 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2.5">
-                <UserPlus className="w-6 h-6 text-blue-600" />
-                <span>{t.formTitle}</span>
-              </h2>
-              <p className="text-sm text-slate-600 font-medium mt-0.5">
-                {t.formDesc}
-              </p>
-            </div>
-            <button onClick={() => { setIsFormOpen(false); setEditingUserId(null); resetForm(); setActiveOption('list'); }} className="text-sm font-black text-slate-400 hover:text-slate-700 cursor-pointer">
-              {t.formCancel}
-            </button>
-          </div>
-
-          {/* Error alert */}
-          {formError && (
-            <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
-              <div><span className="font-bold">{t.formErr} </span>{formError}</div>
-            </div>
-          )}
-
-          <form onSubmit={handleCreateAccount} className="space-y-5 pt-4">
-
-            {/* ── Row 1: Identitas Dasar ── */}
-            <div>
-              <p className="text-xs md:text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row1Title}</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fNik} <span className="font-normal text-slate-400">{t.fNikFmt}</span></label>
-                  <input type="text" value={fNik} onChange={e => setFNik(e.target.value)} required
-                    pattern="^EMP-\d{4}-\d{3,4}$" title="Format: EMP-2026-001"
-                    placeholder="EMP-2026-001"
-                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fName}</label>
-                  <input type="text" value={fFullName} onChange={e => handleNameChange(e.target.value)} required minLength={2} maxLength={200}
-                    placeholder="Contoh: Rian Pratama, S.T."
-                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fEmail}</label>
-                  <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)} required
-                    placeholder="nama@stmorita.co.id"
-                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fKtp}</label>
-                  <input type="text" value={fKtp} onChange={e => setFKtp(e.target.value.replace(/\D/g, '').slice(0, 16))} required
-                    minLength={16} maxLength={16} inputMode="numeric"
-                    placeholder="16 digit Nomor KTP"
-                    className={`w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none ${fKtp.length > 0 && fKtp.length !== 16 ? 'border-rose-400' : 'border-slate-300'}`} />
-                  {fKtp.length > 0 && fKtp.length !== 16 && <p className="text-xs md:text-xs text-rose-500 mt-0.5">{fKtp.length}/16 digit</p>}
-                </div>
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fPhone}</label>
-                  <input type="text" value={fPhone} onChange={e => setFPhone(e.target.value)} required maxLength={20}
-                    placeholder="+62 8xx-xxxx-xxxx"
-                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fDate}</label>
-                  <input type="date" value={fJoinDate} onChange={e => setFJoinDate(e.target.value)} required
-                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Row 2: Status & Penempatan ── */}
-            <div>
-              <p className="text-xs md:text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">{t.row2Title}</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fStatus}</label>
-                  <select
-                    value={fEmploymentStatus}
-                    onChange={e => setFEmploymentStatus(e.target.value as any)}
-                    required
-                    disabled={loadingStatuses}
-                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold"
-                  >
-                    {employmentStatuses.map((st) => (
-                      <option key={st.value} value={st.value} title={st.description}>
-                        {st.label}
-                      </option>
-                    ))}
-                  </select>
-                  {findOptionDescription(employmentStatuses, fEmploymentStatus) && (
-                    <p className="mt-1 text-xs md:text-xs text-slate-500 italic">
-                      {findOptionDescription(employmentStatuses, fEmploymentStatus)}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fDept}</label>
-                  <select
-                    value={fDepartment}
-                    onChange={e => {
-                      const newDept = e.target.value;
-                      setFDepartment(newDept);
-                      setAccessMatrix(getDefaultAccessMatrix(fUserLevel, newDept));
-                    }}
-                    disabled={loadingDepts}
-                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  >
-                    <option value="" disabled>
-                      {loadingDepts ? 'Memuat data...' : '-- Pilih Department --'}
-                    </option>
-                    {departments.map((dept) => (
-                      <option key={dept.value} value={dept.value} title={dept.description}>
-                        {dept.label}
-                      </option>
-                    ))}
-                  </select>
-                  {findOptionDescription(departments, fDepartment) && (
-                    <p className="mt-1 text-xs md:text-xs text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
-                      {findOptionDescription(departments, fDepartment)}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fSalary}</label>
-                  <input type="number" value={fSalary} onChange={e => setFSalary(e.target.value === '' ? '' : Number(e.target.value))} required
-                    min={1} step={500000} placeholder="Contoh: 5000000"
-                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Row 3: Akun Login & RBAC ── */}
-            <div className="p-4 md:p-6 rounded-xl bg-slate-50 border border-slate-200 space-y-4 md:space-y-5">
-              <p className="text-xs md:text-xs font-bold text-blue-600 uppercase tracking-widest">{t.row3Title}</p>
-              
-              {!editingUserId && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                  <div>
-                    <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fUsername}</label>
-                    <input type="text" value={fUsername} onChange={e => setFUsername(e.target.value)} required={!editingUserId} minLength={3} maxLength={100}
-                      placeholder="Contoh: rian_pratama"
-                      className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-white border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fPass} <span className="font-normal text-slate-400">{t.fPassMin}</span></label>
-                    <input type="text" value={fPassword} onChange={e => setFPassword(e.target.value)} required={!editingUserId} minLength={8}
-                      placeholder="Password awal — pegawai akan diminta ganti saat login pertama"
-                      className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-white border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 gap-4 md:gap-5">
-                {/* user_level */}
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fLvl}</label>
-                  <select
-                    value={fUserLevel}
-                    onChange={e => {
-                      const newLvl = e.target.value as any;
-                      setFUserLevel(newLvl);
-                      setAccessMatrix(getDefaultAccessMatrix(newLvl, fDepartment));
-                    }}
-                    required
-                    disabled={loadingLevels}
-                    className="w-full px-3 py-2.5 md:px-4 md:py-3 rounded-xl bg-white border border-slate-300 text-xs md:text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  >
-                    {userLevels.map((lvl) => (
-                      <option key={lvl.value} value={lvl.value} title={lvl.description}>
-                        {lvl.label}
-                      </option>
-                    ))}
-                  </select>
-                  {findOptionDescription(userLevels, fUserLevel) && (
-                    <p className="mt-1.5 text-xs md:text-xs text-slate-600 bg-blue-50/70 p-2 md:p-3 rounded-lg border border-blue-100 flex items-start gap-1.5">
-                      <Shield className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600 shrink-0 mt-0.5" />
-                      <span>{findOptionDescription(userLevels, fUserLevel)}</span>
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Granular RBAC Matrix Custom Access */}
-              <div className="pt-2">
-                <CustomAccessMatrix
-                  value={accessMatrix}
-                  onChange={setAccessMatrix}
-                  userLevel={fUserLevel}
-                  department={fDepartment}
-                />
-              </div>
-            </div>
-
-            {/* ── Row 4: Informasi Bank (Opsional) ── */}
-            <div>
-              <p className="text-xs md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t.row4Title} <span className="font-normal normal-case">{t.row4Opt}</span></p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fBank}</label>
-                  <input type="text" value={fBankName} onChange={e => setFBankName(e.target.value)} maxLength={50}
-                    placeholder="Contoh: BCA, BNI, Mandiri, BRI"
-                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-slate-700 mb-1 md:mb-1.5">{t.fAcc}</label>
-                  <input type="text" value={fBankAccount} onChange={e => setFBankAccount(e.target.value)} maxLength={30}
-                    placeholder="Nomor rekening"
-                    className="w-full px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs md:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                </div>
-              </div>
-            </div>
-
-            {/* Submit */}
-            <div className="pt-3 md:pt-4 flex items-center justify-between border-t border-slate-200">
-              <p className="text-xs md:text-xs text-slate-400">{t.fReq}</p>
-              <div className="flex items-center gap-3 md:gap-4">
-                <button type="button" onClick={() => { setIsFormOpen(false); setEditingUserId(null); resetForm(); }}
-                  className="px-4 py-2 md:px-5 md:py-2.5 rounded-xl border border-slate-300 text-xs md:text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors">
-                  {t.formCancel}
-                </button>
-                <button id="submit-create-employee-btn" type="submit" disabled={isSubmitting}
-                  className="flex items-center gap-2 px-5 py-2 md:px-6 md:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs md:text-sm font-bold shadow-md shadow-blue-600/20 transition-all">
-                  {isSubmitting ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <UserCheck className="w-4 h-4 md:w-5 md:h-5" />}
-                  <span>{isSubmitting ? t.btnSubmitting : t.btnSubmit}</span>
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
+        <EmployeeFormModal
+          mode="create"
+          canViewSensitive={canViewSensitive}
+          onClose={() => { setIsFormOpen(false); setActiveOption('list'); }}
+          onSaved={(msg) => {
+            setIsFormOpen(false); setActiveOption('list');
+            setFormSuccessMessage(msg); refetch();
+            setTimeout(() => setFormSuccessMessage(''), 8000);
+          }}
+        />
       )}
 
       {/* ─── OPTION 1 / LIST: DAFTAR AKUN PEGAWAI ─── */}
       {(activeOption === 'list' || activeOption === 'all') && (
         <div className="space-y-4">
-          {/* Filter Status Tabs (Large & Clear) */}
-          <div className="flex flex-wrap gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
-            <button
-              onClick={() => setStatusFilter('ACTIVE')}
-              className={`px-5 py-2.5 text-sm sm:text-base font-extrabold rounded-xl transition-all cursor-pointer ${
-                statusFilter === 'ACTIVE'
-                  ? 'bg-white shadow-xs text-blue-700'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Karyawan Aktif ({activeCount})
-            </button>
-            <button
-              onClick={() => setStatusFilter('INACTIVE')}
-              className={`px-5 py-2.5 text-sm sm:text-base font-extrabold rounded-xl transition-all cursor-pointer ${
-                statusFilter === 'INACTIVE'
-                  ? 'bg-white shadow-xs text-rose-700'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Non-Aktif / Resigned ({resignedCount})
-            </button>
+          {/* Filter Status Tabs (Large & Clear) & Create Button */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
+              <button
+                onClick={() => setStatusFilter('ACTIVE')}
+                className={`px-5 py-2.5 text-sm sm:text-base font-extrabold rounded-xl transition-all cursor-pointer ${
+                  statusFilter === 'ACTIVE'
+                    ? 'bg-white shadow-xs text-blue-700'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Karyawan Aktif ({activeCount})
+              </button>
+              <button
+                onClick={() => setStatusFilter('INACTIVE')}
+                className={`px-5 py-2.5 text-sm sm:text-base font-extrabold rounded-xl transition-all cursor-pointer ${
+                  statusFilter === 'INACTIVE'
+                    ? 'bg-white shadow-xs text-rose-700'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Non-Aktif / Resigned ({resignedCount})
+              </button>
+            </div>
+
+            {isAuthorized && (
+              <button
+                onClick={() => {
+                  setEditingUserId(null);
+                  setIsFormOpen(true);
+                }}
+                className="px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-sm sm:text-base flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+              >
+                <UserPlus className="w-5 h-5" />
+                <span>Tambah Karyawan Baru</span>
+              </button>
+            )}
           </div>
 
       {/* SEARCH & FILTERS BAR (Enlarged) */}
@@ -1510,340 +1284,31 @@ export const UserManagementModule: React.FC = () => {
     </div>
   )}
 
-      {/* MODAL: View Employee Detail */}
+      {/* MODAL: Detail Karyawan (17 field + dokumen + upload Cara B) */}
       {viewUserDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-3xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
-            {/* Fixed Header */}
-            <div className="px-6 py-4.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
-              <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Users className="w-5 h-5" />
-                </div>
-                <span>Detail Lengkap Karyawan</span>
-              </h2>
-              <button
-                onClick={() => setViewUserDetail(null)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                title="Tutup Modal"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Scrollable Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Identitas & Pekerjaan</h3>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="text-slate-500 dark:text-slate-400">Nama Lengkap</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.full_name || viewUserDetail.fullName || viewUserDetail.name || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">NIK</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.nik || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Email</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.email || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">No HP</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.phone_number || viewUserDetail.phoneNumber || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Departemen</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.department || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Status Pegawai</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.employment_status || viewUserDetail.employmentStatus || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Level Akses</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.user_level || viewUserDetail.userLevel || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Tgl Bergabung</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.join_date || viewUserDetail.joinDate || '-'}</div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Dokumen Resmi & Finansial</h3>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="text-slate-500 dark:text-slate-400">No. KTP</div>
-                      <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.identity_card_number || viewUserDetail.identityCardNumber || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">No. NPWP</div>
-                      <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.npwp_number || viewUserDetail.npwpNumber || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">BPJS Kesehatan</div>
-                      <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.bpjs_kesehatan || viewUserDetail.bpjsKesehatan || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">BPJS Ketenagakerjaan</div>
-                      <div className="font-mono text-slate-800 dark:text-slate-200">{viewUserDetail.bpjs_ketenagakerjaan || viewUserDetail.bpjsKetenagakerjaan || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Gaji Pokok</div>
-                      <div className="font-bold text-emerald-600 dark:text-emerald-400">Rp {(viewUserDetail.basic_salary || viewUserDetail.basicSalary)?.toLocaleString() || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Bank & Rekening</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">
-                        {viewUserDetail.bank_name || viewUserDetail.bankName || '-'} - {viewUserDetail.bank_account_number || viewUserDetail.bankAccountNumber || '-'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Data Pribadi</h3>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="text-slate-500 dark:text-slate-400">Tempat Lahir</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.place_of_birth || viewUserDetail.placeOfBirth || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Tanggal Lahir</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.date_of_birth || viewUserDetail.dateOfBirth || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Agama</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.religion || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Status Pernikahan</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.marital_status || viewUserDetail.maritalStatus || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Alamat</div>
-                      <div className="col-span-2 font-medium text-slate-800 dark:text-slate-200 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">{viewUserDetail.address || '-'}</div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">Keluarga & Darurat</h3>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="text-slate-500 dark:text-slate-400">Kontak Darurat (No)</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_phone || viewUserDetail.emergencyContactPhone || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Relasi Darurat</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.emergency_contact_relationship || viewUserDetail.emergencyContactRelationship || '-'}</div>
-                      <div className="text-slate-500 dark:text-slate-400">Nama Pasangan</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.spouse_name || viewUserDetail.spouseName || '-'}</div>
-                    </div>
-                    
-                    <div className="mt-3">
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Data Anak:</div>
-                      {(viewUserDetail.children && viewUserDetail.children.length > 0) ? (
-                        <div className="space-y-1">
-                          {viewUserDetail.children.map((child: any, idx: number) => (
-                            <div key={idx} className="flex justify-between p-1.5 bg-slate-50 dark:bg-slate-800 rounded text-xs">
-                              <span className="font-medium text-slate-800 dark:text-slate-200">{child.name}</span>
-                              <span className="text-slate-500 dark:text-slate-400">{child.age} tahun</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-slate-500 dark:text-slate-400 italic">Tidak ada data anak.</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">Kuota & Sisa Cuti</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                  <div className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <div className="text-slate-500 dark:text-slate-400 mb-1">Hak Cuti Tahunan</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.hak_cuti_tahunan ?? '-'} hari</div>
-                  </div>
-                  <div className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <div className="text-slate-500 dark:text-slate-400 mb-1">Cuti Terpakai</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.cuti_terpakai ?? '-'} hari</div>
-                  </div>
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-xl border border-blue-100 dark:border-blue-800">
-                    <div className="text-blue-600 dark:text-blue-400 mb-1">Sisa Cuti Aktif</div>
-                    <div className="font-bold text-blue-700 dark:text-blue-300 text-sm">{viewUserDetail.sisa_cuti_aktif ?? '-'} hari</div>
-                  </div>
-                  <div className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <div className="text-slate-500 dark:text-slate-400 mb-1">Periode Berlaku</div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.periode_berlaku_cuti || '-'}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Fixed Footer */}
-            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 shrink-0 flex items-center justify-end">
-              <button
-                onClick={() => setViewUserDetail(null)}
-                className="px-5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-white transition-colors cursor-pointer"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
+        <EmployeeDetailModal
+          employee={viewUserDetail}
+          canViewSensitive={canViewSensitive}
+          canManage={isAuthorized}
+          onClose={() => setViewUserDetail(null)}
+          onUpdated={() => refetch()}
+        />
       )}
 
-      {/* MODAL: Edit User */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150">
-            {/* Fixed Header */}
-            <div className="px-6 py-4.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                  <Pencil className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight">
-                    Edit Data Pegawai & Hak Akses
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Perbarui informasi penempatan dan sesuaikan hak akses modul karyawan bersangkutan.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setIsEditModalOpen(false);
-                  setEditingUserId(null);
-                  resetForm();
-                }}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                title="Tutup Modal"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            {/* Scrollable Form Body */}
-            <form onSubmit={handleCreateAccount} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {/* ── TERKUNCI (READ-ONLY) ── */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">NIK (Nomor Induk Karyawan)</label>
-                    <input type="text" value={fNik} disabled
-                      className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-xs font-mono cursor-not-allowed" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Nomor KTP</label>
-                    <input type="text" value={fKtp} disabled
-                      className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-xs font-mono cursor-not-allowed" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Email Internal</label>
-                    <input type="email" value={fEmail} disabled
-                      className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-xs font-mono cursor-not-allowed" />
-                  </div>
-
-                  {/* ── BISA DIUBAH (EDITABLE) ── */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
-                    <input type="text" value={fFullName} onChange={e => setFFullName(e.target.value)} required 
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Departemen</label>
-                    <select
-                      value={fDepartment}
-                      onChange={e => {
-                        const newDept = e.target.value;
-                        setFDepartment(newDept);
-                        setEditAccessMatrix(getDefaultAccessMatrix(fUserLevel, newDept));
-                      }}
-                      disabled={loadingDepts}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="" disabled>
-                        {loadingDepts ? 'Memuat data...' : '-- Pilih Department --'}
-                      </option>
-                      {departments.map((dept) => (
-                        <option key={dept.value} value={dept.value} title={dept.description}>
-                          {dept.label}
-                        </option>
-                      ))}
-                    </select>
-                    {findOptionDescription(departments, fDepartment) && (
-                      <p className="mt-1 text-xs text-slate-500 italic truncate" title={findOptionDescription(departments, fDepartment)}>
-                        {findOptionDescription(departments, fDepartment)}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tingkat Akses (Role)</label>
-                    <select
-                      value={fUserLevel}
-                      onChange={e => {
-                        const newLvl = e.target.value as any;
-                        setFUserLevel(newLvl);
-                        setEditAccessMatrix(getDefaultAccessMatrix(newLvl, fDepartment));
-                      }}
-                      disabled={loadingLevels}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs focus:ring-2 focus:ring-blue-500"
-                    >
-                      {userLevels.map((lvl) => (
-                        <option key={lvl.value} value={lvl.value} title={lvl.description}>
-                          {lvl.label}
-                        </option>
-                      ))}
-                    </select>
-                    {findOptionDescription(userLevels, fUserLevel) && (
-                      <p className="mt-1 text-xs text-slate-500 italic truncate">
-                        {findOptionDescription(userLevels, fUserLevel)}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status Kepegawaian</label>
-                    <select value={fEmploymentStatus} onChange={e => setFEmploymentStatus(e.target.value as any)} disabled={loadingStatuses}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs focus:ring-2 focus:ring-blue-500 font-bold">
-                      {employmentStatuses.map((st) => (
-                        <option key={st.value} value={st.value} title={st.description}>
-                          {st.label}
-                        </option>
-                      ))}
-                    </select>
-                    {findOptionDescription(employmentStatuses, fEmploymentStatus) && (
-                      <p className="mt-1 text-xs text-slate-500 italic truncate">
-                        {findOptionDescription(employmentStatuses, fEmploymentStatus)}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Gaji Pokok</label>
-                    <input type="number" value={fSalary} onChange={e => setFSalary(Number(e.target.value))} required 
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs focus:ring-2 focus:ring-blue-500 font-mono" />
-                  </div>
-                </div>
-
-                {/* Granular RBAC Matrix Custom Access di Edit Modal */}
-                <div className="pt-2">
-                  <CustomAccessMatrix
-                    value={editAccessMatrix}
-                    onChange={setEditAccessMatrix}
-                    userLevel={fUserLevel}
-                    department={fDepartment}
-                  />
-                </div>
-                
-                {formError && (
-                  <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl flex items-start gap-2 border border-rose-200">
-                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <p>{formError}</p>
-                  </div>
-                )}
-                {formSuccessMessage && (
-                  <div className="p-3 bg-emerald-50 text-emerald-700 text-xs rounded-xl flex items-start gap-2 border border-emerald-200">
-                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                    <p>{formSuccessMessage}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Fixed Footer Toolbar */}
-              <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 shrink-0 flex items-center justify-between gap-3">
-                <p className="text-xs text-slate-400 hidden sm:block">
-                  Perubahan hak akses berlaku segera setelah disimpan.
-                </p>
-                <div className="flex items-center gap-2.5 ml-auto">
-                  <button
-                    type="button"
-                    onClick={() => { setIsEditModalOpen(false); setEditingUserId(null); resetForm(); }}
-                    className="px-4 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-extrabold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-2 cursor-pointer"
-                  >
-                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                    <span>Simpan Perubahan</span>
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* MODAL: Edit Karyawan */}
+      {isEditModalOpen && editingUserId && (
+        <EmployeeFormModal
+          mode="edit"
+          employeeId={editingUserId}
+          employee={editingEmployee}
+          canViewSensitive={canViewSensitive}
+          onClose={() => { setIsEditModalOpen(false); setEditingUserId(null); setEditingEmployee(null); }}
+          onSaved={(msg) => {
+            setIsEditModalOpen(false); setEditingUserId(null); setEditingEmployee(null);
+            setFormSuccessMessage(msg); refetch();
+            setTimeout(() => setFormSuccessMessage(''), 8000);
+          }}
+        />
       )}
 
       {/* MODAL: Inspect Permissions Claims */}

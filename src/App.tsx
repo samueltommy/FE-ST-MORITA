@@ -10,6 +10,9 @@ import { SalesTrackingModule } from './features/core5_sales_tracking/SalesTracki
 import { MasterDataModule } from './features/core2_master_data/MasterDataModule';
 import { HrdModule } from './features/core1_hrd/HrdModule';
 import { UserManagementModule } from './features/admin_users/UserManagementModule';
+import { DeliveryDivisionModule } from './features/delivery/DeliveryDivisionModule';
+import { WarehousePpicDivisionModule } from './features/warehouse_ppic/WarehousePpicDivisionModule';
+import { RndDivisionModule } from './features/rnd/RndDivisionModule';
 import { MainHomeLauncher } from './features/home/MainHomeLauncher';
 import { LoginPage } from './features/auth/LoginPage';
 import { ActivationPage } from './features/auth/ActivationPage';
@@ -115,20 +118,24 @@ export default function App() {
         appStore.toggleSidebar();
       }
 
-      // Alt + 0 through 7 for Fast Module Jump (Alt+0 = Beranda / Home)
-      if (e.altKey && ['0', '1', '2', '3', '4', '5', '6', '7'].includes(e.key)) {
+      // Alt + 0 through 9 for Fast Module Jump (Alt+0 = Beranda / Home)
+      if (e.altKey && ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(e.key)) {
         e.preventDefault();
         const moduleMap: Record<string, any> = {
           '0': 'home',
-          '1': 'hrd',
-          '2': 'master_data',
-          '3': 'procurement',
-          '4': 'qc',
-          '5': 'sales',
+          '1': 'sales',
+          '2': 'delivery',
+          '3': 'warehouse_ppic',
+          '4': 'produksi_qc',
+          '5': 'purchasing',
           '6': 'finance',
-          '7': 'users',
+          '7': 'rnd',
+          '8': 'hrd',
+          '9': 'users',
         };
-        appStore.setActiveModule(moduleMap[e.key]);
+        if (moduleMap[e.key]) {
+          appStore.setActiveModule(moduleMap[e.key]);
+        }
       }
 
       // Alt + H: Beranda
@@ -147,7 +154,7 @@ export default function App() {
   // Auto-redirect to first available module if current one is not allowed
   useEffect(() => {
     if (isAuthenticated && !canAccessModule(activeModule)) {
-      const allModules = ['home', 'finance', 'qc', 'procurement', 'sales', 'master_data', 'hrd', 'users'];
+      const allModules = ['home', 'sales', 'delivery', 'warehouse_ppic', 'produksi_qc', 'purchasing', 'finance', 'rnd', 'hrd', 'users'];
       const firstAllowed = allModules.find(m => canAccessModule(m));
       if (firstAllowed) {
         appStore.setActiveModule(firstAllowed as any);
@@ -239,11 +246,13 @@ export default function App() {
             ) : (
               <>
                 {activeModule === 'home' && <MainHomeLauncher />}
-                {activeModule === 'finance' && <FinanceAnalyticsModule />}
-                {activeModule === 'qc' && <ProductionQcModule />}
-                {activeModule === 'procurement' && <ProcurementEximModule />}
                 {activeModule === 'sales' && <SalesTrackingModule />}
-                {activeModule === 'master_data' && <MasterDataModule />}
+                {activeModule === 'delivery' && <DeliveryDivisionModule />}
+                {(activeModule === 'warehouse_ppic' || activeModule === 'master_data') && <WarehousePpicDivisionModule />}
+                {(activeModule === 'produksi_qc' || activeModule === 'qc') && <ProductionQcModule />}
+                {(activeModule === 'purchasing' || activeModule === 'procurement') && <ProcurementEximModule />}
+                {activeModule === 'finance' && <FinanceAnalyticsModule />}
+                {activeModule === 'rnd' && <RndDivisionModule />}
                 {activeModule === 'hrd' && <HrdModule />}
                 {activeModule === 'users' && <UserManagementModule />}
               </>

@@ -294,7 +294,7 @@ export const ProductionQcModule: React.FC = () => {
 
     return (
       <ModuleFeatureHub
-        moduleCode="Core 4"
+        moduleCode="PRODUKSI_QC"
         moduleName="PRODUKSI & QUALITY CONTROL (QC)"
         moduleDescription="Inspeksi lot bahan baku & hasil slitting roll pita perekat, pencekalan transfer QC Hold, dan penerbitan sertifikat analisis (COA)."
         headerBgColor="bg-rose-600"
@@ -310,7 +310,7 @@ export const ProductionQcModule: React.FC = () => {
     <div className="space-y-6">
       {/* ─── Module Page Header with Senior-Friendly Options ─── */}
       <ModulePageHeader
-        moduleCode="Core 4"
+        moduleCode="PRODUKSI_QC"
         title={t.title}
         description={t.desc}
         badgeColor="bg-rose-50 text-rose-800 border-rose-300"

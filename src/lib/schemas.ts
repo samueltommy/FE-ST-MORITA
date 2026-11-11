@@ -7,6 +7,7 @@ export const LoginResponseSchema = z.object({
   accessToken: z.string(),
   tokenType: z.string().optional(),
   message: z.string().optional(),
+  user: z.record(z.string(), z.unknown()).optional(),
 });
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 
@@ -28,6 +29,8 @@ export const UserMeSchema = z.object({
   userLevel: z.string().optional().nullable(),
   roleId: z.string().optional().nullable(),
   permissions: z.array(z.string()).optional().default([]),
+  allowedDivisions: z.array(z.string()).optional().default([]),
+  allowed_divisions: z.array(z.string()).optional(),
   nik: z.string().optional().nullable(),
   phoneNumber: z.string().optional().nullable(),
   employmentStatus: z.string().optional().nullable(),
@@ -52,6 +55,15 @@ export const ChildInfoSchema = z.object({
 });
 export type ChildInfo = z.infer<typeof ChildInfoSchema>;
 
+export const TrainingInfoSchema = z.object({
+  name: z.string(),
+  organizer: z.string(),
+  year: z.number(),
+  certificateUrl: z.string().optional().nullable(),
+  certificate_url: z.string().optional().nullable(),
+});
+export type TrainingInfo = z.infer<typeof TrainingInfoSchema>;
+
 /** Single employee record from GET /hrd/employees */
 export const EmployeeSchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
@@ -66,6 +78,8 @@ export const EmployeeSchema = z.object({
   roleId: z.string().optional().nullable(),
   username: z.string().optional().nullable(),
   identityCardNumber: z.string().optional().nullable(),
+  ktpPhotoUrl: z.string().optional().nullable(),
+  kkPhotoUrl: z.string().optional().nullable(),
   basicSalary: z.number().optional().nullable(),
   bankName: z.string().optional().nullable(),
   bankAccountNumber: z.string().optional().nullable(),
@@ -75,6 +89,7 @@ export const EmployeeSchema = z.object({
   // Field Baru
   userId: z.string().optional().nullable(),
   npwpNumber: z.string().optional().nullable(),
+  npwpPhotoUrl: z.string().optional().nullable(),
   bpjsKesehatan: z.string().optional().nullable(),
   bpjsKetenagakerjaan: z.string().optional().nullable(),
   placeOfBirth: z.string().optional().nullable(),
@@ -86,6 +101,9 @@ export const EmployeeSchema = z.object({
   maritalStatus: z.enum(['SINGLE', 'MARRIED']).optional().nullable(),
   spouseName: z.string().optional().nullable(),
   children: z.array(ChildInfoSchema).optional().nullable(),
+  lastEducation: z.string().optional().nullable(),
+  ijazahPhotoUrl: z.string().optional().nullable(),
+  trainings: z.array(TrainingInfoSchema).optional().nullable(),
 
   // Snake-case aliases (if backend sends these without conversion)
   user_id: z.string().optional().nullable(),
@@ -93,8 +111,13 @@ export const EmployeeSchema = z.object({
   phone_number: z.string().optional().nullable(),
   employment_status: z.string().optional().nullable(),
   join_date: z.string().optional().nullable(),
+  user_level: z.string().optional().nullable(),
+  role_id: z.string().optional().nullable(),
   identity_card_number: z.string().optional().nullable(),
+  ktp_photo_url: z.string().optional().nullable(),
+  kk_photo_url: z.string().optional().nullable(),
   npwp_number: z.string().optional().nullable(),
+  npwp_photo_url: z.string().optional().nullable(),
   bpjs_kesehatan: z.string().optional().nullable(),
   bpjs_ketenagakerjaan: z.string().optional().nullable(),
   place_of_birth: z.string().optional().nullable(),
@@ -103,6 +126,11 @@ export const EmployeeSchema = z.object({
   emergency_contact_relationship: z.string().optional().nullable(),
   marital_status: z.enum(['SINGLE', 'MARRIED']).optional().nullable(),
   spouse_name: z.string().optional().nullable(),
+  last_education: z.string().optional().nullable(),
+  ijazah_photo_url: z.string().optional().nullable(),
+  basic_salary: z.number().optional().nullable(),
+  bank_name: z.string().optional().nullable(),
+  bank_account_number: z.string().optional().nullable(),
 });
 export type Employee = z.infer<typeof EmployeeSchema>;
 

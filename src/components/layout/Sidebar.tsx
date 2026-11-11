@@ -28,6 +28,12 @@ import {
   Calendar,
   Lock,
   Plus,
+  Barcode,
+  FlaskConical,
+  BookOpen,
+  Send,
+  Trash2,
+  FileCheck2,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -38,48 +44,68 @@ interface ModuleChildItem {
   id: string;
   label: string;
   icon: any;
+  endpoint?: string;
   badge?: string;
   badgeColor?: string;
 }
 
+/**
+ * 8 Divisi Sub-menu sesuai spesifikasi Backend API:
+ * 1. Sales (SALES)
+ * 2. Delivery (DELIVERY)
+ * 3. Warehouse & PPIC (WAREHOUSE_PPIC)
+ * 4. Produksi & QC (PRODUKSI_QC)
+ * 5. Pembelian / Purchasing (PURCHASING)
+ * 6. Finance (FINANCE)
+ * 7. RND (RND)
+ * 8. HRD (HRD)
+ */
 const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
-  finance: [
-    { id: 'do', label: 'Pilih Surat Jalan (Multi-DO)', icon: FileSpreadsheet },
-    { id: 'calc', label: 'Kalkulator 13 Rumus Faktur', icon: Calculator },
-    { id: 'summary', label: 'Ringkasan Pajak & Margin', icon: ShieldCheck },
-    { id: 'form', label: 'Form Keuangan & Klaim AP/AR', icon: FileText },
-  ],
-  qc: [
-    { id: 'all', label: 'Semua Batch QC & Inspeksi', icon: ShieldCheck },
-    { id: 'hold', label: 'Batch Dicekal (QC Hold Lock)', icon: ShieldAlert, badge: 'HOLD', badgeColor: 'bg-rose-500 text-white' },
-    { id: 'pass', label: 'Lulus Uji & Sertifikat COA', icon: CheckCircle2 },
-    { id: 'rework', label: 'Treatment Rework Ulang', icon: AlertCircle },
-    { id: 'form', label: 'Form SPK & Uji QC Baru', icon: FileText },
-  ],
-  procurement: [
-    { id: 'kanban', label: 'Alur Pengadaan (Kanban PR → PO)', icon: Truck },
-    { id: 'exim_dropzone', label: 'Dokumen Kepabeanan EXIM', icon: ShieldCheck },
-    { id: 'form', label: 'Form Pengadaan / PO Baru', icon: FileText },
-    { id: 'supplier', label: 'Master Supplier & Rekanan', icon: Building2 },
-    { id: 'report', label: 'Rekap Laporan Pengadaan', icon: FileSpreadsheet },
-  ],
   sales: [
-    { id: 'quotation_gating', label: 'Quotation Gating Cost Control', icon: FileSpreadsheet },
-    { id: 'e_tracking', label: 'Timeline E-Tracking Barcode', icon: ScanLine },
-    { id: 'form', label: 'Form Penjualan & Buat DO', icon: FileText },
-    { id: 'sales_report', label: 'Laporan Penjualan (Incoming Order)', icon: FileSpreadsheet },
-    { id: 'customer', label: 'Master Pelanggan (Customer)', icon: Users },
+    { id: 'quotations', label: 'Quotation (/sales/quotations)', icon: FileSpreadsheet },
+    { id: 'incoming_orders', label: 'Incoming Order / IO (/sales/incoming-orders)', icon: FileText },
+    { id: 'sales_activities', label: 'Aktivitas & Kunjungan Sales / SDA', icon: Navigation },
+    { id: 'customers', label: 'Master Customer (/mdm/customers)', icon: Users },
   ],
-  master_data: [
-    { id: 'catalog', label: 'Katalog SKU & Stok Gudang', icon: Boxes },
-    { id: 'zebra', label: 'Cetak Label Zebra Thermal', icon: ScanLine },
-    { id: 'forms', label: 'Pendaftaran SKU & Form Master', icon: FileText },
+  delivery: [
+    { id: 'delivery_orders', label: 'Delivery Order / Surat Jalan', icon: Truck, endpoint: '/logistics/delivery-orders' },
+    { id: 'e_tracking', label: 'E-Tracking Barcode/GPS', icon: Barcode, endpoint: '/tracking/barcode/{id}' },
+    { id: 'vehicle_bookings', label: 'Peminjaman Kendaraan Dinas', icon: Building2, endpoint: '/hrd/vehicle-bookings' },
+  ],
+  warehouse_ppic: [
+    { id: 'goods_receipts', label: 'Penerimaan Barang / Receiving LOG', icon: Truck, endpoint: '/warehouse/goods-receipts' },
+    { id: 'waste_logs', label: 'Pencatatan Limbah / Waste', icon: Trash2, endpoint: '/warehouse/waste-logs' },
+    { id: 'work_orders', label: 'SPK Produksi / Work Orders', icon: FileSpreadsheet, endpoint: '/production/work-orders' },
+    { id: 'items', label: 'Master Item & Stok (/mdm/items)', icon: Boxes, endpoint: '/mdm/items' },
+  ],
+  produksi_qc: [
+    { id: 'production_outputs', label: 'Input Hasil Produksi', icon: FileText, endpoint: '/production/outputs' },
+    { id: 'qc_inspections', label: 'Inspeksi QC IQC/PQC/OQC', icon: ShieldCheck, endpoint: '/qc/inspections' },
+    { id: 'qc_records', label: 'Rekam QC (/production/qc-records)', icon: CheckCircle2, endpoint: '/production/qc-records' },
+    { id: 'hold_release', label: 'Otorisasi Release Hold QC', icon: ShieldAlert, endpoint: '/qc/hold-lockout/release', badge: 'HOLD', badgeColor: 'bg-rose-500 text-white' },
+  ],
+  purchasing: [
+    { id: 'purchase_requests', label: 'Purchase Request / PR', icon: FileText, endpoint: '/procurement/purchase-requests' },
+    { id: 'purchase_orders', label: 'Purchase Order / PO', icon: Truck, endpoint: '/procurement/purchase-orders' },
+    { id: 'exim_docs', label: 'Dokumen Exim (/procurement/exim-docs)', icon: ShieldCheck, endpoint: '/procurement/exim-docs' },
+    { id: 'suppliers', label: 'Master Supplier (/mdm/suppliers)', icon: Building2, endpoint: '/mdm/suppliers' },
+  ],
+  finance: [
+    { id: 'cost_control', label: 'Validasi Cost Control Quotation', icon: ShieldCheck, endpoint: '/cost-control/quotations/{id}/validate' },
+    { id: 'invoices', label: 'Kalkulasi & Sales Invoice 13 Rumus', icon: Calculator, endpoint: '/finance/invoices' },
+    { id: 'ar_payments', label: 'Piutang AR & Pembayaran', icon: FileSpreadsheet, endpoint: '/finance/account-receivables/{id}/payments' },
+    { id: 'complaints', label: 'E-Complaint & RMA (/complaints)', icon: AlertCircle, endpoint: '/complaints' },
+  ],
+  rnd: [
+    { id: 'rnd_trials', label: 'R&D Trial Formula (/rnd/trials)', icon: FlaskConical, endpoint: '/rnd/trials' },
+    { id: 'convert_bom', label: 'Konversi Formula ke Master BOM', icon: FileCheck2, endpoint: '/rnd/trials/{id}/convert-to-bom' },
+    { id: 'e_catalog', label: 'Publikasi E-Katalog (/marketing/catalog)', icon: BookOpen, endpoint: '/marketing/catalog' },
+    { id: 'sample_requests', label: 'Permintaan Sampel (/public/request-sample)', icon: Send, endpoint: '/public/request-sample' },
   ],
   hrd: [
-    { id: 'attendance_fleet', label: 'Presensi & Armada Pabrik', icon: Users },
-    { id: 'sales_gps', label: 'Log GPS Kunjungan Sales', icon: Navigation },
-    { id: 'leave_requests', label: 'Pengajuan & Status Cuti', icon: Calendar },
-    { id: 'form', label: 'Form HRD & Pengajuan Baru', icon: FileText },
+    { id: 'employees', label: 'Master Data Karyawan (/hrd/employees)', icon: Users, endpoint: '/hrd/employees' },
+    { id: 'requests', label: 'Pengajuan & Approval Cuti/Izin', icon: Calendar, endpoint: '/hrd/requests' },
+    { id: 'attendance', label: 'Presensi / Kehadiran Harian', icon: CheckCircle2, endpoint: '/hrd/attendance' },
   ],
   users: [
     { id: 'list', label: 'Daftar Akun Pegawai & RBAC', icon: Users },
@@ -89,75 +115,73 @@ const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
 
 const CONTENT = {
   id: {
-    navMenu: 'Menu Navigasi',
-    modules: 'Modul Operasional',
+    navMenu: 'Menu Navigasi (8 Divisi)',
+    modules: '8 Divisi Operasional',
     admin: 'Administrasi',
     adminSub: 'RBAC',
     manageUsers: 'Akun Pegawai & RBAC',
     manageUsersSub: 'Hak Akses Level 0-3',
     tools: 'Alat Lapangan',
     scanner: 'Scanner Barcode PWA',
-    scannerSub: 'Pabrik & Gudang',
-    scannerSub2: 'Pabrik & Gudang Manufaktur',
+    scannerSub: 'Pabrik & Gudang Manufaktur',
     audit: 'Audit Trail Kepatuhan',
-    auditSub: 'Enkripsi SHA-256',
-    auditSub2: 'Enkripsi Log SHA-256',
+    auditSub: 'Enkripsi Log SHA-256',
     signOut: 'Sign Out',
-    signOutMobile: 'Keluar Portal',
-    mobileTitle: 'Modul Operasional ERP',
-    mobileAdmin: 'Administrasi & Akses',
     moduleNames: {
       home: 'Menu Utama (Beranda)',
-      homeSub: 'Pilihan Opsi Sederhana',
-      finance: 'Finance & Analytics',
-      financeSub: '13-Rumus Sales Invoice',
-      qc: 'Production & QC Hold',
-      qcSub: 'Shop-Floor Lockout & COA',
-      procurement: 'Supply Chain & EXIM',
-      procurementSub: 'Pabean BC 2.3/2.7/4.0',
-      sales: 'Sales & E-Tracking',
-      salesSub: 'Gating Margin & Barcode',
-      master_data: 'Master Data (MDM)',
-      masterDataSub: 'Zebra LOT & Barcode Label',
-      hrd: 'HRD & Fasilitas',
-      hrdSub: 'Armada & GPS Visit Sales',
-    }
+      homeSub: 'Launcher 8 Divisi',
+      sales: '1. Sales',
+      salesSub: 'Quotation, IO, SDA, Customer',
+      delivery: '2. Delivery',
+      deliverySub: 'Surat Jalan, E-Tracking, Armada',
+      warehouse_ppic: '3. Warehouse & PPIC',
+      warehouse_ppicSub: 'LOG, Limbah, SPK, Master Item',
+      produksi_qc: '4. Produksi & QC',
+      produksi_qcSub: 'Output, Inspeksi QC, Release Hold',
+      purchasing: '5. Pembelian (Purchasing)',
+      purchasingSub: 'PR, PO, Exim Docs, Supplier',
+      finance: '6. Finance',
+      financeSub: 'Cost Control, Invoice 13 Rumus, AR',
+      rnd: '7. RND',
+      rndSub: 'Trial Formula, BOM, E-Katalog, Sampel',
+      hrd: '8. HRD',
+      hrdSub: 'Data Karyawan, Cuti/Izin, Presensi',
+    },
   },
   en: {
-    navMenu: 'Navigation Menu',
-    modules: 'Operational Modules',
+    navMenu: 'Navigation Menu (8 Divisions)',
+    modules: '8 Operational Divisions',
     admin: 'Administration',
     adminSub: 'RBAC',
     manageUsers: 'Employee Accounts & RBAC',
     manageUsersSub: 'Access Rights Level 0-3',
     tools: 'Field Tools',
     scanner: 'PWA Barcode Scanner',
-    scannerSub: 'Factory & Warehouse',
-    scannerSub2: 'Manufacturing Factory & Warehouse',
+    scannerSub: 'Manufacturing Factory & Warehouse',
     audit: 'Compliance Audit Trail',
-    auditSub: 'SHA-256 Encryption',
-    auditSub2: 'SHA-256 Log Encryption',
+    auditSub: 'SHA-256 Log Encryption',
     signOut: 'Sign Out',
-    signOutMobile: 'Sign Out of Portal',
-    mobileTitle: 'ERP Operational Modules',
-    mobileAdmin: 'Administration & Access',
     moduleNames: {
       home: 'Main Menu (Home)',
-      homeSub: 'Simple Option View',
-      finance: 'Finance & Analytics',
-      financeSub: '13-Formula Sales Invoice',
-      qc: 'Production & QC Hold',
-      qcSub: 'Shop-Floor Lockout & COA',
-      procurement: 'Supply Chain & EXIM',
-      procurementSub: 'Customs BC 2.3/2.7/4.0',
-      sales: 'Sales & E-Tracking',
-      salesSub: 'Margin Gating & Barcode',
-      master_data: 'Master Data (MDM)',
-      masterDataSub: 'Zebra LOT & Barcode Label',
-      hrd: 'HR & Facilities',
-      hrdSub: 'Fleet & Sales GPS Visit',
-    }
-  }
+      homeSub: '8 Divisions Launcher',
+      sales: '1. Sales',
+      salesSub: 'Quotation, IO, SDA, Customer',
+      delivery: '2. Delivery',
+      deliverySub: 'Delivery Order, Tracking, Fleet',
+      warehouse_ppic: '3. Warehouse & PPIC',
+      warehouse_ppicSub: 'LOG, Waste, SPK, Master Items',
+      produksi_qc: '4. Production & QC',
+      produksi_qcSub: 'Output, Inspections, Hold Release',
+      purchasing: '5. Purchasing',
+      purchasingSub: 'PR, PO, Exim Docs, Suppliers',
+      finance: '6. Finance',
+      financeSub: 'Cost Control, 13 Invoicing, AR',
+      rnd: '7. RND',
+      rndSub: 'Trial Formula, BOM, Catalog, Samples',
+      hrd: '8. HRD',
+      hrdSub: 'Employees, Leaves, Attendance',
+    },
+  },
 };
 
 export const Sidebar: React.FC = () => {
@@ -170,15 +194,17 @@ export const Sidebar: React.FC = () => {
   const isSidebarCollapsed = useAppStore((state) => state.isSidebarCollapsed);
   const isMobileSidebarOpen = useAppStore((state) => state.isMobileSidebarOpen);
   const language = useAppStore((state) => state.language);
-  const t = CONTENT[language];
-  const { canAccessModule, canAccessAdminUsers, canAccessTool, isSuperAdmin, isExecutive, hasPermission } = useRBAC();
+  const t = CONTENT[language] || CONTENT.id;
+  const { canAccessModule, canAccessAdminUsers, canAccessTool, isSuperAdmin, isExecutive } = useRBAC();
 
   const [expandedModules, setExpandedModules] = React.useState<Record<string, boolean>>({
-    finance: true,
-    qc: true,
-    procurement: true,
     sales: true,
-    master_data: true,
+    delivery: true,
+    warehouse_ppic: true,
+    produksi_qc: true,
+    purchasing: true,
+    finance: true,
+    rnd: true,
     hrd: true,
     users: true,
   });
@@ -198,25 +224,16 @@ export const Sidebar: React.FC = () => {
     }
   };
 
-  const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
-
-  // Count active QC Hold batches
-  const activeQcHoldCount = qcRecords.filter(
-    (r) => r.status === 'HOLD'
-  ).length;
-
-  // Count quotations pending cost control
-  const pendingCostControlCount = quotations.filter(
-    (q) => q.status === 'PENDING_COST_CONTROL'
-  ).length;
+  const activeQcHoldCount = qcRecords.filter((r) => r.status === 'HOLD').length;
+  const pendingCostControlCount = quotations.filter((q) => q.status === 'PENDING_COST_CONTROL').length;
 
   const isUserAdmin = canManageUsers(authUser as any);
-  const tierMeta = getTierBadge(authUser?.tier ?? 3);
 
+  // 8 Divisi Utama
   const modules = [
     {
       id: 'home',
-      code: 'Beranda',
+      code: 'HOME',
       label: t.moduleNames.home,
       sublabel: t.moduleNames.homeSub,
       icon: Home,
@@ -224,19 +241,39 @@ export const Sidebar: React.FC = () => {
       color: 'text-blue-600',
     },
     {
-      id: 'finance',
-      code: 'Core 6',
-      label: t.moduleNames.finance,
-      sublabel: t.moduleNames.financeSub,
-      icon: Calculator,
-      shortcut: 'Alt+6',
-      color: 'text-emerald-600',
+      id: 'sales',
+      code: 'SALES',
+      label: t.moduleNames.sales,
+      sublabel: t.moduleNames.salesSub,
+      icon: FileSpreadsheet,
+      shortcut: 'Alt+1',
+      badge: pendingCostControlCount > 0 ? `${pendingCostControlCount} Gated` : undefined,
+      badgeColor: 'bg-amber-500 text-white',
+      color: 'text-amber-600',
     },
     {
-      id: 'qc',
-      code: 'Core 4',
-      label: t.moduleNames.qc,
-      sublabel: t.moduleNames.qcSub,
+      id: 'delivery',
+      code: 'DELIVERY',
+      label: t.moduleNames.delivery,
+      sublabel: t.moduleNames.deliverySub,
+      icon: Truck,
+      shortcut: 'Alt+2',
+      color: 'text-cyan-600',
+    },
+    {
+      id: 'warehouse_ppic',
+      code: 'WAREHOUSE_PPIC',
+      label: t.moduleNames.warehouse_ppic,
+      sublabel: t.moduleNames.warehouse_ppicSub,
+      icon: Boxes,
+      shortcut: 'Alt+3',
+      color: 'text-sky-600',
+    },
+    {
+      id: 'produksi_qc',
+      code: 'PRODUKSI_QC',
+      label: t.moduleNames.produksi_qc,
+      sublabel: t.moduleNames.produksi_qcSub,
       icon: ShieldCheck,
       shortcut: 'Alt+4',
       badge: activeQcHoldCount > 0 ? `${activeQcHoldCount} HOLD` : undefined,
@@ -244,44 +281,42 @@ export const Sidebar: React.FC = () => {
       color: 'text-rose-600',
     },
     {
-      id: 'procurement',
-      code: 'Core 3',
-      label: t.moduleNames.procurement,
-      sublabel: t.moduleNames.procurementSub,
+      id: 'purchasing',
+      code: 'PURCHASING',
+      label: t.moduleNames.purchasing,
+      sublabel: t.moduleNames.purchasingSub,
       icon: Truck,
-      shortcut: 'Alt+3',
+      shortcut: 'Alt+5',
       color: 'text-indigo-600',
     },
     {
-      id: 'sales',
-      code: 'Core 5',
-      label: t.moduleNames.sales,
-      sublabel: t.moduleNames.salesSub,
-      icon: FileSpreadsheet,
-      shortcut: 'Alt+5',
-      badge: pendingCostControlCount > 0 ? `${pendingCostControlCount} Gated` : undefined,
-      badgeColor: 'bg-amber-500 text-white',
-      color: 'text-amber-600',
+      id: 'finance',
+      code: 'FINANCE',
+      label: t.moduleNames.finance,
+      sublabel: t.moduleNames.financeSub,
+      icon: Calculator,
+      shortcut: 'Alt+6',
+      color: 'text-emerald-600',
     },
     {
-      id: 'master_data',
-      code: 'Core 2',
-      label: t.moduleNames.master_data,
-      sublabel: t.moduleNames.masterDataSub,
-      icon: Boxes,
-      shortcut: 'Alt+2',
-      color: 'text-sky-600',
+      id: 'rnd',
+      code: 'RND',
+      label: t.moduleNames.rnd,
+      sublabel: t.moduleNames.rndSub,
+      icon: FlaskConical,
+      shortcut: 'Alt+7',
+      color: 'text-teal-600',
     },
     {
       id: 'hrd',
-      code: 'Core 1',
-      label: isHrdAdmin ? t.moduleNames.hrd : 'Pengajuan Cuti',
-      sublabel: isHrdAdmin ? t.moduleNames.hrdSub : 'Kelola Cuti & Izin',
+      code: 'HRD',
+      label: t.moduleNames.hrd,
+      sublabel: t.moduleNames.hrdSub,
       icon: Users,
-      shortcut: 'Alt+1',
-      color: 'text-violet-600',
+      shortcut: 'Alt+8',
+      color: 'text-purple-600',
     },
-  ].filter(m => canAccessModule(m.id));
+  ].filter((m) => canAccessModule(m.id));
 
   const hasAnySidebarItems = modules.length > 0 || canAccessAdminUsers() || canAccessTool('barcode') || canAccessTool('audit');
 
@@ -302,9 +337,7 @@ export const Sidebar: React.FC = () => {
         />
       )}
 
-      {/* ========================================================================= */}
-      {/* 1. DESKTOP SIDEBAR (Independent scroll, statis tanpa scroll di layar standar) */}
-      {/* ========================================================================= */}
+      {/* 1. DESKTOP SIDEBAR */}
       <aside
         className={`compact-chrome hidden lg:flex flex-col justify-between shrink-0 h-full border-r border-slate-200 bg-white transition-all duration-200 ease-in-out select-none z-20 shadow-xs ${
           isSidebarCollapsed ? 'w-[68px]' : 'w-64'
@@ -344,138 +377,144 @@ export const Sidebar: React.FC = () => {
           )}
         </div>
 
-        {/* Scrollable Navigation Body (Compact & Statis tanpa scroll di layar standar) */}
+        {/* Scrollable Navigation Body */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-2 space-y-3">
-          {/* Core Modules List */}
           {modules.length > 0 && (
             <div>
               {!isSidebarCollapsed && (
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-1.5">
-                {t.modules}
-              </div>
-            )}
-            <nav className="space-y-1">
-              {modules.map((m) => {
-                const Icon = m.icon;
-                const isActive = activeModule === m.id;
-                const children = MODULE_CHILDREN[m.id];
-                const isExpanded = !isSidebarCollapsed && (expandedModules[m.id] ?? true);
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-1.5 flex items-center justify-between">
+                  <span>{t.modules}</span>
+                  <span className="text-[11px] px-1.5 py-0.2 rounded-md bg-blue-50 text-blue-700 font-extrabold border border-blue-200">
+                    8 DIVISI
+                  </span>
+                </div>
+              )}
+              <nav className="space-y-1">
+                {modules.map((m) => {
+                  const Icon = m.icon;
+                  const isActive = activeModule === m.id;
+                  const children = MODULE_CHILDREN[m.id];
+                  const isExpanded = !isSidebarCollapsed && (expandedModules[m.id] ?? true);
 
-                return (
-                  <div key={m.id} className="space-y-1">
-                    <button
-                      id={`nav-module-${m.id}`}
-                      onClick={() => handleSelectModule(m.id)}
-                      title={`${m.label} (${m.shortcut})`}
-                      className={`text-left rounded-xl flex items-center transition-all cursor-pointer relative group ${
-                        isSidebarCollapsed
-                          ? 'w-10 h-10 mx-auto justify-center p-0'
-                          : 'w-full px-2.5 py-2 justify-between'
-                      } ${
-                        isActive
-                          ? (isSidebarCollapsed ? '' : 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20')
-                          : 'text-slate-700 hover:bg-slate-100 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
-                            isActive
-                              ? (isSidebarCollapsed ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'bg-white/20 text-white')
-                              : 'bg-slate-100 text-slate-600 group-hover:text-blue-600'
-                          }`}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        {!isSidebarCollapsed && (
-                          <div className="min-w-0">
-                            <div className="text-xs flex items-center gap-1.5 leading-tight min-w-0">
-                              <span className="truncate">{m.label}</span>
-                              {m.badge && (
-                                <span
-                                  className={`text-xs px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${m.badgeColor}`}
-                                >
-                                  {m.badge}
-                                </span>
-                              )}
-                            </div>
-                            <div
-                              className={`text-xs truncate leading-tight mt-0.5 ${
-                                isActive ? 'text-white/80' : 'text-slate-400'
-                              }`}
-                            >
-                              {m.sublabel}
-                            </div>
+                  return (
+                    <div key={m.id} className="space-y-1">
+                      <button
+                        id={`nav-module-${m.id}`}
+                        onClick={() => handleSelectModule(m.id)}
+                        title={`${m.label} (${m.shortcut})`}
+                        className={`text-left rounded-xl flex items-center transition-all cursor-pointer relative group ${
+                          isSidebarCollapsed
+                            ? 'w-10 h-10 mx-auto justify-center p-0'
+                            : 'w-full px-2.5 py-2 justify-between'
+                        } ${
+                          isActive
+                            ? isSidebarCollapsed
+                              ? ''
+                              : 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20'
+                            : 'text-slate-700 hover:bg-slate-100 font-medium'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
+                              isActive
+                                ? isSidebarCollapsed
+                                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                                  : 'bg-white/20 text-white'
+                                : 'bg-slate-100 text-slate-600 group-hover:text-blue-600'
+                            }`}
+                          >
+                            <Icon className="w-4 h-4" />
                           </div>
-                        )}
-                      </div>
-
-                      {!isSidebarCollapsed && children && children.length > 0 && (
-                        <div
-                          onClick={(e) => toggleExpand(m.id, e)}
-                          className="p-1 hover:bg-black/10 rounded-md transition-colors"
-                          title="Tampilkan / Sembunyikan Sub-Fitur"
-                        >
-                          {isExpanded ? (
-                            <ChevronDown className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                          ) : (
-                            <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                          {!isSidebarCollapsed && (
+                            <div className="min-w-0">
+                              <div className="text-xs flex items-center gap-1.5 leading-tight min-w-0">
+                                <span className="truncate">{m.label}</span>
+                                {m.badge && (
+                                  <span
+                                    className={`text-xs px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${m.badgeColor}`}
+                                  >
+                                    {m.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <div
+                                className={`text-xs truncate leading-tight mt-0.5 ${
+                                  isActive ? 'text-white/80' : 'text-slate-400'
+                                }`}
+                              >
+                                {m.sublabel}
+                              </div>
+                            </div>
                           )}
                         </div>
-                      )}
 
-                      {isSidebarCollapsed && m.badge && (
-                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
-                      )}
-                    </button>
+                        {!isSidebarCollapsed && children && children.length > 0 && (
+                          <div
+                            onClick={(e) => toggleExpand(m.id, e)}
+                            className="p-1 hover:bg-black/10 rounded-md transition-colors"
+                            title="Tampilkan / Sembunyikan Sub-Fitur"
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                            ) : (
+                              <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                            )}
+                          </div>
+                        )}
 
-                    {/* Sub-features / Child items under module */}
-                    {!isSidebarCollapsed && isExpanded && children && children.length > 0 && (
-                      <div className="ml-5 pl-2.5 border-l-2 border-slate-200 space-y-0.5 my-1">
-                        {children.map((child) => {
-                          const isChildActive = activeModule === m.id && activeSubFeature?.[m.id] === child.id;
-                          const ChildIcon = child.icon;
-                          return (
-                            <button
-                              key={child.id}
-                              type="button"
-                              onClick={() => handleSelectChild(m.id, child.id)}
-                              className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-all cursor-pointer ${
-                                isChildActive
-                                  ? 'bg-blue-100 text-blue-900 font-extrabold shadow-2xs'
-                                  : 'text-slate-600 hover:text-blue-700 hover:bg-slate-100 font-medium'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <ChildIcon
-                                  className={`w-3.5 h-3.5 shrink-0 ${
-                                    isChildActive ? 'text-blue-700' : 'text-slate-400'
-                                  }`}
-                                />
-                                <span className="truncate">{child.label}</span>
-                              </div>
-                              {child.badge && (
-                                <span
-                                  className={`text-xs px-1 py-0.2 rounded-full font-bold uppercase shrink-0 ${
-                                    child.badgeColor || 'bg-slate-200 text-slate-700'
-                                  }`}
-                                >
-                                  {child.badge}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </nav>
-          </div>
+                        {isSidebarCollapsed && m.badge && (
+                          <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+                        )}
+                      </button>
+
+                      {/* Sub-features under division */}
+                      {!isSidebarCollapsed && isExpanded && children && children.length > 0 && (
+                        <div className="ml-5 pl-2.5 border-l-2 border-slate-200 space-y-0.5 my-1">
+                          {children.map((child) => {
+                            const isChildActive = activeModule === m.id && activeSubFeature?.[m.id] === child.id;
+                            const ChildIcon = child.icon;
+                            return (
+                              <button
+                                key={child.id}
+                                type="button"
+                                onClick={() => handleSelectChild(m.id, child.id)}
+                                className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-all cursor-pointer ${
+                                  isChildActive
+                                    ? 'bg-blue-100 text-blue-900 font-extrabold shadow-2xs'
+                                    : 'text-slate-600 hover:text-blue-700 hover:bg-slate-100 font-medium'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <ChildIcon
+                                    className={`w-3.5 h-3.5 shrink-0 ${
+                                      isChildActive ? 'text-blue-700' : 'text-slate-400'
+                                    }`}
+                                  />
+                                  <span className="truncate">{child.label}</span>
+                                </div>
+                                {child.badge && (
+                                  <span
+                                    className={`text-xs px-1 py-0.2 rounded-full font-bold uppercase shrink-0 ${
+                                      child.badgeColor || 'bg-slate-200 text-slate-700'
+                                    }`}
+                                  >
+                                    {child.badge}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </nav>
+            </div>
           )}
 
-          {/* Administration & RBAC Section — hanya tampil untuk yang berhak */}
+          {/* Administration & RBAC Section */}
           {canAccessAdminUsers() && (
             <div className="pt-2 border-t border-slate-100">
               {!isSidebarCollapsed && (
@@ -494,7 +533,9 @@ export const Sidebar: React.FC = () => {
                     : 'w-full px-2.5 py-2 justify-between'
                 } ${
                   activeModule === 'users'
-                    ? (isSidebarCollapsed ? '' : 'bg-purple-700 text-white font-bold shadow-md shadow-purple-700/20')
+                    ? isSidebarCollapsed
+                      ? ''
+                      : 'bg-purple-700 text-white font-bold shadow-md shadow-purple-700/20'
                     : 'text-slate-700 hover:bg-slate-100 font-medium'
                 }`}
               >
@@ -502,7 +543,9 @@ export const Sidebar: React.FC = () => {
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                       activeModule === 'users'
-                        ? (isSidebarCollapsed ? 'bg-purple-700 text-white shadow-md shadow-purple-700/20' : 'bg-white/20 text-white')
+                        ? isSidebarCollapsed
+                          ? 'bg-purple-700 text-white shadow-md shadow-purple-700/20'
+                          : 'bg-white/20 text-white'
                         : 'bg-purple-50 text-purple-600'
                     }`}
                   >
@@ -543,7 +586,6 @@ export const Sidebar: React.FC = () => {
                 )}
               </button>
 
-              {/* Children for Users Module */}
               {!isSidebarCollapsed && expandedModules.users && (
                 <div className="ml-5 pl-2.5 border-l-2 border-purple-200 space-y-0.5 my-1">
                   {MODULE_CHILDREN.users.map((child) => {
@@ -576,7 +618,7 @@ export const Sidebar: React.FC = () => {
             </div>
           )}
 
-          {/* Operational Tools Section — filter berdasarkan hak akses */}
+          {/* Operational Tools Section */}
           {(canAccessTool('barcode') || canAccessTool('audit')) && (
             <div className="pt-2 border-t border-slate-100">
               {!isSidebarCollapsed && (
@@ -658,7 +700,7 @@ export const Sidebar: React.FC = () => {
                   <div className="text-xs text-slate-500 font-medium truncate">{authUser?.department}</div>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200/60">
                 <button
                   onClick={() => authLogout()}
@@ -683,11 +725,7 @@ export const Sidebar: React.FC = () => {
                 className="w-8 h-8 rounded-lg overflow-hidden border border-slate-300 shrink-0"
               >
                 {authUser?.avatar ? (
-                  <img
-                    src={authUser.avatar}
-                    alt={authUser.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-blue-600 text-white flex items-center justify-center font-bold">
                     {authUser?.name?.charAt(0)?.toUpperCase()}
@@ -707,14 +745,9 @@ export const Sidebar: React.FC = () => {
         </div>
       </aside>
 
-      {/* ========================================================================= */}
-      {/* 2. MOBILE DRAWER SIDEBAR (Off-canvas slide-in untuk tampilan layar kecil) */}
-      {/* ========================================================================= */}
+      {/* 2. MOBILE DRAWER SIDEBAR */}
       {isMobileSidebarOpen && (
-        <aside
-          className="compact-chrome fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl flex flex-col justify-between py-4 border-r border-slate-200 lg:hidden animate-in slide-in-from-left duration-200"
-        >
-          {/* Mobile Header */}
+        <aside className="compact-chrome fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl flex flex-col justify-between py-4 border-r border-slate-200 lg:hidden animate-in slide-in-from-left duration-200">
           <div className="px-4 pb-3 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-blue-700 text-white flex items-center justify-center font-bold shadow-xs">
@@ -722,7 +755,7 @@ export const Sidebar: React.FC = () => {
               </div>
               <div>
                 <div className="text-xs font-extrabold text-slate-900 leading-tight">ST. Morita Industries</div>
-                <div className="text-xs text-slate-500">Enterprise ERP Portal</div>
+                <div className="text-xs text-slate-500">8 Divisi ERP Portal</div>
               </div>
             </div>
             <button
@@ -733,214 +766,90 @@ export const Sidebar: React.FC = () => {
             </button>
           </div>
 
-          {/* Mobile Navigation Links */}
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
             {modules.length > 0 && (
               <div>
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-                  {t.mobileTitle}
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-2 flex items-center justify-between">
+                  <span>8 Divisi Operasional</span>
                 </div>
-              <nav className="space-y-1.5">
-                {modules.map((m) => {
-                  const Icon = m.icon;
-                  const isActive = activeModule === m.id;
-                  const children = MODULE_CHILDREN[m.id];
-                  const isExpanded = expandedModules[m.id] ?? true;
+                <nav className="space-y-1.5">
+                  {modules.map((m) => {
+                    const Icon = m.icon;
+                    const isActive = activeModule === m.id;
+                    const children = MODULE_CHILDREN[m.id];
+                    const isExpanded = expandedModules[m.id] ?? true;
 
-                  return (
-                    <div key={m.id} className="space-y-1">
-                      <button
-                        onClick={() => handleSelectModule(m.id)}
-                        className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between transition-colors text-xs ${
-                          isActive
-                            ? 'bg-blue-600 text-white font-bold shadow-sm'
-                            : 'text-slate-700 hover:bg-slate-100 font-medium'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                              isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="truncate font-bold">{m.label}</div>
-                            <div className={`text-xs truncate ${isActive ? 'text-white/80' : 'text-slate-400'}`}>
-                              {m.sublabel}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          {m.badge && (
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold uppercase ${m.badgeColor}`}>
-                              {m.badge}
-                            </span>
-                          )}
-                          {children && children.length > 0 && (
-                            <div onClick={(e) => toggleExpand(m.id, e)} className="p-1">
-                              {isExpanded ? (
-                                <ChevronDown className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                              ) : (
-                                <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </button>
-
-                      {/* Mobile Children */}
-                      {isExpanded && children && children.length > 0 && (
-                        <div className="ml-5 pl-2.5 border-l-2 border-slate-200 space-y-0.5 my-1">
-                          {children.map((child) => {
-                            const isChildActive = activeModule === m.id && activeSubFeature?.[m.id] === child.id;
-                            const ChildIcon = child.icon;
-                            return (
-                              <button
-                                key={child.id}
-                                onClick={() => handleSelectChild(m.id, child.id)}
-                                className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-colors ${
-                                  isChildActive
-                                    ? 'bg-blue-100 text-blue-900 font-bold'
-                                    : 'text-slate-600 hover:text-blue-700 hover:bg-slate-100 font-medium'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <ChildIcon className={`w-3.5 h-3.5 shrink-0 ${isChildActive ? 'text-blue-700' : 'text-slate-400'}`} />
-                                  <span className="truncate">{child.label}</span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </nav>
-            </div>
-            )}
-
-            {/* Mobile RBAC — hanya tampil untuk yang berhak */}
-            {canAccessAdminUsers() && (
-              <div className="pt-2 border-t border-slate-100">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-                  {t.mobileAdmin}
-                </div>
-                <button
-                  onClick={() => handleSelectModule('users')}
-                  className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between text-xs ${
-                    activeModule === 'users'
-                      ? 'bg-purple-700 text-white font-bold shadow-sm'
-                      : 'text-slate-700 hover:bg-slate-100 font-medium'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                      <UserPlus className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="font-bold">{t.manageUsers}</div>
-                      <div className="text-xs text-slate-400">{t.manageUsersSub}</div>
-                    </div>
-                  </div>
-                  <div onClick={(e) => toggleExpand('users', e)} className="p-1">
-                    {expandedModules.users ? (
-                      <ChevronDown className={`w-3.5 h-3.5 ${activeModule === 'users' ? 'text-white' : 'text-slate-400'}`} />
-                    ) : (
-                      <ChevronRight className={`w-3.5 h-3.5 ${activeModule === 'users' ? 'text-white' : 'text-slate-400'}`} />
-                    )}
-                  </div>
-                </button>
-
-                {expandedModules.users && (
-                  <div className="ml-5 pl-2.5 border-l-2 border-purple-200 space-y-0.5 my-1">
-                    {MODULE_CHILDREN.users.map((child) => {
-                      const isChildActive = activeModule === 'users' && activeSubFeature?.users === child.id;
-                      const ChildIcon = child.icon;
-                      return (
+                    return (
+                      <div key={m.id} className="space-y-1">
                         <button
-                          key={child.id}
-                          onClick={() => handleSelectChild('users', child.id)}
-                          className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-colors ${
-                            isChildActive
-                              ? 'bg-purple-100 text-purple-900 font-bold'
-                              : 'text-slate-600 hover:text-purple-700 hover:bg-slate-100 font-medium'
+                          onClick={() => handleSelectModule(m.id)}
+                          className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between transition-colors text-xs ${
+                            isActive ? 'bg-blue-600 text-white font-bold shadow-sm' : 'text-slate-700 hover:bg-slate-100 font-medium'
                           }`}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <ChildIcon className={`w-3.5 h-3.5 shrink-0 ${isChildActive ? 'text-purple-700' : 'text-slate-400'}`} />
-                            <span className="truncate">{child.label}</span>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate font-bold">{m.label}</div>
+                              <div className={`text-xs truncate ${isActive ? 'text-white/80' : 'text-slate-400'}`}>
+                                {m.sublabel}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {m.badge && (
+                              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold uppercase ${m.badgeColor}`}>
+                                {m.badge}
+                              </span>
+                            )}
+                            {children && children.length > 0 && (
+                              <div onClick={(e) => toggleExpand(m.id, e)} className="p-1">
+                                {isExpanded ? (
+                                  <ChevronDown className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                                ) : (
+                                  <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                                )}
+                              </div>
+                            )}
                           </div>
                         </button>
-                      );
-                    })}
-                  </div>
-                )}
+
+                        {/* Mobile Children */}
+                        {isExpanded && children && children.length > 0 && (
+                          <div className="ml-5 pl-2.5 border-l-2 border-slate-200 space-y-0.5 my-1">
+                            {children.map((child) => {
+                              const isChildActive = activeModule === m.id && activeSubFeature?.[m.id] === child.id;
+                              const ChildIcon = child.icon;
+                              return (
+                                <button
+                                  key={child.id}
+                                  type="button"
+                                  onClick={() => handleSelectChild(m.id, child.id)}
+                                  className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                                    isChildActive ? 'bg-blue-100 text-blue-900 font-extrabold' : 'text-slate-600 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <ChildIcon className={`w-3.5 h-3.5 shrink-0 ${isChildActive ? 'text-blue-700' : 'text-slate-400'}`} />
+                                    <span className="truncate">{child.label}</span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </nav>
               </div>
             )}
-
-            {/* Mobile Tools — filter berdasarkan hak akses */}
-            {(canAccessTool('barcode') || canAccessTool('audit')) && (
-              <div className="pt-2 border-t border-slate-100">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-                  {t.tools}
-                </div>
-                <div className="space-y-1">
-                  {canAccessTool('barcode') && (
-                    <button
-                      onClick={() => {
-                        appStore.setMobileSidebarOpen(false);
-                        appStore.setBarcodeModalOpen(true);
-                      }}
-                      className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 text-xs text-slate-700 hover:bg-slate-100"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                        <ScanLine className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="font-bold">{t.scanner}</div>
-                        <div className="text-xs text-slate-400">{t.scannerSub2}</div>
-                      </div>
-                    </button>
-                  )}
-
-                  {canAccessTool('audit') && (
-                    <button
-                      onClick={() => {
-                        appStore.setMobileSidebarOpen(false);
-                        appStore.setAuditLogsOpen(true);
-                      }}
-                      className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 text-xs text-slate-700 hover:bg-slate-100"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                        <History className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="font-bold">{t.audit}</div>
-                        <div className="text-xs text-slate-400">{t.auditSub2}</div>
-                      </div>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile Footer User */}
-          <div className="px-4 pt-3 border-t border-slate-200 space-y-2">
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-              <div className="font-bold text-slate-900">{authUser?.name}</div>
-              <div className="text-xs text-slate-500">{authUser?.nik} &bull; {authUser?.role}</div>
-            </div>
-            <button
-              onClick={() => authLogout()}
-              className="w-full py-2 px-3 rounded-xl border border-slate-200 hover:border-rose-300 text-slate-600 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold flex items-center justify-center gap-2"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>{t.signOutMobile}</span>
-            </button>
           </div>
         </aside>
       )}

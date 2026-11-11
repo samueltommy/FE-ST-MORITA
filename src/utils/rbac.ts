@@ -25,8 +25,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleMeta> = {
     label: 'Direksi / Board of Directors',
     tier: 1,
     tierName: 'Level 1: Direksi & C-Level',
-    department: 'Board of Management',
-    description: 'Full Read-All seluruh modul (Core 1-6), Executive Dashboard P&L, Cash Flow, otorisasi transaksi nilai tinggi, dan final override QC Hold.',
+    department: 'FINANCE',
+    description: 'Full Read-All seluruh 8 Divisi, Executive Dashboard P&L, Cash Flow, otorisasi transaksi nilai tinggi, dan final override QC Hold.',
     permissions: [
       '*', // Full access
     ],

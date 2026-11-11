@@ -15,7 +15,7 @@ export interface ModuleFeatureHubItem {
 }
 
 interface ModuleFeatureHubProps {
-  moduleCode: string; // e.g. "Core 3"
+  moduleCode: string; // e.g. "PURCHASING" atau "FINANCE"
   moduleName: string; // e.g. "PEMBELIAN"
   moduleDescription?: string;
   headerBgColor?: string; // e.g. "bg-emerald-600"

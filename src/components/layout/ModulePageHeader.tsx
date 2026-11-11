@@ -12,7 +12,7 @@ export interface PageOptionItem {
 }
 
 interface ModulePageHeaderProps {
-  moduleCode: string; // e.g. "Core 6"
+  moduleCode: string; // e.g. "HRD", "SALES", "FINANCE"
   title: string;
   description: string;
   badgeColor?: string;

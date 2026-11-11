@@ -236,7 +236,7 @@ export const SalesTrackingModule: React.FC = () => {
 
     return (
       <ModuleFeatureHub
-        moduleCode="Core 5"
+        moduleCode="SALES"
         moduleName="PENJUALAN (SALES & E-TRACKING)"
         moduleDescription="Pusat kontrol penawaran harga, persetujuan batas margin HPP, laporan incoming order, dan pelacakan pengiriman barcode."
         headerBgColor="bg-amber-600"
@@ -252,7 +252,7 @@ export const SalesTrackingModule: React.FC = () => {
     <div className="space-y-6">
       {/* ─── Module Page Header with Senior-Friendly Options ─── */}
       <ModulePageHeader
-        moduleCode="Core 5"
+        moduleCode="SALES"
         title={t.title}
         description={t.desc}
         badgeColor="bg-amber-50 text-amber-800 border-amber-300"

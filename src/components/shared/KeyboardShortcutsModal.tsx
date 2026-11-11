@@ -9,15 +9,18 @@ export const KeyboardShortcutsModal: React.FC = () => {
 
   const shortcutGroups = [
     {
-      groupName: 'Navigasi Modul Inti',
+      groupName: 'Navigasi 8 Divisi Operasional',
       shortcuts: [
-        { keys: ['Alt', '1'], label: 'Buka Modul HRD, Armada Pabrik & Outdoor GPS' },
-        { keys: ['Alt', '2'], label: 'Buka Master Data Management (MDM) & Label Zebra' },
-        { keys: ['Alt', '3'], label: 'Buka Supply Chain & Dokumen Pabean EXIM' },
-        { keys: ['Alt', '4'], label: 'Buka Modul Production & QC Hold Lockout' },
-        { keys: ['Alt', '5'], label: 'Buka Sales Quotation & Barcode E-Tracking' },
-        { keys: ['Alt', '6'], label: 'Buka Finance 13-Rumus Sales Invoice Multi-DO' },
-        { keys: ['Alt', '7'], label: 'Buka Manajemen Akun Pegawai & RBAC (Admin/HRD)' },
+        { keys: ['Alt', '0'], label: 'Buka Beranda / Launcher 8 Divisi' },
+        { keys: ['Alt', '1'], label: 'Divisi 1: Sales (Quotation, IO, SDA, Customer)' },
+        { keys: ['Alt', '2'], label: 'Divisi 2: Delivery (Surat Jalan, E-Tracking, Armada)' },
+        { keys: ['Alt', '3'], label: 'Divisi 3: Warehouse & PPIC (LOG, Limbah, SPK, Item)' },
+        { keys: ['Alt', '4'], label: 'Divisi 4: Produksi & QC (Output, Inspeksi QC, Release Hold)' },
+        { keys: ['Alt', '5'], label: 'Divisi 5: Pembelian / Purchasing (PR, PO, Exim, Supplier)' },
+        { keys: ['Alt', '6'], label: 'Divisi 6: Finance (Cost Control, Invoice 13 Rumus, AR)' },
+        { keys: ['Alt', '7'], label: 'Divisi 7: RND (Trial Formula, BOM, Katalog, Sampel)' },
+        { keys: ['Alt', '8'], label: 'Divisi 8: HRD (Data Karyawan, Cuti/Izin, Presensi)' },
+        { keys: ['Alt', '9'], label: 'Administrasi: Akun Pegawai & RBAC' },
       ],
     },
     {
@@ -25,9 +28,8 @@ export const KeyboardShortcutsModal: React.FC = () => {
       shortcuts: [
         { keys: ['Alt', 'S'], label: 'Buka / Tutup (Collapse) Menu Navigasi Samping' },
         { keys: ['Ctrl / ⌘', 'K'], label: 'Buka Command Palette & Pencarian Global' },
-        { keys: ['Alt', 'B'], label: 'Buka Handheld Barcode Scanner PWA' },
-        { keys: ['Alt', 'T'], label: 'Ganti Tema Gelap / Terang (Dark/Light Mode)' },
-        { keys: ['Ctrl / ⌘', 'D'], label: 'Alihkan Kerapatan Tabel (Standar / High Density)' },
+        { keys: ['Ctrl / ⌘', 'B'], label: 'Buka Handheld Barcode Scanner PWA' },
+        { keys: ['Ctrl / ⌘', 'L'], label: 'Buka Audit Logs Kepatuhan SHA-256' },
         { keys: ['?'], label: 'Buka Dialog Bantuan Pintasan Keyboard' },
         { keys: ['Esc'], label: 'Tutup Dialog / Modal yang Sedang Aktif' },
       ],

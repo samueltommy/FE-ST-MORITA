@@ -23,6 +23,7 @@ import { HrdFormsModal } from '../../components/forms/HrdFormsModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getLeaveRequestsApi, getVehicleBookingsApi, getSalesVisitsApi, approveVehicleBookingApi, getAttendanceApi, getEmployeesApi } from '../../services/hrdService';
 import { LeaveRequestsTab } from './LeaveRequestsTab';
+import { UserManagementModule } from '../admin_users/UserManagementModule';
 import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
 import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
 import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
@@ -221,125 +222,112 @@ export const HrdModule: React.FC = () => {
   const options: PageOptionItem[] = isHrdAdmin
     ? [
         {
-          id: 'attendance_fleet',
-          label: '1. Presensi & Armada Pabrik',
-          subtitle: 'Presensi shift staf pabrik & pemesanan truk operasional',
+          id: 'employees',
+          label: '1. Master Data Karyawan',
+          subtitle: '/hrd/employees • 17 grup profil & berkas KTP/KK/NPWP',
           icon: Users,
-          badge: attendanceLogs.length > 0 ? `${attendanceLogs.length} Log` : undefined,
         },
         {
-          id: 'sales_gps',
-          label: '2. Log GPS Sales Lapangan',
-          subtitle: 'Geo-tracking check-in kunjungan outdoor sales',
-          icon: Navigation,
-          badge: salesVisits.length > 0 ? `${salesVisits.length} Visit` : undefined,
-        },
-        {
-          id: 'leave_requests',
-          label: '3. Pengajuan Cuti & Izin',
-          subtitle: 'Persetujuan izin sakit, cuti tahunan & dispensasi',
+          id: 'requests',
+          label: '2. Pengajuan & Approval Cuti/Izin',
+          subtitle: '/hrd/requests • Persetujuan izin sakit & cuti tahunan',
           icon: Calendar,
           badge: leaveList.length > 0 ? `${leaveList.length} Pengajuan` : undefined,
+        },
+        {
+          id: 'attendance',
+          label: '3. Presensi / Kehadiran Harian',
+          subtitle: '/hrd/attendance • Presensi shift staf & armada pabrik',
+          icon: CheckCircle2,
+          badge: attendanceLogs.length > 0 ? `${attendanceLogs.length} Log` : undefined,
         },
       ]
     : [
         {
-          id: 'leave_requests',
+          id: 'requests',
           label: '1. Pengajuan Cuti & Izin Saya',
-          subtitle: 'Kelola dan ajukan permohonan cuti Anda',
+          subtitle: '/hrd/requests • Kelola dan ajukan permohonan cuti Anda',
           icon: Calendar,
+          badge: leaveList.length > 0 ? `${leaveList.length} Pengajuan` : undefined,
         },
       ];
 
   const activeSubFeature = useAppStore((state) => state.activeSubFeature?.hrd);
 
-  // When no feature is selected yet, render simple selection menu hub (matches client reference screenshot 1)
+  // When no feature is selected yet, render simple selection menu hub
   if (!activeSubFeature) {
     const hubItems: ModuleFeatureHubItem[] = isHrdAdmin
       ? [
           {
-            id: 'attendance_fleet',
-            label: 'Presensi Kehadiran & Jadwal Armada Truk Pabrik',
-            subtitle: 'Kehadiran shift pagi/siang, fingerprint valid & persetujuan pemakaian armada',
+            id: 'employees',
+            label: 'Master Data Karyawan (/hrd/employees)',
+            subtitle: 'Direktori data induk karyawan, 17 grup profil lengkap, berkas dokumen KTP/KK/NPWP/Ijazah',
             icon: Users,
-            iconColor: 'text-violet-600',
-            badge: `${attendanceLogs.length} Log Hari Ini`,
-            badgeColor: 'bg-violet-100 text-violet-800 border-violet-200',
-            onClick: () => appStore.setActiveSubFeature('hrd', 'attendance_fleet'),
+            iconColor: 'text-purple-600',
+            badge: '17 Field Group',
+            badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
+            onClick: () => appStore.setActiveSubFeature('hrd', 'employees'),
           },
           {
-            id: 'sales_gps',
-            label: 'Log GPS Kunjungan Lapangan Sales',
-            subtitle: `Rekam jejak koordinat GPS real-time kunjungan klien tim Sales (${salesVisits.length} Kunjungan)`,
-            icon: Navigation,
-            iconColor: 'text-blue-600',
-            badge: `${salesVisits.length} Check-in`,
-            badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
-            onClick: () => appStore.setActiveSubFeature('hrd', 'sales_gps'),
-          },
-          {
-            id: 'leave_requests',
-            label: 'Pengajuan & Persetujuan Cuti Pegawai',
+            id: 'requests',
+            label: 'Pengajuan & Approval Cuti/Izin (/hrd/requests)',
             subtitle: `Cuti tahunan, izin sakit, surat dokter & verifikasi atasan (${leaveList.length} Pengajuan)`,
             icon: Calendar,
             iconColor: 'text-emerald-600',
             badge: leaveList.length > 0 ? `${leaveList.length} Pengajuan` : undefined,
             badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-            onClick: () => appStore.setActiveSubFeature('hrd', 'leave_requests'),
+            onClick: () => appStore.setActiveSubFeature('hrd', 'requests'),
           },
           {
-            id: 'form',
-            label: 'Formulir HRD & Pengajuan Baru',
-            subtitle: 'Input permohonan cuti, izin kendaraan operasional, atau pendaftaran dinas luar',
-            icon: Plus,
-            iconColor: 'text-amber-600',
-            badge: 'Input Baru',
-            badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-            onClick: () => openFormWithTab('leave'),
+            id: 'attendance',
+            label: 'Presensi / Kehadiran Harian (/hrd/attendance)',
+            subtitle: `Kehadiran shift pagi/siang, fingerprint valid & jadwal armada truk (${attendanceLogs.length} Log Hari Ini)`,
+            icon: CheckCircle2,
+            iconColor: 'text-violet-600',
+            badge: `${attendanceLogs.length} Log Hari Ini`,
+            badgeColor: 'bg-violet-100 text-violet-800 border-violet-200',
+            onClick: () => appStore.setActiveSubFeature('hrd', 'attendance'),
           },
         ]
       : [
           {
-            id: 'leave_requests',
-            label: 'Pengajuan Cuti & Izin Saya',
+            id: 'requests',
+            label: 'Pengajuan Cuti & Izin Saya (/hrd/requests)',
             subtitle: `Kelola dan ajukan permohonan cuti atau izin kerja Anda (${leaveList.length} Pengajuan)`,
             icon: Calendar,
-            iconColor: 'text-violet-600',
-            onClick: () => appStore.setActiveSubFeature('hrd', 'leave_requests'),
-          },
-          {
-            id: 'form',
-            label: 'Buat Pengajuan Cuti Baru',
-            subtitle: 'Formulir pengajuan cuti tahunan, izin sakit atau keperluan mendesak',
-            icon: Plus,
             iconColor: 'text-emerald-600',
-            badge: 'Ajukan',
+            badge: leaveList.length > 0 ? `${leaveList.length} Pengajuan` : undefined,
             badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-            onClick: () => openFormWithTab('leave'),
+            onClick: () => appStore.setActiveSubFeature('hrd', 'requests'),
           },
         ];
 
     return (
       <ModuleFeatureHub
-        moduleCode="Core 1"
-        moduleName="HRD, ARMADA PABRIK & FASILITAS"
-        moduleDescription="Presensi staf shift kerja, jadwal pemesanan kendaraan dinas/truk armada, geo-tracking log visit sales outdoor, dan kelola cuti pegawai."
-        headerBgColor="bg-violet-600"
+        moduleCode="HRD"
+        moduleName="DIVISI 8 - HUMAN RESOURCES DEVELOPMENT (HRD)"
+        moduleDescription="Master Data Karyawan (17 grup field & upload dokumen resmi), Pengajuan & Approval Cuti/Izin, serta Presensi / Kehadiran Harian."
+        headerBgColor="bg-violet-700"
         items={hubItems}
         onBackToHome={() => appStore.setActiveModule('home')}
       />
     );
   }
 
-  const currentTab = (activeSubFeature as any) || (isHrdAdmin ? 'attendance_fleet' : 'leave_requests');
+  const rawSub = (activeSubFeature as any) || (isHrdAdmin ? 'employees' : 'requests');
+  const currentTab = (rawSub === 'leave_requests' || rawSub === 'requests')
+    ? 'requests'
+    : (rawSub === 'attendance_fleet' || rawSub === 'attendance' || rawSub === 'sales_gps')
+    ? 'attendance'
+    : 'employees';
 
   return (
     <div className="space-y-6">
       {/* Senior-Friendly Header with Option Buttons */}
       <ModulePageHeader
-        moduleCode="Core 1"
-        title={isHrdAdmin ? t.title : 'Pengajuan Cuti & Izin Staf'}
-        description={isHrdAdmin ? t.desc : 'Kelola dan ajukan permohonan cuti atau izin kerja Anda'}
+        moduleCode="HRD"
+        title={isHrdAdmin ? 'Divisi 8 - Human Resources Development' : 'Pengajuan Cuti & Izin Staf'}
+        description={isHrdAdmin ? 'Master data karyawan, pengajuan cuti/izin, presensi kerja & pemesanan armada pabrik' : 'Kelola dan ajukan permohonan cuti atau izin kerja Anda'}
         badgeColor="bg-violet-50 text-violet-800 border-violet-200"
         options={options}
         activeOption={currentTab}
@@ -347,19 +335,27 @@ export const HrdModule: React.FC = () => {
         onBackToMenu={() => appStore.setActiveSubFeature('hrd', null)}
         menuName="HRD"
         actionButtons={
-          <button
-            onClick={() => openFormWithTab('leave')}
-            className="px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-base font-extrabold shadow-sm flex items-center gap-2.5 transition-all cursor-pointer"
-          >
-            <Plus className="w-5 h-5" />
-            <span>{isHrdAdmin ? t.btnInput : 'Buat Pengajuan'}</span>
-          </button>
+          currentTab === 'requests' ? (
+            <button
+              onClick={() => openFormWithTab('leave')}
+              className="px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-base font-extrabold shadow-sm flex items-center gap-2.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-5 h-5" />
+              <span>{isHrdAdmin ? t.btnInput : 'Buat Pengajuan'}</span>
+            </button>
+          ) : undefined
         }
       />
 
-      {activeTab === 'leave_requests' ? (
+      {currentTab === 'employees' && (
+        <UserManagementModule hideHeader={true} />
+      )}
+
+      {currentTab === 'requests' && (
         <LeaveRequestsTab onOpenForm={() => openFormWithTab('leave')} />
-      ) : activeTab === 'attendance_fleet' && isHrdAdmin ? (
+      )}
+
+      {currentTab === 'attendance' && isHrdAdmin && (
         <div className="space-y-6">
           {/* Attendance KPI Cards (Enlarged) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -615,62 +611,62 @@ export const HrdModule: React.FC = () => {
               })}
             </div>
           </div>
-        </div>
-      ) : isHrdAdmin ? (
-        /* Sales Outdoor GPS Visit Logs (Enlarged Cards) */
-        <div className="p-6 sm:p-8 rounded-3xl border-2 border-slate-200 bg-white shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-100 pb-4">
-            <div>
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-3">
-                <Navigation className="w-6 h-6 text-violet-600" />
-                <span>{t.gpsTitle}</span>
-              </h3>
-              <p className="text-sm sm:text-base text-slate-600 mt-1 font-medium">
-                {t.gpsDesc}
-              </p>
-            </div>
-            <div className="text-sm font-extrabold text-slate-500">
-              Total: {salesVisits.length} Kunjungan
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {salesVisits.map((vst) => (
-              <div
-                key={vst.id}
-                className="p-5 sm:p-6 rounded-3xl border-2 border-slate-200 bg-slate-50/60 text-sm sm:text-base space-y-3.5 shadow-2xs hover:border-violet-300 transition-all"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-black text-base sm:text-xl text-slate-900 leading-snug">
-                    {vst.clientCompany || vst.clientName}
-                  </span>
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs sm:text-sm font-black shrink-0">
-                    {vst.status || 'VERIFIED'}
-                  </span>
-                </div>
-
-                <div className="text-sm sm:text-base text-slate-700 flex items-center gap-2 font-medium">
-                  <MapPin className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>{vst.locationArea || vst.clientAddress}</span>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-white font-mono text-xs sm:text-sm text-slate-700 border border-slate-200 font-bold">
-                  GPS: {vst.gpsCoords || (vst.coordinates ? `${vst.coordinates.lat}, ${vst.coordinates.lng}` : '-6.3245, 107.1382')} • {t.gpsTime} {vst.checkInTime}
-                </div>
-
-                <p className="text-slate-800 text-sm sm:text-base italic bg-white/70 p-3 rounded-2xl border border-slate-200">
-                  "{vst.notes || vst.resultNotes || vst.purpose}"
+          {/* Sales Outdoor GPS Visit Logs (Enlarged Cards) */}
+          <div className="p-6 sm:p-8 rounded-3xl border-2 border-slate-200 bg-white shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-100 pb-4">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-3">
+                  <Navigation className="w-6 h-6 text-violet-600" />
+                  <span>{t.gpsTitle}</span>
+                </h3>
+                <p className="text-sm sm:text-base text-slate-600 mt-1 font-medium">
+                  {t.gpsDesc}
                 </p>
-
-                <div className="text-xs sm:text-sm text-slate-600 border-t border-slate-200 pt-2 font-bold flex items-center justify-between">
-                  <span>{t.gpsRep} <strong className="text-slate-900">{vst.salesRep || vst.salesName}</strong></span>
-                  <span className="text-violet-600 font-mono text-xs">Geo-Verified</span>
-                </div>
               </div>
-            ))}
+              <div className="text-sm font-extrabold text-slate-500">
+                Total: {salesVisits.length} Kunjungan
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {salesVisits.map((vst) => (
+                <div
+                  key={vst.id}
+                  className="p-5 sm:p-6 rounded-3xl border-2 border-slate-200 bg-slate-50/60 text-sm sm:text-base space-y-3.5 shadow-2xs hover:border-violet-300 transition-all"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-black text-base sm:text-xl text-slate-900 leading-snug">
+                      {vst.clientCompany || vst.clientName}
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs sm:text-sm font-black shrink-0">
+                      {vst.status || 'VERIFIED'}
+                    </span>
+                  </div>
+
+                  <div className="text-sm sm:text-base text-slate-700 flex items-center gap-2 font-medium">
+                    <MapPin className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{vst.locationArea || vst.clientAddress}</span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white font-mono text-xs sm:text-sm text-slate-700 border border-slate-200 font-bold">
+                    GPS: {vst.gpsCoords || (vst.coordinates ? `${vst.coordinates.lat}, ${vst.coordinates.lng}` : '-6.3245, 107.1382')} • {t.gpsTime} {vst.checkInTime}
+                  </div>
+
+                  <p className="text-slate-800 text-sm sm:text-base italic bg-white/70 p-3 rounded-2xl border border-slate-200">
+                    "{vst.notes || vst.resultNotes || vst.purpose}"
+                  </p>
+
+                  <div className="text-xs sm:text-sm text-slate-600 border-t border-slate-200 pt-2 font-bold flex items-center justify-between">
+                    <span>{t.gpsRep} <strong className="text-slate-900">{vst.salesRep || vst.salesName}</strong></span>
+                    <span className="text-violet-600 font-mono text-xs">Geo-Verified</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      ) : null}
+      )}
 
       {/* MODAL: View Employee Detail */}
       {viewUserDetail && (

@@ -418,7 +418,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
 
     return (
       <ModuleFeatureHub
-        moduleCode="Core 6"
+        moduleCode="FINANCE"
         moduleName="KEUANGAN & FAKTUR PENJUALAN"
         moduleDescription="Konsolidasi multi-surat jalan (DO), 13 formula komersial resmi ST. Morita, kalkulator PPN 11% & PPh 23, serta audit profitabilitas."
         headerBgColor="bg-emerald-600"
@@ -434,7 +434,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
     <div className="space-y-6">
       {/* ─── Module Page Header with Senior-Friendly Options ─── */}
       <ModulePageHeader
-        moduleCode="Core 6"
+        moduleCode="FINANCE"
         title={t.title}
         description={t.desc}
         badgeColor="bg-emerald-50 text-emerald-800 border-emerald-300"

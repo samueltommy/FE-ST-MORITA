@@ -97,6 +97,58 @@ export type PermissionClaim =
   | 'finance:ap:pay'
   | 'finance:cost:read';
 
+export type ActiveModule =
+  | 'home'
+  | 'sales'
+  | 'delivery'
+  | 'warehouse_ppic'
+  | 'produksi_qc'
+  | 'purchasing'
+  | 'finance'
+  | 'rnd'
+  | 'hrd'
+  // Legacy / Admin aliases:
+  | 'users'
+  | 'master_data'
+  | 'procurement'
+  | 'qc'
+  | 'audit'
+  | 'scanner';
+
+export type DivisionCode =
+  | 'SALES'
+  | 'DELIVERY'
+  | 'WAREHOUSE_PPIC'
+  | 'PRODUKSI_QC'
+  | 'PURCHASING'
+  | 'FINANCE'
+  | 'RND'
+  | 'HRD';
+
+export const OFFICIAL_DIVISIONS: DivisionCode[] = [
+  'SALES',
+  'DELIVERY',
+  'WAREHOUSE_PPIC',
+  'PRODUKSI_QC',
+  'PURCHASING',
+  'FINANCE',
+  'RND',
+  'HRD',
+];
+
+export interface EmployeeChildItem {
+  name: string;
+  age: number;
+}
+
+export interface EmployeeTrainingItem {
+  name: string;
+  organizer: string;
+  year: number;
+  certificate_url?: string;
+  certificateUrl?: string;
+}
+
 export interface UserProfile {
   id: string;
   nik: string; // Nomor Induk Karyawan
@@ -105,6 +157,8 @@ export interface UserProfile {
   role: UserRole;
   tier: RoleTier; // 0: Super Admin, 1: Direksi, 2: Manager/Admin Bidang, 3: Staff/Operator
   department: string;
+  allowedDivisions?: string[];
+  allowed_divisions?: string[];
   avatar: string;
   permissions: PermissionClaim[];
   plantLocation: string;

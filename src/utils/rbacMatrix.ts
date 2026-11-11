@@ -2,12 +2,14 @@ import { PermissionClaim } from '../types';
 
 export type AccessLevel = 'RESTRICTED' | 'READ' | 'WRITE';
 
-export type ErpModuleKey = 
+export type ErpModuleKey =
   | 'sales'
-  | 'procurement'
-  | 'qc'
+  | 'delivery'
+  | 'warehouse_ppic'
+  | 'produksi_qc'
+  | 'purchasing'
   | 'finance'
-  | 'warehouse'
+  | 'rnd'
   | 'hrd'
   | 'admin';
 
@@ -26,25 +28,73 @@ export type AccessMatrix = Record<ErpModuleKey, AccessLevel>;
 export const ERP_MODULES_LIST: ModuleAccessMeta[] = [
   {
     key: 'sales',
-    label: 'Commercial Sales & Customer Tracking',
-    code: 'Core 5',
+    label: 'Sales',
+    code: 'SALES',
     badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
-    description: 'Quotation gating, Sales Order (IO), Master Customer & E-Tracking delivery.',
-    readPermissions: ['sales:quotation:draft', 'sales:sda:write'],
+    description: 'Quotation (/sales/quotations), Incoming Order / IO (/sales/incoming-orders), Aktivitas & Kunjungan Sales / SDA, Master Customer.',
+    readPermissions: ['sales:quotation:draft', 'sales:visit:read'],
     writePermissions: [
       'sales:quotation:draft',
       'sales:quotation:approve',
       'sales:io:create',
       'sales:sda:write',
-      'sales:quotation:validate',
+      'sales:visit:read',
     ],
   },
   {
-    key: 'procurement',
-    label: 'Procurement & EXIM Bea Cukai',
-    code: 'Core 3',
+    key: 'delivery',
+    label: 'Delivery',
+    code: 'DELIVERY',
+    badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-300',
+    description: 'Delivery Order / Surat Jalan (/logistics/delivery-orders), E-Tracking Barcode/GPS, Peminjaman Kendaraan Dinas (/hrd/vehicle-bookings).',
+    readPermissions: ['barcode:scan'],
+    writePermissions: [
+      'warehouse:do:dispatch',
+      'warehouse:do:approve',
+      'hrd:vehicle:approve',
+      'barcode:scan',
+    ],
+  },
+  {
+    key: 'warehouse_ppic',
+    label: 'Warehouse & PPIC',
+    code: 'WAREHOUSE_PPIC',
+    badgeColor: 'bg-sky-100 text-sky-800 border-sky-300',
+    description: 'Penerimaan Barang / Receiving LOG (/warehouse/goods-receipts), Pencatatan Limbah / Waste, SPK Produksi / Work Orders, Master Item & Stok.',
+    readPermissions: ['inventory:stock:read', 'master:item:read'],
+    writePermissions: [
+      'warehouse:log:receive',
+      'warehouse:log:approve',
+      'ppic:spk:release',
+      'ppic:spk:schedule',
+      'master:item:read',
+      'master:item:write',
+      'master:barcode:print',
+      'inventory:stock:read',
+    ],
+  },
+  {
+    key: 'produksi_qc',
+    label: 'Produksi & QC',
+    code: 'PRODUKSI_QC',
+    badgeColor: 'bg-rose-100 text-rose-800 border-rose-300',
+    description: 'Input Hasil Produksi (/production/outputs), Inspeksi QC IQC/PQC/OQC (/qc/inspections), Rekam QC, Otorisasi Pelepasan Hold QC.',
+    readPermissions: ['qc:coa:generate'],
+    writePermissions: [
+      'qc:inspection:write',
+      'qc:hold:lock',
+      'qc:hold:override',
+      'qc:coa:generate',
+      'qc:coa:approve',
+      'qc:calibration:approve',
+    ],
+  },
+  {
+    key: 'purchasing',
+    label: 'Pembelian (Purchasing)',
+    code: 'PURCHASING',
     badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-    description: 'PO Supplier, alur 5-tahap PR→PO, dokumen Kawasan Berikat BC 2.3/2.7/4.0 & SPPB.',
+    description: 'Purchase Request / PR (/procurement/purchase-requests), Purchase Order / PO (/procurement/purchase-orders), Dokumen Exim, Master Supplier.',
     readPermissions: ['vendor:read'],
     writePermissions: [
       'procurement:pr:create',
@@ -56,147 +106,127 @@ export const ERP_MODULES_LIST: ModuleAccessMeta[] = [
     ],
   },
   {
-    key: 'qc',
-    label: 'Production & QC Hold Lockout',
-    code: 'Core 4',
-    badgeColor: 'bg-rose-100 text-rose-800 border-rose-300',
-    description: 'Inspeksi mutu adesif/tape, status QC Hold, Override rilis, dan sertifikat COA.',
-    readPermissions: ['qc:coa:generate', 'ppic:spk:schedule', 'inventory:stock:read'],
-    writePermissions: [
-      'qc:inspection:write',
-      'qc:hold:lock',
-      'qc:hold:override',
-      'qc:coa:generate',
-      'qc:coa:approve',
-      'qc:calibration:approve',
-      'ppic:pr:create',
-      'ppic:spk:release',
-    ],
-  },
-  {
     key: 'finance',
-    label: 'Finance, 13-Rumus Invoicing & AR/AP',
-    code: 'Core 6',
+    label: 'Finance',
+    code: 'FINANCE',
     badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    description: 'Sales Invoice Multi-DO, rekonsiliasi piutang AR/AP, dan analisis margin unit cost HPP.',
+    description: 'Validasi Cost Control Quotation, Kalkulasi & Sales Invoice 13 Rumus (/finance/invoices), Piutang AR & Pembayaran, E-Complaint & RMA.',
     readPermissions: ['finance:cost:read'],
     writePermissions: [
+      'sales:quotation:validate',
+      'cost_control:margin:approve',
       'finance:invoice:create',
       'finance:invoice:post',
       'finance:ar:reconcile',
       'finance:ap:pay',
       'finance:cost:read',
-      'cost_control:margin:approve',
     ],
   },
   {
-    key: 'warehouse',
-    label: 'Warehouse Logistics & Master Data (MDM)',
-    code: 'Core 2',
-    badgeColor: 'bg-sky-100 text-sky-800 border-sky-300',
-    description: 'Katalog stok SKU, cetak barcode Zebra thermal, receiving dock LOG, dan dispatch DO.',
-    readPermissions: ['inventory:stock:read'],
+    key: 'rnd',
+    label: 'RND',
+    code: 'RND',
+    badgeColor: 'bg-teal-100 text-teal-800 border-teal-300',
+    description: 'R&D Trial Formula (/rnd/trials), Konversi Formula ke Master BOM, Publikasi E-Katalog (/marketing/catalog), Permintaan Sampel.',
+    readPermissions: ['master:item:read'],
     writePermissions: [
-      'warehouse:log:receive',
-      'warehouse:log:approve',
-      'warehouse:do:dispatch',
-      'warehouse:do:approve',
-      'barcode:scan',
-      'inventory:stock:read',
+      'master:item:read',
+      'master:item:write',
+      'qc:coa:generate',
     ],
   },
   {
     key: 'hrd',
-    label: 'HRD, Presensi & Armada Pabrik',
-    code: 'Core 1',
+    label: 'HRD',
+    code: 'HRD',
     badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
-    description: 'Data karyawan, presensi shift, persetujuan cuti/sakit, dan armada kendaraan.',
+    description: 'Master Data Karyawan (/hrd/employees), Pengajuan & Approval Cuti/Izin (/hrd/requests), Presensi / Kehadiran Harian (/hrd/attendance).',
     readPermissions: ['hrd:employee:read'],
     writePermissions: [
       'hrd:employee:read',
+      'hrd:employee:write',
       'hrd:employee:create',
+      'hrd:attendance:manage',
       'hrd:attendance:write',
       'hrd:leave:approve',
-      'hrd:vehicle:approve',
     ],
   },
   {
     key: 'admin',
-    label: 'User Management & Keamanan RBAC',
-    code: 'Level 0',
+    label: 'Sistem Admin & Keamanan RBAC',
+    code: 'ADMIN',
     badgeColor: 'bg-slate-200 text-slate-800 border-slate-300',
-    description: 'Pembuatan akun login, manajemen level hak akses (L0-L3), reset password & audit trail.',
+    description: 'Manajemen level hak akses (L0-L4), reset password, dan log audit keamanan sistem.',
     readPermissions: ['audit:logs:read'],
     writePermissions: [
       'admin:users:manage',
       'admin:roles:assign',
       'admin:settings:write',
       'audit:logs:read',
-      'hrd:employee:create',
     ],
   },
 ];
 
 /**
- * Menghasilkan Default Access Matrix sesuai aturan bisnis & permintaan klien:
- * - L0_SUPER_ADMIN: Semua WRITE
- * - L1_DIREKSI: Finance & HRD WRITE, Operasional lain READ
- * - L2_MANAGER (Senior): WRITE pada divisinya sendiri, READ di semua divisi lain, RESTRICTED di admin (kecuali HRD/IT)
- * - L3_STAFF (Karyawan biasa): Default READ di semua modul operasional, RESTRICTED di Finance & Admin
+ * Menghasilkan Default Access Matrix sesuai 8 Divisi:
+ * - L0_SUPER_ADMIN & L1_DIREKSI: Akses penuh ke seluruh 8 divisi
+ * - L2_MANAGER: WRITE pada divisinya sendiri, READ pada HRD (cuti/absensi)
+ * - L3_STAFF: WRITE/READ pada divisinya sendiri, READ pada HRD (pengajuan mandiri)
  */
 export function getDefaultAccessMatrix(userLevel: string, department: string): AccessMatrix {
-  // L0 Super Admin
   if (userLevel === 'L0_SUPER_ADMIN') {
     return {
       sales: 'WRITE',
-      procurement: 'WRITE',
-      qc: 'WRITE',
+      delivery: 'WRITE',
+      warehouse_ppic: 'WRITE',
+      produksi_qc: 'WRITE',
+      purchasing: 'WRITE',
       finance: 'WRITE',
-      warehouse: 'WRITE',
+      rnd: 'WRITE',
       hrd: 'WRITE',
       admin: 'WRITE',
     };
   }
 
-  // L1 Direksi
   if (userLevel === 'L1_DIREKSI') {
     return {
-      sales: 'READ',
-      procurement: 'READ',
-      qc: 'READ',
+      sales: 'WRITE',
+      delivery: 'WRITE',
+      warehouse_ppic: 'WRITE',
+      produksi_qc: 'WRITE',
+      purchasing: 'WRITE',
       finance: 'WRITE',
-      warehouse: 'READ',
+      rnd: 'WRITE',
       hrd: 'WRITE',
       admin: 'READ',
     };
   }
 
-  // L2 Manager / Senior Role
+  const deptNorm = (department || '').toUpperCase().trim();
+
   if (userLevel === 'L2_MANAGER') {
-    const deptNorm = (department || '').toUpperCase();
     return {
-      sales: deptNorm === 'SALES' ? 'WRITE' : 'READ',
-      procurement: (deptNorm === 'EXTERNAL_PORTAL' || deptNorm === 'PROCUREMENT') ? 'WRITE' : 'READ',
-      qc: (deptNorm === 'QC' || deptNorm === 'PPIC' || deptNorm === 'RND') ? 'WRITE' : 'READ',
-      finance: deptNorm === 'FINANCE' ? 'WRITE' : 'READ',
-      warehouse: deptNorm === 'WAREHOUSE' ? 'WRITE' : 'READ',
+      sales: deptNorm === 'SALES' ? 'WRITE' : 'RESTRICTED',
+      delivery: deptNorm === 'DELIVERY' ? 'WRITE' : 'RESTRICTED',
+      warehouse_ppic: deptNorm === 'WAREHOUSE_PPIC' ? 'WRITE' : 'RESTRICTED',
+      produksi_qc: deptNorm === 'PRODUKSI_QC' ? 'WRITE' : 'RESTRICTED',
+      purchasing: deptNorm === 'PURCHASING' ? 'WRITE' : 'RESTRICTED',
+      finance: deptNorm === 'FINANCE' ? 'WRITE' : 'RESTRICTED',
+      rnd: deptNorm === 'RND' ? 'WRITE' : 'RESTRICTED',
       hrd: deptNorm === 'HRD' ? 'WRITE' : 'READ',
       admin: deptNorm === 'HRD' ? 'WRITE' : 'RESTRICTED',
     };
   }
 
-  // L3 Staff & Karyawan Biasa
-  // Sesuai permintaan klien: "untuk karyawan biasa hanya bisa read disemua"
-  const deptNorm = (department || '').toUpperCase();
-  const isProdOrWh = deptNorm === 'PPIC' || deptNorm === 'WAREHOUSE';
-
   return {
-    sales: deptNorm === 'SALES' ? 'WRITE' : 'READ',
-    procurement: deptNorm === 'EXTERNAL_PORTAL' ? 'WRITE' : 'READ',
-    qc: deptNorm === 'QC' ? 'WRITE' : 'READ',
+    sales: deptNorm === 'SALES' ? 'WRITE' : 'RESTRICTED',
+    delivery: deptNorm === 'DELIVERY' ? 'WRITE' : 'RESTRICTED',
+    warehouse_ppic: deptNorm === 'WAREHOUSE_PPIC' ? 'WRITE' : 'RESTRICTED',
+    produksi_qc: deptNorm === 'PRODUKSI_QC' ? 'WRITE' : 'RESTRICTED',
+    purchasing: deptNorm === 'PURCHASING' ? 'WRITE' : 'RESTRICTED',
     finance: deptNorm === 'FINANCE' ? 'WRITE' : 'RESTRICTED',
-    warehouse: isProdOrWh ? 'WRITE' : 'READ',
-    hrd: 'READ',
+    rnd: deptNorm === 'RND' ? 'WRITE' : 'RESTRICTED',
+    hrd: deptNorm === 'HRD' ? 'WRITE' : 'READ',
     admin: 'RESTRICTED',
   };
 }
@@ -207,7 +237,6 @@ export function getDefaultAccessMatrix(userLevel: string, department: string): A
 export function matrixToPermissions(matrix: AccessMatrix): PermissionClaim[] {
   const permsSet = new Set<PermissionClaim>();
 
-  // Bila semua WRITE pada modul utama, berikan wildcard '*'
   const allWrite = Object.values(matrix).every((lvl) => lvl === 'WRITE');
   if (allWrite) {
     return ['*'];
@@ -232,21 +261,29 @@ export function permissionsToMatrix(permissions: string[] = [], role?: string, d
   if (permissions.includes('*') || role === 'SUPER_ADMIN') {
     return {
       sales: 'WRITE',
-      procurement: 'WRITE',
-      qc: 'WRITE',
+      delivery: 'WRITE',
+      warehouse_ppic: 'WRITE',
+      produksi_qc: 'WRITE',
+      purchasing: 'WRITE',
       finance: 'WRITE',
-      warehouse: 'WRITE',
+      rnd: 'WRITE',
       hrd: 'WRITE',
       admin: 'WRITE',
     };
   }
 
+  if (!permissions || permissions.length === 0) {
+    return getDefaultAccessMatrix(role || 'L3_STAFF', department || '');
+  }
+
   const matrix: AccessMatrix = {
     sales: 'RESTRICTED',
-    procurement: 'RESTRICTED',
-    qc: 'RESTRICTED',
+    delivery: 'RESTRICTED',
+    warehouse_ppic: 'RESTRICTED',
+    produksi_qc: 'RESTRICTED',
+    purchasing: 'RESTRICTED',
     finance: 'RESTRICTED',
-    warehouse: 'RESTRICTED',
+    rnd: 'RESTRICTED',
     hrd: 'RESTRICTED',
     admin: 'RESTRICTED',
   };

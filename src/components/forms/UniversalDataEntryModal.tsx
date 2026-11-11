@@ -109,7 +109,7 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
       desc: t.hrdDesc,
       icon: Users,
       color: 'bg-violet-50 text-violet-700 border-violet-200 hover:border-violet-400',
-      badge: 'Core 1',
+      badge: 'HRD',
       items: [
         { label: t.hrdItems.leave, tab: 'leave' },
         ...(isHrdAdmin ? [{ label: t.hrdItems.vehicle, tab: 'vehicle' }] : []),
@@ -123,7 +123,7 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
       desc: t.mdmDesc,
       icon: Boxes,
       color: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-400',
-      badge: 'Core 2',
+      badge: 'WAREHOUSE_PPIC',
       items: [
         { label: t.mdmItems.customer, tab: 'customer' },
         { label: t.mdmItems.supplier, tab: 'supplier' },
@@ -137,7 +137,7 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
       desc: t.scmDesc,
       icon: Truck,
       color: 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:border-indigo-400',
-      badge: 'Core 3',
+      badge: 'PURCHASING',
       items: [
         { label: t.scmItems.pr, tab: 'pr' },
         { label: t.scmItems.po, tab: 'po' },
@@ -151,7 +151,7 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
       desc: t.prodDesc,
       icon: ShieldAlert,
       color: 'bg-rose-50 text-rose-700 border-rose-200 hover:border-rose-400',
-      badge: 'Core 4',
+      badge: 'PRODUKSI_QC',
       items: [
         { label: t.prodItems.spk, tab: 'spk' },
         { label: t.prodItems.qc_test, tab: 'qc_test' },
@@ -164,7 +164,7 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
       desc: t.salesDesc,
       icon: FileSpreadsheet,
       color: 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400',
-      badge: 'Core 5',
+      badge: 'SALES',
       items: [
         { label: t.salesItems.quotation, tab: 'quotation' },
         { label: t.salesItems.do, tab: 'do' },
@@ -177,7 +177,7 @@ export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) =>
       desc: t.finDesc,
       icon: Receipt,
       color: 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-400',
-      badge: 'Core 6',
+      badge: 'FINANCE',
       items: [
         { label: t.finItems.complaint, tab: 'complaint' },
         { label: t.finItems.rma, tab: 'rma' },

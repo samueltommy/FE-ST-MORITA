@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
+  ActiveModule,
   AuditLog,
   DeliveryOrder,
   EximDocument,
@@ -846,7 +847,7 @@ export interface AppState {
   themeMode: 'light' | 'dark';
   fontSizeMode: 'normal' | 'large' | 'xlarge';
   isHighDensity: boolean;
-  activeModule: 'home' | 'hrd' | 'master_data' | 'procurement' | 'qc' | 'sales' | 'finance' | 'users' | 'audit' | 'scanner';
+  activeModule: ActiveModule;
   activeSubFeature: Record<string, string | null>;
   currentUser: UserProfile;
   isBarcodeModalOpen: boolean;
@@ -856,14 +857,14 @@ export interface AppState {
   isSidebarCollapsed: boolean;
   isMobileSidebarOpen: boolean;
   language: 'id' | 'en';
-  
+
   // Toast Notification
   toast: {
     message: string;
     type: 'error' | 'success' | 'info';
     visible: boolean;
   };
-  
+
   // Datasets
   users: UserProfile[];
   items: MasterItem[];
@@ -1218,7 +1219,7 @@ export const appStore = {
     updateGlobalState((prev) => {
       try {
         localStorage.setItem('stmorita_sidebar_collapsed', String(collapsed));
-      } catch (e) {}
+      } catch (e) { }
       return { ...prev, isSidebarCollapsed: collapsed };
     });
   },
@@ -1228,7 +1229,7 @@ export const appStore = {
       const next = !prev.isSidebarCollapsed;
       try {
         localStorage.setItem('stmorita_sidebar_collapsed', String(next));
-      } catch (e) {}
+      } catch (e) { }
       return { ...prev, isSidebarCollapsed: next };
     });
   },
@@ -1760,12 +1761,12 @@ export const appStore = {
       const updated = prev.eComplaints.map((c) =>
         c.id === ticketId
           ? {
-              ...c,
-              status: 'RESOLVED' as const,
-              qcReinspectionStatus: 'INSPECTED_NG_CONFIRMED' as const,
-              rmaNumber: rmaNumber || c.rmaNumber,
-              debitNoteNumber: debitNoteNumber || c.debitNoteNumber,
-            }
+            ...c,
+            status: 'RESOLVED' as const,
+            qcReinspectionStatus: 'INSPECTED_NG_CONFIRMED' as const,
+            rmaNumber: rmaNumber || c.rmaNumber,
+            debitNoteNumber: debitNoteNumber || c.debitNoteNumber,
+          }
           : c
       );
       const audit = createAuditLog(

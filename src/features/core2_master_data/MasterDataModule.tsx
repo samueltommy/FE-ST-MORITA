@@ -283,7 +283,7 @@ export const MasterDataModule: React.FC = () => {
 
     return (
       <ModuleFeatureHub
-        moduleCode="Core 2"
+        moduleCode="WAREHOUSE_PPIC"
         moduleName="MASTER DATA MANAGEMENT & GUDANG"
         moduleDescription="Katalog SKU bahan baku & pita perekat, lokasi rak gudang, cetak thermal barcode printer Zebra, dan pendaftaran master."
         headerBgColor="bg-sky-600"
@@ -300,7 +300,7 @@ export const MasterDataModule: React.FC = () => {
     <div className="space-y-6">
       {/* Senior-Friendly Header with Option Buttons */}
       <ModulePageHeader
-        moduleCode="Core 2"
+        moduleCode="WAREHOUSE_PPIC"
         title={t.title}
         description={t.desc}
         badgeColor="bg-amber-50 text-amber-800 border-amber-200"

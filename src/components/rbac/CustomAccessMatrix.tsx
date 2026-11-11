@@ -46,30 +46,36 @@ export const CustomAccessMatrix: React.FC<CustomAccessMatrixProps> = ({
     } else if (presetType === 'all_read') {
       onChange({
         sales: 'READ',
-        procurement: 'READ',
-        qc: 'READ',
+        delivery: 'READ',
+        warehouse_ppic: 'READ',
+        produksi_qc: 'READ',
+        purchasing: 'READ',
         finance: 'RESTRICTED',
-        warehouse: 'READ',
+        rnd: 'READ',
         hrd: 'READ',
         admin: 'RESTRICTED',
       });
     } else if (presetType === 'all_write') {
       onChange({
         sales: 'WRITE',
-        procurement: 'WRITE',
-        qc: 'WRITE',
+        delivery: 'WRITE',
+        warehouse_ppic: 'WRITE',
+        produksi_qc: 'WRITE',
+        purchasing: 'WRITE',
         finance: 'WRITE',
-        warehouse: 'WRITE',
+        rnd: 'WRITE',
         hrd: 'WRITE',
         admin: 'WRITE',
       });
     } else if (presetType === 'all_restricted') {
       onChange({
         sales: 'RESTRICTED',
-        procurement: 'RESTRICTED',
-        qc: 'RESTRICTED',
+        delivery: 'RESTRICTED',
+        warehouse_ppic: 'RESTRICTED',
+        produksi_qc: 'RESTRICTED',
+        purchasing: 'RESTRICTED',
         finance: 'RESTRICTED',
-        warehouse: 'RESTRICTED',
+        rnd: 'RESTRICTED',
         hrd: 'RESTRICTED',
         admin: 'RESTRICTED',
       });

@@ -1,33 +1,52 @@
-import { useAuthStore } from '../store/useAuthStore';
-import { PermissionClaim } from '../types';
+import { useAuthStore, normalizeDivisionCode } from '../store/useAuthStore';
+import { OFFICIAL_DIVISIONS, PermissionClaim } from '../types';
 import { checkPermission } from '../utils/rbac';
 
+const MODULE_TO_DIVISION_MAP: Record<string, string> = {
+  sales: 'SALES',
+  delivery: 'DELIVERY',
+  warehouse_ppic: 'WAREHOUSE_PPIC',
+  master_data: 'WAREHOUSE_PPIC',
+  produksi_qc: 'PRODUKSI_QC',
+  qc: 'PRODUKSI_QC',
+  purchasing: 'PURCHASING',
+  procurement: 'PURCHASING',
+  finance: 'FINANCE',
+  rnd: 'RND',
+  hrd: 'HRD',
+};
+
 /**
- * useRBAC Hook — Granular Role-Based Access Control
- *
- * Reads the authenticated user from useAuthStore (real backend).
- *
- * Provides:
- * - Role level booleans (isSuperAdmin, isExecutive, isAdminBidang, isStaff, isExternal)
- * - hasPermission(claim) — permission check
- * - hasDeptAccess(dept) — department access check
- * - canViewFinancialData() — HPP/margin masking guard
- * - canAccessModule(moduleId) — modul-level access gate
- * - canAccessAdminUsers() — admin RBAC panel gate
- * - canAccessTool(toolId) — sidebar tool gate (barcode scanner, audit trail)
+ * useRBAC Hook — Granular Role-Based Access Control (8 Divisions Architecture)
  */
 export const useRBAC = () => {
   const user = useAuthStore((state) => state.user);
 
-  const isSuperAdmin = user?.tier === 0;
-  const isExecutive  = user?.tier === 1;
-  const isAdminBidang = user?.tier === 2;
-  const isStaff      = user?.tier === 3;
-  const isExternal   = user?.userLevel?.toUpperCase().includes('L4') ?? false;
+  const userLevelNorm = (user?.userLevel ?? '').toUpperCase();
+  const isSuperAdmin = user?.tier === 0 || userLevelNorm === 'L0_SUPER_ADMIN';
+  const isExecutive  = user?.tier === 1 || userLevelNorm === 'L1_DIREKSI';
+  const isAdminBidang = user?.tier === 2 || userLevelNorm === 'L2_MANAGER';
+  const isStaff      = user?.tier === 3 || userLevelNorm === 'L3_STAFF';
+  const isExternal   = userLevelNorm.includes('L4') || userLevelNorm === 'L4_EXTERNAL';
+
+  const userDivision = normalizeDivisionCode(user?.department);
+
+  const allowedDivisions: string[] = (() => {
+    if (isSuperAdmin || isExecutive) {
+      return [...OFFICIAL_DIVISIONS];
+    }
+    if (Array.isArray(user?.allowedDivisions) && user.allowedDivisions.length > 0) {
+      return user.allowedDivisions.map((d) => normalizeDivisionCode(d)).filter(Boolean);
+    }
+    if (userDivision && (OFFICIAL_DIVISIONS as string[]).includes(userDivision)) {
+      return [userDivision];
+    }
+    return [];
+  })();
 
   // ─── Core permission helper ────────────────────────────────
   const hasPermission = (permission: PermissionClaim | string): boolean => {
-    if (isSuperAdmin || isExecutive) return true; // L0 & L1 bypass all checks
+    if (isSuperAdmin || isExecutive) return true;
     const perms = (user?.permissions ?? []) as PermissionClaim[];
     if (perms.includes('*')) return true;
     return checkPermission(perms, permission as PermissionClaim);
@@ -35,95 +54,92 @@ export const useRBAC = () => {
 
   const hasDeptAccess = (dept: string): boolean => {
     if (isSuperAdmin || isExecutive) return true;
-    return (user?.department ?? '').toUpperCase().includes(dept.toUpperCase());
+    const targetDiv = normalizeDivisionCode(dept);
+    if (allowedDivisions.includes(targetDiv)) return true;
+    return userDivision === targetDiv;
+  };
+
+  /**
+   * Checks if user has access to one of the 8 divisions (`SALES`, `DELIVERY`, `WAREHOUSE_PPIC`, `PRODUKSI_QC`, `PURCHASING`, `FINANCE`, `RND`, `HRD`)
+   */
+  const canAccessDivision = (divisionCode: string): boolean => {
+    if (isSuperAdmin || isExecutive) return true;
+    if (isExternal) return false;
+    const target = normalizeDivisionCode(divisionCode);
+    if (allowedDivisions.length > 0) {
+      return allowedDivisions.includes(target);
+    }
+    return userDivision === target;
+  };
+
+  // ─── Sensitive HRD data masking (Basic Salary & Bank Account) ─
+  /**
+   * For L3_STAFF, hide sensitive info like Basic Salary (`basic_salary`)
+   * and Bank Account Number (`bank_account_number`).
+   */
+  const canViewSensitiveHrdData = (): boolean => {
+    if (isStaff || isExternal) return false;
+    if (isSuperAdmin || isExecutive) return true;
+    return isAdminBidang;
   };
 
   // ─── Financial data masking ─────────────────────────────────
   const canViewFinancialData = (): boolean => {
     if (isSuperAdmin || isExecutive) return true;
     if (isStaff) {
-      const dept = (user?.department ?? '').toUpperCase();
-      const blockedDepts = [
-        'WAREHOUSE', 'LOGISTICS', 'SALES', 'COMMERCIAL',
-        'PRODUCTION', 'PRODUKSI', 'QUALITY', 'QC', 'QA',
-      ];
-      if (blockedDepts.some((d) => dept.includes(d))) return false;
+      if (userDivision !== 'FINANCE') return false;
     }
-    return hasPermission('finance:cost:read');
+    return userDivision === 'FINANCE' || hasPermission('finance:cost:read');
   };
 
   // ─── Module-level access ────────────────────────────────────
   /**
-   * Returns true if the user can access the module.
-   * L0/L1 → always true.
-   * L2/L3 → must have at least one matching permission prefix.
+   * Filters Sidebar & Home Launcher modules using `user.allowed_divisions`
+   * (or `user_level` + `department`):
+   * - L0_SUPER_ADMIN & L1_DIREKSI: show all 8 divisions.
+   * - L2_MANAGER & L3_STAFF: show division menu matching `user.allowed_divisions` / `user.department`.
    */
   const canAccessModule = (moduleId: string): boolean => {
     if (isSuperAdmin || isExecutive) return true;
-    
-    // External users cannot access internal ERP core modules directly
     if (isExternal) return false;
 
-    const perms = (user?.permissions ?? []) as string[];
-    if (perms.includes('*')) return true;
+    if (moduleId === 'home') return true;
+    if (moduleId === 'users') return canAccessAdminUsers();
 
-    const hasPrefix = (prefixes: string[]) =>
-      prefixes.some((prefix) =>
-        perms.some((p) => p === '*' || p.startsWith(prefix))
-      );
-
-    switch (moduleId) {
-      case 'home':
-        return true;
-      case 'finance':
-        return hasPrefix(['finance:', 'cost_control:']);
-      case 'qc':
-        return hasPrefix(['qc:']);
-      case 'procurement':
-        return hasPrefix(['procurement:', 'exim:', 'vendor:']);
-      case 'sales':
-        return hasPrefix(['sales:']);
-      case 'master_data':
-        return hasPrefix(['inventory:', 'barcode:', 'master:', 'warehouse:']);
-      case 'hrd':
-        // ESS (Employee Self Service): Semua karyawan bisa mengakses modul HRD (misal: Cuti)
-        return true;
-      case 'users':
-        return canAccessAdminUsers();
-      default:
-        return false;
+    const mappedDivision = MODULE_TO_DIVISION_MAP[moduleId] || normalizeDivisionCode(moduleId);
+    if ((OFFICIAL_DIVISIONS as string[]).includes(mappedDivision)) {
+      return canAccessDivision(mappedDivision);
     }
+
+    return false;
   };
 
-  // ─── Admin Users / RBAC Panel ─────────────────────────────
-  /**
-   * "Akun Pegawai & RBAC" panel:
-   * - L0 Super Admin: full access
-   * - L1 Direksi: read-only access (can view but not manage)
-   * - L2 HRD Manager: can manage employees
-   * - Everyone else: no access
-   */
+  // ─── Admin Users / Master Data Karyawan Management ──────────
   const canAccessAdminUsers = (): boolean => {
-    if (isSuperAdmin) return true;
-    if (isExecutive) return true; // Direksi can view
-    return hasPermission('admin:users:manage') || hasPermission('hrd:employee:create');
+    if (isSuperAdmin || isExecutive) return true;
+    if (userDivision === 'HRD') return true;
+    return hasPermission('admin:users:manage') || hasPermission('hrd:employee:create') || hasPermission('hrd:employee:read');
   };
 
   // ─── Sidebar tools ──────────────────────────────────────────
-  /**
-   * Gate for sidebar tool buttons (barcode scanner, audit trail).
-   * - 'barcode': operators, warehouse, ppic, etc.
-   * - 'audit': L0 and L1 only
-   */
   const canAccessTool = (toolId: 'barcode' | 'audit'): boolean => {
     if (isSuperAdmin || isExecutive) return true;
-    if (toolId === 'barcode') return hasPermission('barcode:scan');
-    if (toolId === 'audit') return false; // L2/L3 cannot view audit trail
+    if (toolId === 'barcode') {
+      return (
+        userDivision === 'DELIVERY' ||
+        userDivision === 'WAREHOUSE_PPIC' ||
+        userDivision === 'PRODUKSI_QC' ||
+        hasPermission('barcode:scan')
+      );
+    }
+    if (toolId === 'audit') return false;
     return false;
   };
 
   return {
     user,
+    userDivision,
+    allowedDivisions,
     isSuperAdmin,
     isExecutive,
     isAdminBidang,
@@ -131,10 +147,11 @@ export const useRBAC = () => {
     isExternal,
     hasPermission,
     hasDeptAccess,
+    canAccessDivision,
+    canViewSensitiveHrdData,
     canViewFinancialData,
     canAccessModule,
     canAccessAdminUsers,
     canAccessTool,
   };
 };
-
