@@ -1,4 +1,4 @@
-import { apiClient } from '../lib/apiClient';
+﻿import { apiClient } from '../lib/apiClient';
 import type { VehicleBooking, SalesOutdoorVisit } from '../types';
 import type {
   Employee,
@@ -12,7 +12,12 @@ export type EmployeeDocType =
   | 'kk'
   | 'npwp'
   | 'ijazah'
-  | 'training_certificate';
+  | 'training_certificate'
+  | 'medical_note'
+  | 'leave_attachment'
+  | 'visit_attachment';
+
+export type HrdDocType = EmployeeDocType;
 
 export interface UploadedDocumentData {
   docType: string;
@@ -40,7 +45,7 @@ export function resolveBackendFileUrl(fileUrl?: string | null): string | null {
   return `${backendOrigin}${normalizedPath}`;
 }
 
-// ─── HRD Service Functions ───────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ HRD Service Functions Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 /**
  * Get paginated list of employees.
@@ -173,7 +178,7 @@ export async function resetPasswordApi(
 }
 
 /**
- * Cara A — Upload per file saat memilih file di form (`POST /api/v1/hrd/upload-document`)
+ * Cara A Ã¢â‚¬â€ Upload per file saat memilih file di form (`POST /api/v1/hrd/upload-document`)
  * Mengirim FormData dengan field `doc_type` dan `file`.
  * Mengembalikan `{ docType, fileName, fileUrl }`.
  */
@@ -207,7 +212,7 @@ export async function uploadEmployeeDocumentApi(
 }
 
 /**
- * Cara B — Upload & langsung lampirkan ke karyawan (`POST /api/v1/hrd/employees/{employee_id}/documents`)
+ * Cara B Ã¢â‚¬â€ Upload & langsung lampirkan ke karyawan (`POST /api/v1/hrd/employees/{employee_id}/documents`)
  * Mengirim FormData berisi `ktp_photo`, `kk_photo`, `npwp_photo`, `ijazah_photo`,
  * dan/atau `training_certificate` (beserta `training_name`, `training_organizer`, `training_year`).
  */
@@ -396,4 +401,499 @@ export async function getAttendanceApi(page: number = 1, limit: number = 10, sta
     notes: att.notes || '',
   }));
   return { data, meta };
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// CETAK LAPORAN HTML (/print) DENGAN AUTHORIZATION BEARER TOKEN
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+export async function printHrdReport(path: string): Promise<void> {
+  const baseUrl = apiClient.defaults.baseURL || 'http://127.0.0.1:8000/api/v1';
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${baseUrl}${normalizedPath}`;
+  const token = localStorage.getItem('samhance_access_token');
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    throw new Error(errText || `Gagal mencetak laporan (${response.status})`);
+  }
+
+  const html = await response.text();
+  const printWindow = window.open('', '_blank', 'width=960,height=720');
+  if (!printWindow) {
+    throw new Error('Popup diblokir browser. Izinkan popup untuk mencetak dokumen.');
+  }
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    try {
+      printWindow.print();
+    } catch {
+      // ignore if window was closed
+    }
+  }, 450);
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// 1. PENGAJUAN CUTI (RM-HRD-303) & SAKIT / IZIN LAINNYA (/hrd/leave-requests)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+export type LeaveRequestGroup = 'CUTI' | 'SAKIT_IZIN';
+
+export type LeaveCategory =
+  | 'CUTI_TAHUNAN_PRIBADI'
+  | 'CUTI_NIKAH_KARYAWAN'
+  | 'CUTI_NIKAH_ANAK'
+  | 'CUTI_KHITAN_BAPTIS_ANAK'
+  | 'CUTI_ISTRI_MELAHIRKAN_KEGUGURAN'
+  | 'CUTI_KELUARGA_INTI_MENINGGAL'
+  | 'CUTI_KELUARGA_SERUMAH_MENINGGAL'
+  | 'CUTI_MELAHIRKAN_KEGUGURAN'
+  | 'CUTI_KHUSUS_LAINNYA'
+  | 'SAKIT'
+  | 'IZIN_LAINNYA';
+
+export interface HrdLeaveRequestRecord {
+  id: string;
+  employeeId?: string;
+  employeeName?: string;
+  employeeNik?: string;
+  department?: string;
+  requestDate?: string;
+  requestGroup: LeaveRequestGroup;
+  leaveCategory: LeaveCategory | string;
+  startDate: string;
+  endDate: string;
+  totalDays: number;
+  customDays?: number;
+  annualLeaveBalanceBefore?: number;
+  annualLeaveBalanceAfter?: number;
+  reason: string;
+  attachmentUrl?: string;
+  status: string;
+  supervisorStatus?: string;
+  supervisorByName?: string;
+  supervisorAt?: string;
+  supervisorNotes?: string;
+  hrdStatus?: string;
+  hrdByName?: string;
+  hrdAt?: string;
+  hrdNotes?: string;
+  returnConfirmed?: boolean;
+  returnConfirmedAt?: string;
+  returnConfirmedByName?: string;
+  createdAt?: string;
+}
+
+export interface CreateHrdLeaveRequestPayload {
+  employeeId?: string;
+  requestGroup: LeaveRequestGroup;
+  leaveCategory: LeaveCategory | string;
+  startDate: string;
+  endDate: string;
+  totalDays?: number;
+  customDays?: number;
+  reason: string;
+  attachmentUrl?: string;
+}
+
+export interface ApprovalActionPayload {
+  action: 'APPROVE' | 'REJECT';
+  notes?: string;
+}
+
+export async function getHrdLeaveRequestsApi(params?: {
+  requestGroup?: LeaveRequestGroup;
+  status?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<HrdLeaveRequestRecord[]> {
+  const query: Record<string, any> = {};
+  if (params?.requestGroup) query.request_group = params.requestGroup;
+  if (params?.status && params.status !== 'ALL') query.status = params.status;
+  if (params?.search) query.search = params.search;
+  if (params?.page) query.page = params.page;
+  if (params?.pageSize) query.page_size = params.pageSize;
+
+  const res = await apiClient.get('/hrd/leave-requests', { params: query });
+  const payload = res.data;
+  return Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+    ? payload.data
+    : [];
+}
+
+export async function createHrdLeaveRequestApi(
+  payload: CreateHrdLeaveRequestPayload
+): Promise<HrdLeaveRequestRecord> {
+  const res = await apiClient.post('/hrd/leave-requests', payload);
+  return res.data?.data || res.data;
+}
+
+export async function approveHrdLeaveSupervisorApi(
+  id: string,
+  payload: ApprovalActionPayload
+): Promise<HrdLeaveRequestRecord> {
+  const res = await apiClient.patch(`/hrd/leave-requests/${id}/approve-supervisor`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function approveHrdLeaveHrdApi(
+  id: string,
+  payload: ApprovalActionPayload
+): Promise<HrdLeaveRequestRecord> {
+  const res = await apiClient.patch(`/hrd/leave-requests/${id}/approve-hrd`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function confirmHrdLeaveReturnApi(
+  id: string,
+  notes?: string
+): Promise<HrdLeaveRequestRecord> {
+  const res = await apiClient.patch(`/hrd/leave-requests/${id}/confirm-return`, { notes });
+  return res.data?.data || res.data;
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// 2. SURAT IJIN MENINGGALKAN TEMPAT KERJA (RM-HRD-013) (/hrd/exit-permits)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+export type ExitPermitType = 'TERLAMBAT' | 'SAAT_JAM_KERJA';
+
+export interface ExitPermitRecord {
+  id: string;
+  employeeId?: string;
+  employeeName?: string;
+  employeeNik?: string;
+  department?: string;
+  permitDate: string;
+  permitType: ExitPermitType | string;
+  plannedOutTime?: string;
+  plannedReturnTime?: string;
+  actualOutTime?: string;
+  actualReturnTime?: string;
+  reason: string;
+  status: string;
+  supervisorStatus?: string;
+  supervisorByName?: string;
+  supervisorAt?: string;
+  supervisorNotes?: string;
+  hrdStatus?: string;
+  hrdByName?: string;
+  hrdAt?: string;
+  hrdNotes?: string;
+  returnConfirmed?: boolean;
+  returnConfirmedAt?: string;
+  createdAt?: string;
+}
+
+export interface CreateExitPermitPayload {
+  employeeId?: string;
+  permitDate: string;
+  permitType: ExitPermitType;
+  plannedOutTime?: string;
+  plannedReturnTime?: string;
+  reason: string;
+}
+
+export async function getExitPermitsApi(params?: {
+  permitType?: string;
+  status?: string;
+  search?: string;
+}): Promise<ExitPermitRecord[]> {
+  const query: Record<string, any> = {};
+  if (params?.permitType && params.permitType !== 'ALL') query.permit_type = params.permitType;
+  if (params?.status && params.status !== 'ALL') query.status = params.status;
+  if (params?.search) query.search = params.search;
+
+  const res = await apiClient.get('/hrd/exit-permits', { params: query });
+  const payload = res.data;
+  return Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+    ? payload.data
+    : [];
+}
+
+export async function createExitPermitApi(
+  payload: CreateExitPermitPayload
+): Promise<ExitPermitRecord> {
+  const res = await apiClient.post('/hrd/exit-permits', payload);
+  return res.data?.data || res.data;
+}
+
+export async function approveExitPermitSupervisorApi(
+  id: string,
+  payload: ApprovalActionPayload
+): Promise<ExitPermitRecord> {
+  const res = await apiClient.patch(`/hrd/exit-permits/${id}/approve-supervisor`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function approveExitPermitHrdApi(
+  id: string,
+  payload: ApprovalActionPayload
+): Promise<ExitPermitRecord> {
+  const res = await apiClient.patch(`/hrd/exit-permits/${id}/approve-hrd`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function confirmExitPermitReturnApi(
+  id: string,
+  payload: { actualOutTime?: string; actualReturnTime?: string; notes?: string }
+): Promise<ExitPermitRecord> {
+  const res = await apiClient.patch(`/hrd/exit-permits/${id}/confirm-return`, payload);
+  return res.data?.data || res.data;
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// 3. MASTER KENDARAAN & PEMINJAMAN KENDARAAN KANTOR
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+export type FuelLevel = 'E' | '1/4' | '1/2' | '3/4' | 'F';
+export type VehiclePurposeType = 'DINAS_KANTOR' | 'PRIBADI';
+
+export interface VehicleMasterRecord {
+  id: string;
+  name: string;
+  plateNumber: string;
+  vehicleType?: string;
+  currentKm?: number;
+  status?: string;
+}
+
+export interface VehicleBookingRecord {
+  id: string;
+  vehicleId: string;
+  vehicleName?: string;
+  plateNumber?: string;
+  employeeId?: string;
+  borrowerName?: string;
+  borrowerDepartment?: string;
+  borrowerPosition?: string;
+  purposeType: VehiclePurposeType | string;
+  destination: string;
+  departureAt: string;
+  returnAt?: string;
+  initialKm: number;
+  finalKm?: number;
+  initialFuel: FuelLevel | string;
+  finalFuel?: FuelLevel | string;
+  status: string;
+  kabagStatus?: string;
+  kabagByName?: string;
+  kabagAt?: string;
+  hrdStatus?: string;
+  hrdByName?: string;
+  hrdAt?: string;
+  financeStatus?: string;
+  financeByName?: string;
+  financeAt?: string;
+  notes?: string;
+  createdAt?: string;
+}
+
+export async function getVehiclesApi(params?: {
+  status?: string;
+  search?: string;
+}): Promise<VehicleMasterRecord[]> {
+  const query: Record<string, any> = {};
+  if (params?.status && params.status !== 'ALL') query.status = params.status;
+  if (params?.search) query.search = params.search;
+
+  const res = await apiClient.get('/hrd/vehicles', { params: query });
+  const payload = res.data;
+  return Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+    ? payload.data
+    : [];
+}
+
+export async function createVehicleApi(payload: {
+  name: string;
+  plateNumber: string;
+  vehicleType?: string;
+  currentKm?: number;
+  status?: string;
+}): Promise<VehicleMasterRecord> {
+  const res = await apiClient.post('/hrd/vehicles', payload);
+  return res.data?.data || res.data;
+}
+
+export async function updateVehicleApi(
+  id: string,
+  payload: Partial<{
+    name: string;
+    plateNumber: string;
+    vehicleType: string;
+    currentKm: number;
+    status: string;
+  }>
+): Promise<VehicleMasterRecord> {
+  const res = await apiClient.patch(`/hrd/vehicles/${id}`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function getHrdVehicleBookingsApi(params?: {
+  status?: string;
+  search?: string;
+}): Promise<VehicleBookingRecord[]> {
+  const query: Record<string, any> = {};
+  if (params?.status && params.status !== 'ALL') query.status = params.status;
+  if (params?.search) query.search = params.search;
+
+  const res = await apiClient.get('/hrd/vehicle-bookings', { params: query });
+  const payload = res.data;
+  return Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+    ? payload.data
+    : [];
+}
+
+export async function createHrdVehicleBookingApi(payload: {
+  vehicleId: string;
+  employeeId?: string;
+  purposeType: VehiclePurposeType;
+  destination: string;
+  departureAt: string;
+  initialKm: number;
+  initialFuel: FuelLevel;
+  notes?: string;
+}): Promise<VehicleBookingRecord> {
+  const res = await apiClient.post('/hrd/vehicle-bookings', payload);
+  return res.data?.data || res.data;
+}
+
+export async function approveVehicleKabagApi(
+  id: string,
+  payload: ApprovalActionPayload
+): Promise<VehicleBookingRecord> {
+  const res = await apiClient.patch(`/hrd/vehicle-bookings/${id}/approve-kabag`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function approveVehicleHrdApi(
+  id: string,
+  payload: ApprovalActionPayload
+): Promise<VehicleBookingRecord> {
+  const res = await apiClient.patch(`/hrd/vehicle-bookings/${id}/approve-hrd`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function approveVehicleFinanceApi(
+  id: string,
+  payload: ApprovalActionPayload
+): Promise<VehicleBookingRecord> {
+  const res = await apiClient.patch(`/hrd/vehicle-bookings/${id}/approve-finance`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function returnVehicleBookingApi(
+  id: string,
+  payload: {
+    finalKm: number;
+    returnAt: string;
+    finalFuel: FuelLevel;
+    notes?: string;
+  }
+): Promise<VehicleBookingRecord> {
+  const res = await apiClient.patch(`/hrd/vehicle-bookings/${id}/return`, payload);
+  return res.data?.data || res.data;
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// 4. PENGAJUAN VISIT LUAR KOTA (/hrd/out-of-town-visits)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+export interface OutOfTownVisitRecord {
+  id: string;
+  employeeId?: string;
+  employeeName?: string;
+  employeeNik?: string;
+  department?: string;
+  destinationCity: string;
+  purpose: string;
+  departureDate: string;
+  returnDate: string;
+  vehicleBookingId?: string;
+  transportCost: number;
+  lodgingCost: number;
+  mealCost: number;
+  otherCost: number;
+  totalEstimatedCost?: number;
+  attachmentUrl?: string;
+  notes?: string;
+  status: string;
+  hrdStatus?: string;
+  hrdByName?: string;
+  hrdAt?: string;
+  hrdNotes?: string;
+  financeStatus?: string;
+  financeByName?: string;
+  financeAt?: string;
+  financeNotes?: string;
+  createdAt?: string;
+}
+
+export async function getOutOfTownVisitsApi(params?: {
+  status?: string;
+  search?: string;
+}): Promise<OutOfTownVisitRecord[]> {
+  const query: Record<string, any> = {};
+  if (params?.status && params.status !== 'ALL') query.status = params.status;
+  if (params?.search) query.search = params.search;
+
+  const res = await apiClient.get('/hrd/out-of-town-visits', { params: query });
+  const payload = res.data;
+  return Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+    ? payload.data
+    : [];
+}
+
+export async function createOutOfTownVisitApi(payload: {
+  employeeId?: string;
+  destinationCity: string;
+  purpose: string;
+  departureDate: string;
+  returnDate: string;
+  vehicleBookingId?: string;
+  transportCost: number;
+  lodgingCost: number;
+  mealCost: number;
+  otherCost: number;
+  attachmentUrl?: string;
+  notes?: string;
+}): Promise<OutOfTownVisitRecord> {
+  const res = await apiClient.post('/hrd/out-of-town-visits', payload);
+  return res.data?.data || res.data;
+}
+
+export async function approveVisitHrdApi(
+  id: string,
+  payload: ApprovalActionPayload
+): Promise<OutOfTownVisitRecord> {
+  const res = await apiClient.patch(`/hrd/out-of-town-visits/${id}/approve-hrd`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function approveVisitFinanceApi(
+  id: string,
+  payload: ApprovalActionPayload
+): Promise<OutOfTownVisitRecord> {
+  const res = await apiClient.patch(`/hrd/out-of-town-visits/${id}/approve-finance`, payload);
+  return res.data?.data || res.data;
 }

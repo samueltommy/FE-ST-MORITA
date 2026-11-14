@@ -14,6 +14,10 @@ import {
   X,
   Search,
   Lock,
+  Stethoscope,
+  DoorOpen,
+  Plane,
+  UserCog,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
 import { VehicleBooking, SalesOutdoorVisit } from '../../types';
@@ -21,9 +25,14 @@ import { Can } from '../../components/rbac/Can';
 import { useRBAC } from '../../hooks/useRBAC';
 import { HrdFormsModal } from '../../components/forms/HrdFormsModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getLeaveRequestsApi, getVehicleBookingsApi, getSalesVisitsApi, approveVehicleBookingApi, getAttendanceApi, getEmployeesApi } from '../../services/hrdService';
+import { getLeaveRequestsApi, getVehicleBookingsApi, getSalesVisitsApi, approveVehicleBookingApi, getEmployeesApi } from '../../services/hrdService';
 import { LeaveRequestsTab } from './LeaveRequestsTab';
 import { UserManagementModule } from '../admin_users/UserManagementModule';
+import { UserManagementTab } from './UserManagementTab';
+import { LeaveAndSickTab } from './LeaveAndSickTab';
+import { ExitPermitsTab } from './ExitPermitsTab';
+import { VehiclesAndBookingsTab } from './VehiclesAndBookingsTab';
+import { OutOfTownVisitsTab } from './OutOfTownVisitsTab';
 import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
 import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
 import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
@@ -117,75 +126,15 @@ export const HrdModule: React.FC = () => {
     queryFn: () => getVehicleBookingsApi(),
   });
 
-  const [attPage, setAttPage] = useState(1);
   const [salesPage, setSalesPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  const { data: salesVisitsRes, isLoading: loadingSales } = useQuery({
-    queryKey: ['salesVisits', salesPage, pageSize],
-    queryFn: () => getSalesVisitsApi(salesPage, pageSize),
-  });
-  const salesVisits = salesVisitsRes?.data || [];
-  const salesTotalPages = salesVisitsRes?.meta?.total_pages || 1;
-
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  
-  const [dateFilterMode, setDateFilterMode] = useState<'today' | 'week' | 'month' | 'custom'>('custom');
-  const [attSearch, setAttSearch] = useState('');
   const [viewUserDetail, setViewUserDetail] = useState<any>(null);
 
-  const handleDateFilterModeChange = (mode: 'today' | 'week' | 'month' | 'custom') => {
-    setDateFilterMode(mode);
-    setAttPage(1);
-    if (mode === 'custom') return;
-    
-    const getLocalDateString = (d: Date) => {
-      const offset = d.getTimezoneOffset() * 60000;
-      return new Date(d.getTime() - offset).toISOString().split('T')[0];
-    };
-    
-    const today = new Date();
-    const end = getLocalDateString(today);
-    let start = end;
-    
-    if (mode === 'week') {
-      const weekAgo = new Date(today);
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      start = getLocalDateString(weekAgo);
-    } else if (mode === 'month') {
-      const monthAgo = new Date(today);
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      start = getLocalDateString(monthAgo);
-    }
-    
-    setStartDate(start);
-    setEndDate(end);
-  };
-
-  React.useEffect(() => {
-    // handleDateFilterModeChange('today');
-  }, []);
-
-  const { data: attendanceRes, isLoading: loadingAtt } = useQuery({
-    queryKey: ['attendanceLogs', attPage, pageSize, startDate, endDate],
-    queryFn: () => getAttendanceApi(attPage, pageSize, startDate, endDate),
-  });
-  const attendanceLogs = attendanceRes?.data || [];
-  const attTotalPages = attendanceRes?.meta?.total_pages || 1;
-
   const currentUser = useAppStore((state) => state.currentUser);
-  const { isSuperAdmin, isExecutive, hasPermission } = useRBAC();
+  const { isSuperAdmin, isExecutive, isAdminBidang, hasPermission } = useRBAC();
   const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
+  const canManageUsersTab = isSuperAdmin || isExecutive || isAdminBidang;
 
-  // We don't need all-metrics here anymore
-  const allApiUsers: any[] = [];
-
-  const filteredAttendanceLogs = attendanceLogs.filter((log: any) => 
-    log.employeeName.toLowerCase().includes(attSearch.toLowerCase())
-  );
-
-  const [activeTab, setActiveTab] = useState<'attendance_fleet' | 'sales_gps' | 'leave_requests'>(isHrdAdmin ? 'attendance_fleet' : 'leave_requests');
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [formModalTab, setFormModalTab] = useState<'leave' | 'vehicle' | 'visit' | 'employee'>('leave');
 
@@ -219,94 +168,143 @@ export const HrdModule: React.FC = () => {
 
   const leaveList = Array.isArray(leaveRequests) ? leaveRequests : (leaveRequests as any)?.data || [];
 
-  const options: PageOptionItem[] = isHrdAdmin
-    ? [
-        {
-          id: 'employees',
-          label: '1. Master Data Karyawan',
-          subtitle: '/hrd/employees • 17 grup profil & berkas KTP/KK/NPWP',
-          icon: Users,
-        },
-        {
-          id: 'requests',
-          label: '2. Pengajuan & Approval Cuti/Izin',
-          subtitle: '/hrd/requests • Persetujuan izin sakit & cuti tahunan',
-          icon: Calendar,
-          badge: leaveList.length > 0 ? `${leaveList.length} Pengajuan` : undefined,
-        },
-        {
-          id: 'attendance',
-          label: '3. Presensi / Kehadiran Harian',
-          subtitle: '/hrd/attendance • Presensi shift staf & armada pabrik',
-          icon: CheckCircle2,
-          badge: attendanceLogs.length > 0 ? `${attendanceLogs.length} Log` : undefined,
-        },
-      ]
-    : [
-        {
-          id: 'requests',
-          label: '1. Pengajuan Cuti & Izin Saya',
-          subtitle: '/hrd/requests • Kelola dan ajukan permohonan cuti Anda',
-          icon: Calendar,
-          badge: leaveList.length > 0 ? `${leaveList.length} Pengajuan` : undefined,
-        },
-      ];
+  const options: PageOptionItem[] = [
+    ...(canManageUsersTab
+      ? [
+          {
+            id: 'user_management',
+            label: 'User Management',
+            subtitle: '/user-management â€¢ Akun, Role & Akses Divisi',
+            icon: UserCog,
+          },
+        ]
+      : []),
+    ...(isHrdAdmin
+      ? [
+          {
+            id: 'employees',
+            label: 'Database Karyawan',
+            subtitle: '/hrd/employees â€¢ 17 grup profil & berkas',
+            icon: Users,
+          },
+        ]
+      : []),
+    {
+      id: 'cuti',
+      label: 'Pengajuan Cuti (RM-HRD-303)',
+      subtitle: '/hrd/leave-requests â€¢ Cuti tahunan & khusus',
+      icon: Calendar,
+    },
+    {
+      id: 'sakit_izin',
+      label: 'Sakit / Izin Lainnya',
+      subtitle: '/hrd/leave-requests â€¢ Surat dokter & izin',
+      icon: Stethoscope,
+    },
+    {
+      id: 'exit_permits',
+      label: 'Keluar Kantor (RM-HRD-013)',
+      subtitle: '/hrd/exit-permits â€¢ Terlambat & saat jam kerja',
+      icon: DoorOpen,
+    },
+    {
+      id: 'vehicles',
+      label: 'Kendaraan Kantor',
+      subtitle: '/hrd/vehicle-bookings â€¢ Peminjaman & master armada',
+      icon: Car,
+    },
+    {
+      id: 'out_of_town_visits',
+      label: 'Visit Luar Kota',
+      subtitle: '/hrd/out-of-town-visits â€¢ Dinas luar & estimasi biaya',
+      icon: Plane,
+    },
+  ];
 
   const activeSubFeature = useAppStore((state) => state.activeSubFeature?.hrd);
 
   // When no feature is selected yet, render simple selection menu hub
   if (!activeSubFeature) {
-    const hubItems: ModuleFeatureHubItem[] = isHrdAdmin
-      ? [
-          {
-            id: 'employees',
-            label: 'Master Data Karyawan (/hrd/employees)',
-            subtitle: 'Direktori data induk karyawan, 17 grup profil lengkap, berkas dokumen KTP/KK/NPWP/Ijazah',
-            icon: Users,
-            iconColor: 'text-purple-600',
-            badge: '17 Field Group',
-            badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
-            onClick: () => appStore.setActiveSubFeature('hrd', 'employees'),
-          },
-          {
-            id: 'requests',
-            label: 'Pengajuan & Approval Cuti/Izin (/hrd/requests)',
-            subtitle: `Cuti tahunan, izin sakit, surat dokter & verifikasi atasan (${leaveList.length} Pengajuan)`,
-            icon: Calendar,
-            iconColor: 'text-emerald-600',
-            badge: leaveList.length > 0 ? `${leaveList.length} Pengajuan` : undefined,
-            badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-            onClick: () => appStore.setActiveSubFeature('hrd', 'requests'),
-          },
-          {
-            id: 'attendance',
-            label: 'Presensi / Kehadiran Harian (/hrd/attendance)',
-            subtitle: `Kehadiran shift pagi/siang, fingerprint valid & jadwal armada truk (${attendanceLogs.length} Log Hari Ini)`,
-            icon: CheckCircle2,
-            iconColor: 'text-violet-600',
-            badge: `${attendanceLogs.length} Log Hari Ini`,
-            badgeColor: 'bg-violet-100 text-violet-800 border-violet-200',
-            onClick: () => appStore.setActiveSubFeature('hrd', 'attendance'),
-          },
-        ]
-      : [
-          {
-            id: 'requests',
-            label: 'Pengajuan Cuti & Izin Saya (/hrd/requests)',
-            subtitle: `Kelola dan ajukan permohonan cuti atau izin kerja Anda (${leaveList.length} Pengajuan)`,
-            icon: Calendar,
-            iconColor: 'text-emerald-600',
-            badge: leaveList.length > 0 ? `${leaveList.length} Pengajuan` : undefined,
-            badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-            onClick: () => appStore.setActiveSubFeature('hrd', 'requests'),
-          },
-        ];
+    const hubItems: ModuleFeatureHubItem[] = [
+      ...(canManageUsersTab
+        ? [
+            {
+              id: 'user_management',
+              label: 'User Management (/user-management)',
+              subtitle: 'Kelola akun login Keycloak, role, dan hak akses divisi pengguna',
+              icon: UserCog,
+              iconColor: 'text-indigo-600',
+              badge: 'RBAC',
+              badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+              onClick: () => appStore.setActiveSubFeature('hrd', 'user_management'),
+            },
+          ]
+        : []),
+      ...(isHrdAdmin
+        ? [
+            {
+              id: 'employees',
+              label: 'Database Karyawan (/hrd/employees)',
+              subtitle: 'Direktori data induk karyawan, 17 grup profil lengkap & berkas KTP/KK/NPWP/Ijazah',
+              icon: Users,
+              iconColor: 'text-purple-600',
+              badge: '17 Field Group',
+              badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
+              onClick: () => appStore.setActiveSubFeature('hrd', 'employees'),
+            },
+          ]
+        : []),
+      {
+        id: 'cuti',
+        label: 'Pengajuan Cuti â€” Form RM-HRD-303',
+        subtitle: 'Permohonan cuti tahunan/pribadi & cuti khusus dengan kalkulasi sisa cuti & approval bertahap',
+        icon: Calendar,
+        iconColor: 'text-emerald-600',
+        badge: 'RM-HRD-303',
+        badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        onClick: () => appStore.setActiveSubFeature('hrd', 'cuti'),
+      },
+      {
+        id: 'sakit_izin',
+        label: 'Pengajuan Sakit / Izin Lainnya',
+        subtitle: 'Pelaporan sakit (upload surat dokter) dan izin lainnya dengan approval Atasan & HRD',
+        icon: Stethoscope,
+        iconColor: 'text-rose-600',
+        onClick: () => appStore.setActiveSubFeature('hrd', 'sakit_izin'),
+      },
+      {
+        id: 'exit_permits',
+        label: 'Ijin Meninggalkan Tempat Kerja â€” RM-HRD-013',
+        subtitle: 'Pengajuan terlambat atau keluar kantor saat jam kerja, jam aktual & konfirmasi kembali',
+        icon: DoorOpen,
+        iconColor: 'text-amber-600',
+        badge: 'RM-HRD-013',
+        badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+        onClick: () => appStore.setActiveSubFeature('hrd', 'exit_permits'),
+      },
+      {
+        id: 'vehicles',
+        label: 'Peminjaman Kendaraan Kantor',
+        subtitle: 'Master kendaraan, form penggunaan kendaraan (KM, parameter bensin) & approval 3 tahap',
+        icon: Car,
+        iconColor: 'text-blue-600',
+        onClick: () => appStore.setActiveSubFeature('hrd', 'vehicles'),
+      },
+      {
+        id: 'out_of_town_visits',
+        label: 'Pengajuan Visit Luar Kota',
+        subtitle: 'Perjalanan dinas luar kota, rincian estimasi biaya (auto-sum) & approval HRD/Finance',
+        icon: Plane,
+        iconColor: 'text-teal-600',
+        onClick: () => appStore.setActiveSubFeature('hrd', 'out_of_town_visits'),
+      },
+    ];
 
     return (
       <ModuleFeatureHub
         moduleCode="HRD"
         moduleName="DIVISI 8 - HUMAN RESOURCES DEVELOPMENT (HRD)"
-        moduleDescription="Master Data Karyawan (17 grup field & upload dokumen resmi), Pengajuan & Approval Cuti/Izin, serta Presensi / Kehadiran Harian."
+        moduleDescription="User Management, Database Karyawan, Pengajuan Cuti (RM-HRD-303), Sakit/Izin, Keluar Kantor (RM-HRD-013), Kendaraan Kantor & Visit Luar Kota."
         headerBgColor="bg-violet-700"
         items={hubItems}
         onBackToHome={() => appStore.setActiveModule('home')}
@@ -314,359 +312,52 @@ export const HrdModule: React.FC = () => {
     );
   }
 
-  const rawSub = (activeSubFeature as any) || (isHrdAdmin ? 'employees' : 'requests');
-  const currentTab = (rawSub === 'leave_requests' || rawSub === 'requests')
-    ? 'requests'
-    : (rawSub === 'attendance_fleet' || rawSub === 'attendance' || rawSub === 'sales_gps')
-    ? 'attendance'
-    : 'employees';
+  const rawSub = (activeSubFeature as any) || (isHrdAdmin ? 'employees' : 'cuti');
+  const currentTab =
+    rawSub === 'user_management'
+      ? 'user_management'
+      : rawSub === 'cuti' || rawSub === 'leave_requests' || rawSub === 'requests'
+      ? 'cuti'
+      : rawSub === 'sakit_izin'
+      ? 'sakit_izin'
+      : rawSub === 'exit_permits'
+      ? 'exit_permits'
+      : rawSub === 'vehicles'
+      ? 'vehicles'
+      : rawSub === 'out_of_town_visits'
+      ? 'out_of_town_visits'
+      : isHrdAdmin
+      ? 'employees'
+      : 'cuti';
 
   return (
     <div className="space-y-6">
       {/* Senior-Friendly Header with Option Buttons */}
       <ModulePageHeader
         moduleCode="HRD"
-        title={isHrdAdmin ? 'Divisi 8 - Human Resources Development' : 'Pengajuan Cuti & Izin Staf'}
-        description={isHrdAdmin ? 'Master data karyawan, pengajuan cuti/izin, presensi kerja & pemesanan armada pabrik' : 'Kelola dan ajukan permohonan cuti atau izin kerja Anda'}
+        title={isHrdAdmin ? 'Divisi 8 - Human Resources Development' : 'Layanan Mandiri Karyawan (HRD)'}
+        description="User Management, Database Karyawan, Cuti (RM-HRD-303), Sakit/Izin, Keluar Kantor (RM-HRD-013), Kendaraan & Visit Luar Kota"
         badgeColor="bg-violet-50 text-violet-800 border-violet-200"
         options={options}
         activeOption={currentTab}
         onSelectOption={(opt) => appStore.setActiveSubFeature('hrd', opt)}
         onBackToMenu={() => appStore.setActiveSubFeature('hrd', null)}
         menuName="HRD"
-        actionButtons={
-          currentTab === 'requests' ? (
-            <button
-              onClick={() => openFormWithTab('leave')}
-              className="px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-base font-extrabold shadow-sm flex items-center gap-2.5 transition-all cursor-pointer"
-            >
-              <Plus className="w-5 h-5" />
-              <span>{isHrdAdmin ? t.btnInput : 'Buat Pengajuan'}</span>
-            </button>
-          ) : undefined
-        }
       />
 
-      {currentTab === 'employees' && (
-        <UserManagementModule hideHeader={true} />
-      )}
+      {currentTab === 'user_management' && <UserManagementTab />}
 
-      {currentTab === 'requests' && (
-        <LeaveRequestsTab onOpenForm={() => openFormWithTab('leave')} />
-      )}
+      {currentTab === 'employees' && <UserManagementModule hideHeader={true} />}
 
-      {currentTab === 'attendance' && isHrdAdmin && (
-        <div className="space-y-6">
-          {/* Attendance KPI Cards (Enlarged) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-5 sm:p-6 rounded-3xl border-2 border-slate-200 bg-white shadow-xs">
-              <span className="text-xs sm:text-sm font-black text-slate-500 uppercase tracking-wider">{t.kpi1Title}</span>
-              <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-1.5">{t.kpi1Value}</div>
-              <div className="text-xs sm:text-sm font-medium text-slate-500 mt-1">{t.kpi1Desc}</div>
-            </div>
+      {currentTab === 'cuti' && <LeaveAndSickTab requestGroup="CUTI" />}
 
-            <div className="p-5 sm:p-6 rounded-3xl border-2 border-emerald-200 bg-emerald-50/50 shadow-xs">
-              <span className="text-xs sm:text-sm font-black text-emerald-800 uppercase tracking-wider">{t.kpi2Title}</span>
-              <div className="text-2xl sm:text-3xl font-black text-emerald-900 mt-1.5">412 (96.2%)</div>
-              <div className="text-xs sm:text-sm font-medium text-emerald-700 mt-1">{t.kpi2Desc}</div>
-            </div>
+      {currentTab === 'sakit_izin' && <LeaveAndSickTab requestGroup="SAKIT_IZIN" />}
 
-            <div className="p-5 sm:p-6 rounded-3xl border-2 border-amber-200 bg-amber-50/50 shadow-xs">
-              <span className="text-xs sm:text-sm font-black text-amber-800 uppercase tracking-wider">{t.kpi3Title}</span>
-              <div className="text-2xl sm:text-3xl font-black text-amber-900 mt-1.5">{t.kpi3Value}</div>
-              <div className="text-xs sm:text-sm font-medium text-amber-700 mt-1">{t.kpi3Desc}</div>
-            </div>
+      {currentTab === 'exit_permits' && <ExitPermitsTab />}
 
-            <div className="p-5 sm:p-6 rounded-3xl border-2 border-blue-200 bg-blue-50/50 shadow-xs">
-              <span className="text-xs sm:text-sm font-black text-blue-800 uppercase tracking-wider">{t.kpi4Title}</span>
-              <div className="text-2xl sm:text-3xl font-black text-blue-900 mt-1.5">{t.kpi4Value}</div>
-              <div className="text-xs sm:text-sm font-medium text-blue-700 mt-1">{t.kpi4Desc}</div>
-            </div>
-          </div>
+      {currentTab === 'vehicles' && <VehiclesAndBookingsTab />}
 
-          {/* Attendance Detail Table (Large & High Contrast) */}
-          <div className="mt-8 bg-white rounded-3xl border-2 border-slate-200 overflow-hidden shadow-xs">
-            <div className="p-5 sm:p-6 border-b-2 border-slate-200 bg-slate-50 flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h3 className="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2.5">
-                  <Calendar className="w-6 h-6 text-indigo-600" />
-                  Detail Presensi Karyawan
-                </h3>
-                <div className="flex items-center gap-2">
-                  <div className="relative w-full sm:w-80">
-                    <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={attSearch}
-                      onChange={(e) => { setAttSearch(e.target.value); setAttPage(1); }}
-                      placeholder="Cari nama karyawan..."
-                      className="pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-200 bg-white text-slate-800 text-sm sm:text-base font-semibold focus:border-indigo-600 outline-none w-full shadow-2xs"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-1.5 bg-slate-200/80 p-1.5 rounded-2xl">
-                  <button onClick={() => handleDateFilterModeChange('today')} className={`px-4 py-2 text-sm font-extrabold rounded-xl transition-all cursor-pointer ${dateFilterMode === 'today' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>Hari Ini</button>
-                  <button onClick={() => handleDateFilterModeChange('week')} className={`px-4 py-2 text-sm font-extrabold rounded-xl transition-all cursor-pointer ${dateFilterMode === 'week' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>1 Minggu</button>
-                  <button onClick={() => handleDateFilterModeChange('month')} className={`px-4 py-2 text-sm font-extrabold rounded-xl transition-all cursor-pointer ${dateFilterMode === 'month' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>1 Bulan</button>
-                  <button onClick={() => handleDateFilterModeChange('custom')} className={`px-4 py-2 text-sm font-extrabold rounded-xl transition-all cursor-pointer ${dateFilterMode === 'custom' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>Pilih Tanggal</button>
-                </div>
-                
-                {dateFilterMode === 'custom' && (
-                  <div className="flex flex-wrap items-center gap-2 text-sm sm:text-base font-bold">
-                    <input 
-                      type="date" 
-                      value={startDate} 
-                      onChange={(e) => { setStartDate(e.target.value); setAttPage(1); }} 
-                      className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 outline-none focus:border-indigo-600"
-                    />
-                    <span className="text-slate-500 font-extrabold">s/d</span>
-                    <input 
-                      type="date" 
-                      value={endDate} 
-                      onChange={(e) => { setEndDate(e.target.value); setAttPage(1); }} 
-                      className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 outline-none focus:border-indigo-600"
-                    />
-                    {(startDate || endDate) && (
-                      <button 
-                        onClick={() => { setStartDate(''); setEndDate(''); setAttPage(1); }}
-                        className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        title="Reset Tanggal"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="overflow-auto max-h-[60vh] 2xl:max-h-[70vh]">
-              <table className="w-full text-sm sm:text-base text-left relative">
-                <thead className="sticky top-0 z-10 bg-slate-100 shadow-sm text-slate-700 border-b-2 border-slate-200">
-                  <tr>
-                    <th className="px-5 py-4 font-black">Nama Karyawan</th>
-                    <th className="px-5 py-4 font-black">Departemen</th>
-                    <th className="px-5 py-4 font-black">Shift</th>
-                    <th className="px-5 py-4 font-black">Check In</th>
-                    <th className="px-5 py-4 font-black">Check Out</th>
-                    <th className="px-5 py-4 font-black">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {filteredAttendanceLogs.map((log: any) => (
-                    <tr 
-                      key={log.id} 
-                      className="hover:bg-indigo-50/40 transition-colors cursor-pointer group"
-                      onClick={() => {
-                        const employeeInfo = allApiUsers.find((u: any) => String(u.id) === String(log.employeeId) || u.fullName === log.employeeName) || { full_name: log.employeeName, department: log.department };
-                        setViewUserDetail(employeeInfo);
-                      }}
-                      title="Klik untuk melihat profil lengkap"
-                    >
-                      <td className="px-5 py-4 font-black text-blue-700 text-base sm:text-lg group-hover:underline">{log.employeeName}</td>
-                      <td className="px-5 py-4 text-slate-800 font-semibold">{log.department}</td>
-                      <td className="px-5 py-4 text-slate-800 font-bold">{log.shift}</td>
-                      <td className="px-5 py-4 font-mono font-bold text-slate-800">{log.checkIn}</td>
-                      <td className="px-5 py-4 font-mono font-bold text-slate-800">{log.checkOut}</td>
-                      <td className="px-5 py-4">
-                        <span className={`px-3 py-1 text-xs sm:text-sm font-black rounded-full ${
-                          log.status === 'HADIR' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                          log.status === 'TERLAMBAT' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
-                          'bg-rose-100 text-rose-800 border border-rose-300'
-                        }`}>
-                          {log.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredAttendanceLogs.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-5 py-10 text-center text-slate-500 font-bold text-base italic">
-                        {loadingAtt ? 'Memuat data presensi...' : 'Tidak ada data presensi yang sesuai.'}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {/* KONTROL PAGINATION ATTENDANCE */}
-            <div className="flex flex-wrap justify-between items-center p-5 bg-slate-50 border-t-2 border-slate-200 gap-3">
-              <div className="flex items-center gap-4">
-                <span className="text-sm sm:text-base text-slate-600 font-extrabold">
-                  Halaman {attPage} dari {attTotalPages}
-                </span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPageSize(Number(e.target.value));
-                    setAttPage(1);
-                  }}
-                  className="text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl bg-white px-3 py-2 text-slate-800 outline-none focus:border-indigo-600 transition-colors cursor-pointer"
-                >
-                  <option value={10}>10 Baris per Halaman</option>
-                  <option value={20}>20 Baris per Halaman</option>
-                  <option value={50}>50 Baris per Halaman</option>
-                  <option value={100}>100 Baris per Halaman</option>
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  disabled={attPage === 1}
-                  onClick={() => setAttPage(p => Math.max(1, p - 1))}
-                  className="px-4 py-2 text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
-                >
-                  &larr; Sebelumnya
-                </button>
-                <button 
-                  disabled={attPage >= attTotalPages}
-                  onClick={() => setAttPage(p => p + 1)}
-                  className="px-4 py-2 text-sm sm:text-base font-extrabold border-2 border-slate-300 rounded-xl hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
-                >
-                  Selanjutnya &rarr;
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Vehicle Fleet Reservation Section (Large Cards) */}
-          <div className="p-6 sm:p-8 rounded-3xl border-2 border-slate-200 bg-white shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-100 pb-4">
-              <div>
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-3">
-                  <Car className="w-6 h-6 text-violet-600" />
-                  <span>{t.fleetTitle}</span>
-                </h3>
-                <p className="text-sm sm:text-base text-slate-600 mt-1 font-medium">
-                  {t.fleetDesc}
-                </p>
-              </div>
-
-              <div className="text-sm sm:text-base text-slate-600 font-bold">
-                {t.fleetApproveLabel} <strong className="text-violet-700">{t.fleetApproveRole}</strong>
-              </div>
-            </div>
-
-            <div className="divide-y-2 divide-slate-100">
-              {vehicleBookings.map((vcl) => {
-                const isPending = vcl.status === 'PENDING' || (vcl.status as string) === 'PENDING_HRD';
-                return (
-                  <div key={vcl.id} className="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="font-mono text-sm sm:text-base font-black text-slate-900 px-3 py-1 rounded-xl bg-slate-100 border border-slate-200">
-                          {vcl.vehiclePlate || vcl.licensePlate}
-                        </span>
-                        <span className="font-extrabold text-base sm:text-lg text-slate-900">
-                          {vcl.vehicleModel || vcl.vehicleName}
-                        </span>
-                        <span
-                          className={`text-xs sm:text-sm font-black px-3 py-1 rounded-full uppercase ${
-                            vcl.status === 'APPROVED'
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                              : 'bg-amber-100 text-amber-800 border border-amber-300'
-                          }`}
-                        >
-                          {vcl.status}
-                        </span>
-                      </div>
-                      <div className="text-slate-800 text-sm sm:text-base font-medium">
-                        {t.fleetDest} <strong className="font-black text-slate-950">{vcl.destination}</strong> ({vcl.purpose})
-                      </div>
-                      <div className="text-xs sm:text-sm text-slate-500 font-semibold flex flex-wrap gap-2">
-                        <span>{t.fleetDriver} <strong>{vcl.driverName}</strong></span>
-                        <span>•</span>
-                        <span>{t.fleetReq} <strong>{vcl.requestedBy || 'Staff Pabrik'}</strong></span>
-                        <span>•</span>
-                        <span>{t.fleetSched} <strong>{vcl.departureDate || vcl.departureTime}</strong> {vcl.returnDate ? `${t.fleetSdt} ${vcl.returnDate}` : ''}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                      {isPending ? (
-                        <Can
-                          perform="hrd:vehicle:approve"
-                          fallback={
-                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-xl border border-amber-200">
-                              Menunggu Persetujuan HRD
-                            </span>
-                          }
-                        >
-                          <button
-                            onClick={() => handleApproveVehicle(vcl.id)}
-                            className="px-5 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-black text-sm sm:text-base shadow-sm cursor-pointer transition-all"
-                          >
-                            {t.fleetBtnApprove}
-                          </button>
-                        </Can>
-                      ) : (
-                        <div className="text-emerald-700 font-black text-sm sm:text-base flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-200">
-                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                          <span>{t.fleetApproved}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Sales Outdoor GPS Visit Logs (Enlarged Cards) */}
-          <div className="p-6 sm:p-8 rounded-3xl border-2 border-slate-200 bg-white shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-100 pb-4">
-              <div>
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-3">
-                  <Navigation className="w-6 h-6 text-violet-600" />
-                  <span>{t.gpsTitle}</span>
-                </h3>
-                <p className="text-sm sm:text-base text-slate-600 mt-1 font-medium">
-                  {t.gpsDesc}
-                </p>
-              </div>
-              <div className="text-sm font-extrabold text-slate-500">
-                Total: {salesVisits.length} Kunjungan
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {salesVisits.map((vst) => (
-                <div
-                  key={vst.id}
-                  className="p-5 sm:p-6 rounded-3xl border-2 border-slate-200 bg-slate-50/60 text-sm sm:text-base space-y-3.5 shadow-2xs hover:border-violet-300 transition-all"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-black text-base sm:text-xl text-slate-900 leading-snug">
-                      {vst.clientCompany || vst.clientName}
-                    </span>
-                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs sm:text-sm font-black shrink-0">
-                      {vst.status || 'VERIFIED'}
-                    </span>
-                  </div>
-
-                  <div className="text-sm sm:text-base text-slate-700 flex items-center gap-2 font-medium">
-                    <MapPin className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>{vst.locationArea || vst.clientAddress}</span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-white font-mono text-xs sm:text-sm text-slate-700 border border-slate-200 font-bold">
-                    GPS: {vst.gpsCoords || (vst.coordinates ? `${vst.coordinates.lat}, ${vst.coordinates.lng}` : '-6.3245, 107.1382')} • {t.gpsTime} {vst.checkInTime}
-                  </div>
-
-                  <p className="text-slate-800 text-sm sm:text-base italic bg-white/70 p-3 rounded-2xl border border-slate-200">
-                    "{vst.notes || vst.resultNotes || vst.purpose}"
-                  </p>
-
-                  <div className="text-xs sm:text-sm text-slate-600 border-t border-slate-200 pt-2 font-bold flex items-center justify-between">
-                    <span>{t.gpsRep} <strong className="text-slate-900">{vst.salesRep || vst.salesName}</strong></span>
-                    <span className="text-violet-600 font-mono text-xs">Geo-Verified</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {currentTab === 'out_of_town_visits' && <OutOfTownVisitsTab />}
 
       {/* MODAL: View Employee Detail */}
       {viewUserDetail && (
@@ -811,7 +502,7 @@ export const HrdModule: React.FC = () => {
         </div>
       )}
 
-      {/* ─── Client Standard Bottom Action Toolbar with prominent BACK Button ─── */}
+      {/* â”€â”€â”€ Client Standard Bottom Action Toolbar with prominent BACK Button â”€â”€â”€ */}
       <ModuleViewFooter
         onBack={() => appStore.setActiveSubFeature('hrd', null)}
         backLabel="BACK (KEMBALI KE MENU HRD)"
