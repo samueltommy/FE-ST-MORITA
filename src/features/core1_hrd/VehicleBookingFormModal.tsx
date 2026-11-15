@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   createHrdVehicleBookingApi,
   FuelLevel,
+  getMyEmployeeProfileApi,
   printHrdReport,
   returnVehicleBookingApi,
+  updateHrdVehicleBookingApi,
   VehicleBookingRecord,
   VehicleMasterRecord,
   VehiclePurposeType,
@@ -48,6 +51,7 @@ interface Props {
   open: boolean;
   vehicles: VehicleMasterRecord[];
   record?: VehicleBookingRecord | null;
+  editMode?: boolean;
   returnMode?: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -57,12 +61,20 @@ export const VehicleBookingFormModal: React.FC<Props> = ({
   open,
   vehicles,
   record,
+  editMode = false,
   returnMode = false,
   onClose,
   onSuccess,
 }) => {
   const user = useAuthStore((s) => s.user);
-  const isReadOnly = !!record && !returnMode;
+  const isReadOnly = !!record && !returnMode && !editMode;
+  const isLockedFields = !!record && !editMode;
+
+  const { data: myProfile } = useQuery({
+    queryKey: ['myEmployeeProfile'],
+    queryFn: getMyEmployeeProfileApi,
+    enabled: open && !record,
+  });
 
   const nowLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
     .toISOString()
@@ -105,9 +117,14 @@ export const VehicleBookingFormModal: React.FC<Props> = ({
   }, [record, vehicles, open, nowLocal]);
 
   const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
-  const displayName = record?.borrowerName || user?.fullName || user?.username || '-';
+  const displayName =
+    record?.borrowerName || myProfile?.fullName || user?.fullName || user?.username || '-';
   const displayDept =
-    record?.borrowerPosition || record?.borrowerDepartment || user?.department || '-';
+    record?.borrowerPosition ||
+    record?.borrowerDepartment ||
+    myProfile?.department ||
+    user?.department ||
+    '-';
   const displayPlate = record?.plateNumber || selectedVehicle?.plateNumber || '-';
   const displayVehName = record?.vehicleName || selectedVehicle?.name || '-';
 
@@ -155,15 +172,21 @@ export const VehicleBookingFormModal: React.FC<Props> = ({
 
     setSubmitting(true);
     try {
-      await createHrdVehicleBookingApi({
+      const payload = {
         vehicleId,
         purposeType,
         destination: destination.trim(),
         departureAt,
         initialKm,
         initialFuel,
-      });
-      toast.success('Pengajuan penggunaan kendaraan kantor berhasil dikirim');
+      };
+      if (record && editMode) {
+        await updateHrdVehicleBookingApi(record.id, payload);
+        toast.success('Peminjaman kendaraan berhasil diperbarui');
+      } else {
+        await createHrdVehicleBookingApi(payload);
+        toast.success('Pengajuan penggunaan kendaraan kantor berhasil dikirim');
+      }
       onSuccess();
       onClose();
     } catch {
@@ -225,7 +248,7 @@ export const VehicleBookingFormModal: React.FC<Props> = ({
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-28 shrink-0 font-bold">Kendaraan :</span>
-                {record ? (
+                {isLockedFields ? (
                   <span className="font-semibold">{displayVehName}</span>
                 ) : (
                   <select
@@ -244,7 +267,7 @@ export const VehicleBookingFormModal: React.FC<Props> = ({
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-28 shrink-0 font-bold">KM Awal :</span>
-                {record ? (
+                {isLockedFields ? (
                   <span className="font-semibold">{initialKm.toLocaleString('id-ID')} KM</span>
                 ) : (
                   <input
@@ -258,7 +281,7 @@ export const VehicleBookingFormModal: React.FC<Props> = ({
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="w-28 shrink-0 font-bold">Parameter Bensin :</span>
-                <FuelGauge value={initialFuel} onChange={setInitialFuel} disabled={!!record} />
+                <FuelGauge value={initialFuel} onChange={setInitialFuel} disabled={isLockedFields} />
               </div>
             </div>
 
@@ -274,7 +297,7 @@ export const VehicleBookingFormModal: React.FC<Props> = ({
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-32 shrink-0 font-bold">Tgl./Jam Pergi :</span>
-                {record ? (
+                {isLockedFields ? (
                   <span className="font-semibold">{departureAt.replace('T', ' ')}</span>
                 ) : (
                   <input
@@ -291,7 +314,7 @@ export const VehicleBookingFormModal: React.FC<Props> = ({
                   <input
                     type="checkbox"
                     checked={purposeType === 'DINAS_KANTOR'}
-                    disabled={!!record}
+                    disabled={isLockedFields}
                     onChange={() => setPurposeType('DINAS_KANTOR')}
                     className="w-3.5 h-3.5 accent-black"
                   />
@@ -301,7 +324,7 @@ export const VehicleBookingFormModal: React.FC<Props> = ({
                   <input
                     type="checkbox"
                     checked={purposeType === 'PRIBADI'}
-                    disabled={!!record}
+                    disabled={isLockedFields}
                     onChange={() => setPurposeType('PRIBADI')}
                     className="w-3.5 h-3.5 accent-black"
                   />
@@ -317,7 +340,7 @@ export const VehicleBookingFormModal: React.FC<Props> = ({
             <textarea
               rows={3}
               value={destination}
-              disabled={!!record}
+              disabled={isLockedFields}
               onChange={(e) => setDestination(e.target.value)}
               placeholder="Tuliskan alamat tujuan & keperluan perjalanan..."
               className="w-full border border-slate-300 p-1.5 text-xs focus:outline-none focus:border-black disabled:bg-transparent disabled:border-transparent"

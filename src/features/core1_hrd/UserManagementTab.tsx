@@ -11,6 +11,7 @@ import {
   X,
   Loader2,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -18,9 +19,11 @@ import {
   createUserManagementUserApi,
   updateUserAccessApi,
   updateUserStatusApi,
+  deleteUserManagementUserApi,
   getUserManagementRolesApi,
   createUserManagementRoleApi,
   updateUserManagementRoleApi,
+  deleteUserManagementRoleApi,
   UserAccountRecord,
   RoleRecord,
 } from '../../services/userManagementService';
@@ -40,14 +43,16 @@ import {
 } from '../../utils/rbacMatrix';
 import { useRBAC } from '../../hooks/useRBAC';
 import { OFFICIAL_DIVISIONS } from '../../types';
+import { ConfirmActionModal } from './ConfirmActionModal';
 
 const asOptions = (data: any, fallback: SelectOption[]): SelectOption[] =>
   Array.isArray(data) && data.length > 0 ? data : fallback;
 
 export const UserManagementTab: React.FC = () => {
   const queryClient = useQueryClient();
-  const { isSuperAdmin, isExecutive, isAdminBidang } = useRBAC();
-  const canManage = isSuperAdmin || isExecutive || isAdminBidang;
+  const { isSuperAdmin, isExecutive, userDivision } = useRBAC();
+  // Matriks Core 1: Khusus divisi HRD (termasuk IT L2/L3), L1_DIREKSI, dan L0_SUPER_ADMIN
+  const canManage = isSuperAdmin || isExecutive || userDivision === 'HRD';
 
   const [subTab, setSubTab] = useState<'users' | 'roles'>('users');
   const [search, setSearch] = useState('');
@@ -84,13 +89,13 @@ export const UserManagementTab: React.FC = () => {
   const [newUser, setNewUser] = useState({
     username: '',
     email: '',
-    firstName: '',
-    lastName: '',
-    password: '',
+    fullName: '',
+    password: 'StMorita123!',
     department: 'HRD',
     userLevel: 'L3_STAFF',
     roleId: '',
-    allowedDivisions: ['HRD'] as string[],
+    departmentAccess: ['HRD'] as string[],
+    createEmployeeProfile: true,
   });
   const [newUserMatrix, setNewUserMatrix] = useState<AccessMatrix>(() =>
     getDefaultAccessMatrix('L3_STAFF', 'HRD')
@@ -111,7 +116,7 @@ export const UserManagementTab: React.FC = () => {
     department: 'HRD',
     userLevel: 'L3_STAFF',
     roleId: '',
-    allowedDivisions: [] as string[],
+    departmentAccess: [] as string[],
   });
   const [accessMatrix, setAccessMatrix] = useState<AccessMatrix>(() =>
     getDefaultAccessMatrix('L3_STAFF', 'HRD')
@@ -120,14 +125,18 @@ export const UserManagementTab: React.FC = () => {
   const openEditAccess = (u: UserAccountRecord) => {
     const dept = u.department || 'HRD';
     const lvl = u.userLevel || 'L3_STAFF';
+    const existingAccess =
+      Array.isArray(u.departmentAccess) && u.departmentAccess.length > 0
+        ? u.departmentAccess
+        : Array.isArray(u.allowedDivisions) && u.allowedDivisions.length > 0
+        ? u.allowedDivisions
+        : [dept];
     setEditingUser(u);
     setAccessForm({
       department: dept,
       userLevel: lvl,
       roleId: u.roleId || '',
-      allowedDivisions: Array.isArray(u.allowedDivisions) && u.allowedDivisions.length > 0
-        ? u.allowedDivisions
-        : [dept],
+      departmentAccess: existingAccess,
     });
     setAccessMatrix(
       Array.isArray(u.customPermissions) && u.customPermissions.length > 0
@@ -152,6 +161,31 @@ export const UserManagementTab: React.FC = () => {
     onSuccess: () => {
       toast.success('Status akun pengguna diperbarui');
       queryClient.invalidateQueries({ queryKey: ['userManagementUsers'] });
+    },
+  });
+
+  // ── Soft Delete User / Role Confirmation ────────────────────────────────
+  const [confirmTarget, setConfirmTarget] = useState<{
+    type: 'user' | 'role';
+    id: string;
+    label: string;
+  } | null>(null);
+
+  const deleteUserMutation = useMutation({
+    mutationFn: deleteUserManagementUserApi,
+    onSuccess: () => {
+      toast.success('Akun pengguna dinonaktifkan (Soft Delete)');
+      queryClient.invalidateQueries({ queryKey: ['userManagementUsers'] });
+      setConfirmTarget(null);
+    },
+  });
+
+  const deleteRoleMutation = useMutation({
+    mutationFn: deleteUserManagementRoleApi,
+    onSuccess: () => {
+      toast.success('Role berhasil dinonaktifkan (Soft Delete)');
+      queryClient.invalidateQueries({ queryKey: ['userManagementRoles'] });
+      setConfirmTarget(null);
     },
   });
 
@@ -203,7 +237,7 @@ export const UserManagementTab: React.FC = () => {
   if (!canManage) {
     return (
       <div className="p-8 text-center rounded-2xl border border-slate-200 bg-white text-slate-500">
-        Manajemen Pengguna hanya dapat diakses oleh Super Admin, Direksi, atau Manager.
+        Manajemen Pengguna hanya dapat diakses oleh Divisi HRD (termasuk IT), Direksi (L1), atau Super Admin (L0).
       </div>
     );
   }
@@ -218,7 +252,6 @@ export const UserManagementTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* Sub-navigation */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200">
         <div className="flex items-center gap-2">
           <button
@@ -266,7 +299,6 @@ export const UserManagementTab: React.FC = () => {
 
       {subTab === 'users' && (
         <>
-          {/* Filter Bar */}
           <div className="bg-white p-3.5 rounded-2xl border border-slate-200 flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[220px]">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -316,7 +348,6 @@ export const UserManagementTab: React.FC = () => {
             </select>
           </div>
 
-          {/* Users Table */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -348,6 +379,7 @@ export const UserManagementTab: React.FC = () => {
                       [u.firstName, u.lastName].filter(Boolean).join(' ') ||
                       u.username;
                     const active = u.isActive !== false;
+                    const divAccess = u.departmentAccess || u.allowedDivisions || [];
                     return (
                       <tr key={u.id} className="hover:bg-slate-50/70">
                         <td className="py-3 px-4">
@@ -360,9 +392,9 @@ export const UserManagementTab: React.FC = () => {
                           <div className="font-semibold text-slate-800">
                             {findOptionLabel(divisions, u.department || '') || u.department || '-'}
                           </div>
-                          {Array.isArray(u.allowedDivisions) && u.allowedDivisions.length > 0 && (
+                          {Array.isArray(divAccess) && divAccess.length > 0 && (
                             <div className="text-xs text-slate-500 mt-0.5">
-                              Akses: {u.allowedDivisions.join(', ')}
+                              Akses: {divAccess.join(', ')}
                             </div>
                           )}
                         </td>
@@ -400,13 +432,28 @@ export const UserManagementTab: React.FC = () => {
                           </button>
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <button
-                            onClick={() => openEditAccess(u)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-violet-100 text-slate-700 hover:text-violet-800 text-xs font-bold cursor-pointer"
-                          >
-                            <Key className="w-3.5 h-3.5" />
-                            <span>Atur Akses</span>
-                          </button>
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => openEditAccess(u)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-violet-100 text-slate-700 hover:text-violet-800 text-xs font-bold cursor-pointer"
+                            >
+                              <Key className="w-3.5 h-3.5" />
+                              <span>Atur Akses</span>
+                            </button>
+                            <button
+                              onClick={() =>
+                                setConfirmTarget({
+                                  type: 'user',
+                                  id: u.id,
+                                  label: displayName,
+                                })
+                              }
+                              className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 cursor-pointer"
+                              title="Nonaktifkan / Hapus Akun"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -437,13 +484,30 @@ export const UserManagementTab: React.FC = () => {
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <h4 className="font-bold text-slate-900 text-base">{role.name}</h4>
-                    <button
-                      onClick={() => openEditRole(role)}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-violet-700 cursor-pointer"
-                      title="Edit Role"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openEditRole(role)}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-violet-700 cursor-pointer"
+                        title="Edit Role"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      {!role.isSystem && (
+                        <button
+                          onClick={() =>
+                            setConfirmTarget({
+                              type: 'role',
+                              id: role.id,
+                              label: role.name,
+                            })
+                          }
+                          className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-500 hover:text-rose-600 cursor-pointer"
+                          title="Hapus Role"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
                     {role.description || 'Tidak ada deskripsi'}
@@ -506,27 +570,18 @@ export const UserManagementTab: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Nama Depan</label>
+                <label className="block font-semibold text-slate-700 mb-1">Nama Lengkap *</label>
                 <input
                   type="text"
-                  value={newUser.firstName}
-                  onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Nama Belakang</label>
-                <input
-                  type="text"
-                  value={newUser.lastName}
-                  onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                  value={newUser.fullName}
+                  onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300"
                 />
               </div>
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Password Awal *</label>
                 <input
-                  type="password"
+                  type="text"
                   value={newUser.password}
                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300"
@@ -541,7 +596,7 @@ export const UserManagementTab: React.FC = () => {
                     setNewUser({
                       ...newUser,
                       department: dept,
-                      allowedDivisions: [dept],
+                      departmentAccess: [dept],
                     });
                     setNewUserMatrix(getDefaultAccessMatrix(newUser.userLevel, dept));
                   }}
@@ -572,26 +627,27 @@ export const UserManagementTab: React.FC = () => {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Role (Opsional)</label>
-                <select
-                  value={newUser.roleId}
-                  onChange={(e) => setNewUser({ ...newUser, roleId: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
-                >
-                  <option value="">-- Otomatis / Default --</option>
-                  {rolesList.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="sm:col-span-2 flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <div>
+                  <div className="font-semibold text-slate-800">Buat Profil Karyawan Otomatis</div>
+                  <div className="text-xs text-slate-500">
+                    Sekaligus membuat data induk karyawan (`create_employee_profile`)
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={newUser.createEmployeeProfile}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, createEmployeeProfile: e.target.checked })
+                  }
+                  className="w-4 h-4 accent-violet-600"
+                />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Divisi yang Diizinkan (Allowed Divisions)
+                Akses Lintas Departemen (`department_access`)
               </label>
               <div className="flex flex-wrap gap-2">
                 {OFFICIAL_DIVISIONS.map((divCode) => (
@@ -601,10 +657,10 @@ export const UserManagementTab: React.FC = () => {
                   >
                     <input
                       type="checkbox"
-                      checked={newUser.allowedDivisions.includes(divCode)}
+                      checked={newUser.departmentAccess.includes(divCode)}
                       onChange={() =>
-                        toggleDivision(newUser.allowedDivisions, divCode, (v) =>
-                          setNewUser({ ...newUser, allowedDivisions: v })
+                        toggleDivision(newUser.departmentAccess, divCode, (v) =>
+                          setNewUser({ ...newUser, departmentAccess: v })
                         )
                       }
                     />
@@ -631,6 +687,7 @@ export const UserManagementTab: React.FC = () => {
                   createUserMutation.mutate({
                     ...newUser,
                     roleId: newUser.roleId || undefined,
+                    allowedDivisions: newUser.departmentAccess,
                     customPermissions: matrixToPermissions(newUserMatrix),
                   })
                 }
@@ -707,7 +764,7 @@ export const UserManagementTab: React.FC = () => {
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Divisi yang Diizinkan
+                Akses Lintas Departemen (`department_access`)
               </label>
               <div className="flex flex-wrap gap-2">
                 {OFFICIAL_DIVISIONS.map((divCode) => (
@@ -717,10 +774,10 @@ export const UserManagementTab: React.FC = () => {
                   >
                     <input
                       type="checkbox"
-                      checked={accessForm.allowedDivisions.includes(divCode)}
+                      checked={accessForm.departmentAccess.includes(divCode)}
                       onChange={() =>
-                        toggleDivision(accessForm.allowedDivisions, divCode, (v) =>
-                          setAccessForm({ ...accessForm, allowedDivisions: v })
+                        toggleDivision(accessForm.departmentAccess, divCode, (v) =>
+                          setAccessForm({ ...accessForm, departmentAccess: v })
                         )
                       }
                     />
@@ -749,6 +806,7 @@ export const UserManagementTab: React.FC = () => {
                     payload: {
                       ...accessForm,
                       roleId: accessForm.roleId || undefined,
+                      allowedDivisions: accessForm.departmentAccess,
                       customPermissions: matrixToPermissions(accessMatrix),
                     },
                   })
@@ -816,7 +874,24 @@ export const UserManagementTab: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Soft Delete Confirmation */}
+      <ConfirmActionModal
+        open={!!confirmTarget}
+        variant="danger"
+        title={confirmTarget?.type === 'user' ? 'Nonaktifkan Akun Pengguna?' : 'Hapus Role?'}
+        message={`Batalkan / Nonaktifkan ${
+          confirmTarget?.type === 'user' ? 'akun' : 'role'
+        } "${confirmTarget?.label}"? Data akan ditandai nonaktif (Soft Delete) dan tidak muncul di daftar aktif.`}
+        confirmLabel="Ya, Nonaktifkan"
+        loading={deleteUserMutation.isPending || deleteRoleMutation.isPending}
+        onCancel={() => setConfirmTarget(null)}
+        onConfirm={() => {
+          if (!confirmTarget) return;
+          if (confirmTarget.type === 'user') deleteUserMutation.mutate(confirmTarget.id);
+          else deleteRoleMutation.mutate(confirmTarget.id);
+        }}
+      />
     </div>
   );
 };
-

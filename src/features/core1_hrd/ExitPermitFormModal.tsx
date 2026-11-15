@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -6,7 +7,9 @@ import {
   createExitPermitApi,
   ExitPermitRecord,
   ExitPermitType,
+  getMyEmployeeProfileApi,
   printHrdReport,
+  updateExitPermitApi,
 } from '../../services/hrdService';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
@@ -19,6 +22,7 @@ import {
 interface Props {
   open: boolean;
   record?: ExitPermitRecord | null;
+  editMode?: boolean;
   confirmReturnMode?: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -27,12 +31,20 @@ interface Props {
 export const ExitPermitFormModal: React.FC<Props> = ({
   open,
   record,
+  editMode = false,
   confirmReturnMode = false,
   onClose,
   onSuccess,
 }) => {
   const user = useAuthStore((s) => s.user);
-  const isReadOnly = !!record && !confirmReturnMode;
+  const isReadOnly = !!record && !confirmReturnMode && !editMode;
+  const isLockedFields = !!record && !editMode;
+
+  const { data: myProfile } = useQuery({
+    queryKey: ['myEmployeeProfile'],
+    queryFn: getMyEmployeeProfileApi,
+    enabled: open && !record,
+  });
 
   const todayStr = new Date().toISOString().split('T')[0];
   const [permitDate, setPermitDate] = useState(todayStr);
@@ -92,14 +104,20 @@ export const ExitPermitFormModal: React.FC<Props> = ({
     }
     setSubmitting(true);
     try {
-      await createExitPermitApi({
+      const payload = {
         permitDate,
         permitType,
         plannedOutTime: plannedOutTime || undefined,
         plannedReturnTime: plannedReturnTime || undefined,
         reason: reason.trim(),
-      });
-      toast.success('Surat Ijin Meninggalkan Tempat Kerja (RM-HRD-013) dikirim');
+      };
+      if (record && editMode) {
+        await updateExitPermitApi(record.id, payload);
+        toast.success('Surat Ijin (RM-HRD-013) diperbarui');
+      } else {
+        await createExitPermitApi(payload);
+        toast.success('Surat Ijin Meninggalkan Tempat Kerja (RM-HRD-013) dikirim');
+      }
       onSuccess();
       onClose();
     } catch {
@@ -109,9 +127,11 @@ export const ExitPermitFormModal: React.FC<Props> = ({
     }
   };
 
-  const displayName = record?.employeeName || user?.fullName || user?.username || '-';
-  const displayNik = record?.employeeNik || (user as any)?.nik || '-';
-  const displayDept = record?.department || user?.department || '-';
+  const displayName =
+    record?.employeeName || myProfile?.fullName || user?.fullName || user?.username || '-';
+  const displayNik = record?.employeeNik || myProfile?.nik || (user as any)?.nik || '-';
+  const displayDept =
+    record?.department || myProfile?.department || user?.department || '-';
 
   const renderSig = (status?: string, byName?: string, at?: string) => {
     if (!status || status === 'PENDING') {
@@ -161,7 +181,7 @@ export const ExitPermitFormModal: React.FC<Props> = ({
           nik={displayNik}
           department={displayDept}
           dateNode={
-            record ? (
+            isLockedFields ? (
               <span>{permitDate}</span>
             ) : (
               <input
@@ -185,7 +205,7 @@ export const ExitPermitFormModal: React.FC<Props> = ({
                 <input
                   type="checkbox"
                   checked={permitType === 'TERLAMBAT'}
-                  disabled={!!record}
+                  disabled={isLockedFields}
                   onChange={() => setPermitType('TERLAMBAT')}
                   className="w-3.5 h-3.5 accent-black"
                 />
@@ -195,7 +215,7 @@ export const ExitPermitFormModal: React.FC<Props> = ({
                 <input
                   type="checkbox"
                   checked={permitType === 'SAAT_JAM_KERJA'}
-                  disabled={!!record}
+                  disabled={isLockedFields}
                   onChange={() => setPermitType('SAAT_JAM_KERJA')}
                   className="w-3.5 h-3.5 accent-black"
                 />
@@ -214,7 +234,7 @@ export const ExitPermitFormModal: React.FC<Props> = ({
               <input
                 type="time"
                 value={plannedOutTime}
-                disabled={!!record}
+                disabled={isLockedFields}
                 onChange={(e) => setPlannedOutTime(e.target.value)}
                 className="border-b border-black bg-transparent text-xs focus:outline-none disabled:border-transparent"
               />
@@ -227,7 +247,7 @@ export const ExitPermitFormModal: React.FC<Props> = ({
               <input
                 type="time"
                 value={plannedReturnTime}
-                disabled={!!record}
+                disabled={isLockedFields}
                 onChange={(e) => setPlannedReturnTime(e.target.value)}
                 className="border-b border-black bg-transparent text-xs focus:outline-none disabled:border-transparent"
               />
@@ -276,7 +296,7 @@ export const ExitPermitFormModal: React.FC<Props> = ({
               <textarea
                 rows={3}
                 value={reason}
-                disabled={!!record}
+                disabled={isLockedFields}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Tuliskan keperluan meninggalkan tempat kerja..."
                 className="w-full border border-slate-300 p-1.5 text-xs focus:outline-none focus:border-black disabled:bg-transparent disabled:border-transparent"

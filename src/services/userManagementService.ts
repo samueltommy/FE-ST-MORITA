@@ -11,6 +11,7 @@ export interface UserAccountRecord {
   userLevel?: string;
   roleId?: string;
   roleName?: string;
+  departmentAccess?: string[];
   allowedDivisions?: string[];
   customPermissions?: string[];
   isActive?: boolean;
@@ -65,14 +66,17 @@ export async function getUserManagementUsersApi(
 export interface CreateUserAccountPayload {
   username: string;
   email: string;
+  fullName?: string;
   firstName?: string;
   lastName?: string;
   password: string;
   department?: string;
   userLevel: string;
   roleId?: string;
+  departmentAccess?: string[];
   allowedDivisions?: string[];
   customPermissions?: string[];
+  createEmployeeProfile?: boolean;
   employeeId?: string;
 }
 
@@ -87,6 +91,7 @@ export interface UpdateUserAccessPayload {
   department?: string;
   userLevel?: string;
   roleId?: string;
+  departmentAccess?: string[];
   allowedDivisions?: string[];
   customPermissions?: string[];
 }
@@ -95,7 +100,7 @@ export async function updateUserAccessApi(
   userId: string,
   payload: UpdateUserAccessPayload
 ): Promise<UserAccountRecord> {
-  const res = await apiClient.patch(`/user-management/users/${userId}/access`, payload);
+  const res = await apiClient.put(`/user-management/users/${userId}/access`, payload);
   return res.data?.data || res.data;
 }
 
@@ -109,6 +114,10 @@ export async function updateUserStatusApi(
   return res.data?.data || res.data;
 }
 
+export async function deleteUserManagementUserApi(userId: string): Promise<void> {
+  await apiClient.delete(`/user-management/users/${userId}`);
+}
+
 export async function getUserManagementRolesApi(): Promise<RoleRecord[]> {
   const res = await apiClient.get('/user-management/roles');
   const payload = res.data;
@@ -120,6 +129,7 @@ export async function getUserManagementRolesApi(): Promise<RoleRecord[]> {
 }
 
 export interface RoleMutationPayload {
+  id?: string;
   name: string;
   description?: string;
   permissions: string[];
@@ -136,7 +146,10 @@ export async function updateUserManagementRoleApi(
   roleId: string,
   payload: Partial<RoleMutationPayload>
 ): Promise<RoleRecord> {
-  const res = await apiClient.patch(`/user-management/roles/${roleId}`, payload);
+  const res = await apiClient.post('/user-management/roles', { id: roleId, ...payload });
   return res.data?.data || res.data;
 }
 
+export async function deleteUserManagementRoleApi(roleId: string): Promise<void> {
+  await apiClient.delete(`/user-management/roles/${roleId}`);
+}

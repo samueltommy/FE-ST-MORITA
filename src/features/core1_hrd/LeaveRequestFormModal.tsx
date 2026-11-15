@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Upload, Loader2, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   createHrdLeaveRequestApi,
+  getMyEmployeeProfileApi,
   HrdLeaveRequestRecord,
   LeaveCategory,
   LeaveRequestGroup,
   printHrdReport,
   resolveBackendFileUrl,
+  updateHrdLeaveRequestApi,
   uploadEmployeeDocumentApi,
 } from '../../services/hrdService';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -25,14 +28,14 @@ const CUTI_CATEGORIES: {
   fixedDays?: number;
 }[] = [
   { code: 'CUTI_TAHUNAN_PRIBADI', num: 1, label: 'Cuti Tahunan / Pribadi' },
-  { code: 'CUTI_NIKAH_KARYAWAN', num: 2, label: 'Cuti Menikah Karyawan', fixedDays: 3 },
-  { code: 'CUTI_NIKAH_ANAK', num: 3, label: 'Cuti Menikahkan Anak', fixedDays: 2 },
-  { code: 'CUTI_KHITAN_BAPTIS_ANAK', num: 4, label: 'Cuti Mengkhitankan / Membaptis Anak', fixedDays: 2 },
-  { code: 'CUTI_ISTRI_MELAHIRKAN_KEGUGURAN', num: 5, label: 'Cuti Istri Melahirkan / Keguguran', fixedDays: 2 },
-  { code: 'CUTI_KELUARGA_INTI_MENINGGAL', num: 6, label: 'Cuti Suami / Istri, Orang Tua / Mertua, Anak / Menantu Meninggal', fixedDays: 2 },
-  { code: 'CUTI_KELUARGA_SERUMAH_MENINGGAL', num: 7, label: 'Cuti Keluarga Meninggal dalam 1 rumah', fixedDays: 1 },
-  { code: 'CUTI_MELAHIRKAN_KEGUGURAN', num: 8, label: 'Cuti Melahirkan / Keguguran', fixedDays: 90 },
-  { code: 'CUTI_KHUSUS_LAINNYA', num: 9, label: 'Cuti Khusus Lainnya' },
+  { code: 'PERNIKAHAN_KARYAWAN', num: 2, label: 'Pernikahan Karyawan', fixedDays: 3 },
+  { code: 'MENIKAHKAN_ANAK', num: 3, label: 'Menikahkan Anak', fixedDays: 2 },
+  { code: 'OPNAM_KELUARGA', num: 4, label: 'Opnam Keluarga', fixedDays: 2 },
+  { code: 'ISTRI_MELAHIRKAN_KEGUGURAN', num: 5, label: 'Istri Melahirkan / Keguguran', fixedDays: 2 },
+  { code: 'KELUARGA_INTI_MENINGGAL', num: 6, label: 'Keluarga Inti Meninggal', fixedDays: 3 },
+  { code: 'SAUDARA_MENINGGAL', num: 7, label: 'Saudara Meninggal', fixedDays: 2 },
+  { code: 'URUS_KTP_SIM', num: 8, label: 'Mengurus KTP / SIM', fixedDays: 1 },
+  { code: 'KHITANAN_PEMBAPTISAN_ANAK', num: 9, label: 'Khitanan / Pembaptisan Anak', fixedDays: 2 },
 ];
 
 const SAKIT_CATEGORIES: { code: LeaveCategory; num: number; label: string }[] = [
@@ -52,6 +55,7 @@ interface Props {
   open: boolean;
   requestGroup: LeaveRequestGroup;
   record?: HrdLeaveRequestRecord | null;
+  editMode?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -60,11 +64,18 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
   open,
   requestGroup,
   record,
+  editMode = false,
   onClose,
   onSuccess,
 }) => {
   const user = useAuthStore((s) => s.user);
-  const isReadOnly = !!record;
+  const isReadOnly = !!record && !editMode;
+
+  const { data: myProfile } = useQuery({
+    queryKey: ['myEmployeeProfile'],
+    queryFn: getMyEmployeeProfileApi,
+    enabled: open && !record,
+  });
 
   const todayStr = new Date().toISOString().split('T')[0];
   const [leaveCategory, setLeaveCategory] = useState<LeaveCategory>(
@@ -72,7 +83,6 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
   );
   const [startDate, setStartDate] = useState(todayStr);
   const [endDate, setEndDate] = useState(todayStr);
-  const [customDays, setCustomDays] = useState<number>(1);
   const [reason, setReason] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -83,14 +93,12 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
       setLeaveCategory(record.leaveCategory as LeaveCategory);
       setStartDate(record.startDate || todayStr);
       setEndDate(record.endDate || todayStr);
-      setCustomDays(record.customDays || record.totalDays || 1);
       setReason(record.reason || '');
       setAttachmentUrl(record.attachmentUrl || '');
     } else {
       setLeaveCategory(requestGroup === 'CUTI' ? 'CUTI_TAHUNAN_PRIBADI' : 'SAKIT');
       setStartDate(todayStr);
       setEndDate(todayStr);
-      setCustomDays(1);
       setReason('');
       setAttachmentUrl('');
     }
@@ -99,19 +107,26 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
   const selectedCatMeta = CUTI_CATEGORIES.find((c) => c.code === leaveCategory);
 
   const computedDays = useMemo(() => {
-    if (record) return record.totalDays || 0;
-    if (requestGroup === 'CUTI') {
-      if (selectedCatMeta?.fixedDays) return selectedCatMeta.fixedDays;
-      if (leaveCategory === 'CUTI_KHUSUS_LAINNYA') return Math.max(1, customDays || 1);
+    if (record && !editMode) return record.totalDays || 0;
+    if (requestGroup === 'CUTI' && selectedCatMeta?.fixedDays) {
+      return selectedCatMeta.fixedDays;
     }
     return Math.max(1, diffDaysInclusive(startDate, endDate));
-  }, [record, requestGroup, selectedCatMeta, leaveCategory, customDays, startDate, endDate]);
+  }, [record, editMode, requestGroup, selectedCatMeta, startDate, endDate]);
 
-  const annualBefore = record?.annualLeaveBalanceBefore ?? (user as any)?.annualLeaveBalance ?? 12;
+  const annualBefore =
+    record?.annualLeaveBalanceBefore ??
+    myProfile?.sisaCutiAktif ??
+    myProfile?.annualLeaveBalance ??
+    (user as any)?.annualLeaveBalance ??
+    12;
   const isAnnual = leaveCategory === 'CUTI_TAHUNAN_PRIBADI';
   const annualAfter =
-    record?.annualLeaveBalanceAfter ??
-    (isAnnual ? Math.max(0, annualBefore - computedDays) : annualBefore);
+    record && !editMode && record.annualLeaveBalanceAfter !== undefined
+      ? record.annualLeaveBalanceAfter
+      : isAnnual
+      ? Math.max(0, annualBefore - computedDays)
+      : annualBefore;
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -140,21 +155,26 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
     }
     setSubmitting(true);
     try {
-      await createHrdLeaveRequestApi({
+      const payload = {
         requestGroup,
         leaveCategory,
         startDate,
         endDate,
         totalDays: computedDays,
-        customDays: leaveCategory === 'CUTI_KHUSUS_LAINNYA' ? customDays : undefined,
         reason: reason.trim(),
         attachmentUrl: attachmentUrl || undefined,
-      });
-      toast.success(
-        requestGroup === 'CUTI'
-          ? 'Permohonan cuti (RM-HRD-303) berhasil dikirim'
-          : 'Pengajuan sakit / izin berhasil dikirim'
-      );
+      };
+      if (record && editMode) {
+        await updateHrdLeaveRequestApi(record.id, payload);
+        toast.success('Pengajuan berhasil diperbarui');
+      } else {
+        await createHrdLeaveRequestApi(payload);
+        toast.success(
+          requestGroup === 'CUTI'
+            ? 'Permohonan cuti (RM-HRD-303) berhasil dikirim'
+            : 'Pengajuan sakit / izin berhasil dikirim'
+        );
+      }
       onSuccess();
       onClose();
     } catch {
@@ -189,9 +209,11 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
     );
   };
 
-  const displayName = record?.employeeName || user?.fullName || user?.username || '-';
-  const displayNik = record?.employeeNik || (user as any)?.nik || '-';
-  const displayDept = record?.department || user?.department || '-';
+  const displayName =
+    record?.employeeName || myProfile?.fullName || user?.fullName || user?.username || '-';
+  const displayNik = record?.employeeNik || myProfile?.nik || (user as any)?.nik || '-';
+  const displayDept =
+    record?.department || myProfile?.department || user?.department || '-';
   const displayReqDate = record?.requestDate?.slice(0, 10) || todayStr;
 
   return (
@@ -236,7 +258,6 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
 
         {/* Main Boxed Table */}
         <div className="border border-black text-xs">
-          {/* JENIS CUTI / JENIS IZIN */}
           <div className="grid grid-cols-12 border-b border-black">
             <div className="col-span-3 border-r border-black px-2 py-2 font-bold bg-slate-50">
               {requestGroup === 'CUTI' ? 'JENIS CUTI' : 'JENIS PENGAJUAN'}
@@ -264,27 +285,7 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
                           <span className={checked ? 'font-bold' : ''}>{cat.label}</span>
                         </div>
                         <div className="shrink-0 font-semibold text-right min-w-[74px]">
-                          {cat.fixedDays ? (
-                            <span>{cat.fixedDays} Hari</span>
-                          ) : cat.code === 'CUTI_KHUSUS_LAINNYA' ? (
-                            <span className="inline-flex items-center gap-1">
-                              {isReadOnly ? (
-                                <span>{checked ? computedDays : '____'}</span>
-                              ) : (
-                                <input
-                                  type="number"
-                                  min={1}
-                                  disabled={!checked}
-                                  value={checked ? customDays : ''}
-                                  onChange={(e) => setCustomDays(Number(e.target.value) || 1)}
-                                  className="w-11 border-b border-black text-center px-1 py-0 text-xs focus:outline-none disabled:bg-transparent"
-                                />
-                              )}
-                              <span>Hari</span>
-                            </span>
-                          ) : (
-                            <span>&nbsp;</span>
-                          )}
+                          {cat.fixedDays ? <span>{cat.fixedDays} Hari</span> : <span>Tahunan</span>}
                         </div>
                       </label>
                     );
@@ -313,7 +314,6 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* RENCANA CUTI / PERIODE */}
           <div className="grid grid-cols-12 border-b border-black">
             <div className="col-span-3 border-r border-black px-2 py-1.5 font-bold bg-slate-50 flex items-center">
               {requestGroup === 'CUTI' ? 'RENCANA CUTI' : 'PERIODE TANGGAL'}
@@ -337,7 +337,6 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* JUMLAH HARI */}
           <div className="grid grid-cols-12 border-b border-black">
             <div className="col-span-3 border-r border-black px-2 py-1.5 font-bold bg-slate-50">
               JUMLAH HARI
@@ -358,7 +357,6 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
             )}
           </div>
 
-          {/* SISA CUTI (Khusus Cuti) */}
           {requestGroup === 'CUTI' && (
             <div className="grid grid-cols-12 border-b border-black">
               <div className="col-span-3 border-r border-black px-2 py-1.5 font-bold bg-slate-50">
@@ -377,7 +375,6 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
             </div>
           )}
 
-          {/* KEPERLUAN / ALASAN & LAMPIRAN */}
           <div className="grid grid-cols-12 border-b border-black">
             <div className="col-span-3 border-r border-black px-2 py-2 font-bold bg-slate-50">
               {requestGroup === 'CUTI'
@@ -423,7 +420,6 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* 6-Column Signature Box */}
           <div className="grid grid-cols-6 divide-x divide-black text-center">
             <div className="font-bold py-1 border-b border-black bg-slate-50">KARYAWAN</div>
             <div className="font-bold py-1 border-b border-black bg-slate-50">ATASAN</div>
@@ -478,7 +474,7 @@ export const LeaveRequestFormModal: React.FC<Props> = ({
               disabled={submitting || uploading}
               className="px-5 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white text-xs font-bold disabled:opacity-50 cursor-pointer"
             >
-              {submitting ? 'Mengirim...' : 'Kirim Pengajuan'}
+              {submitting ? 'Menyimpan...' : editMode ? 'Simpan Perubahan' : 'Kirim Pengajuan'}
             </button>
           )}
         </div>

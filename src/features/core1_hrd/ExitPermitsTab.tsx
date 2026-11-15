@@ -9,33 +9,41 @@ import {
   Eye,
   RotateCcw,
   Loader2,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   approveExitPermitHrdApi,
   approveExitPermitSupervisorApi,
+  deleteExitPermitApi,
   ExitPermitRecord,
   getExitPermitsApi,
   printHrdReport,
 } from '../../services/hrdService';
 import { useRBAC } from '../../hooks/useRBAC';
 import { ExitPermitFormModal } from './ExitPermitFormModal';
+import { ConfirmActionModal } from './ConfirmActionModal';
 
 export const ExitPermitsTab: React.FC = () => {
   const queryClient = useQueryClient();
-  const { isSuperAdmin, isExecutive, isAdminBidang, userDivision, hasPermission } = useRBAC();
+  const { isSuperAdmin, isExecutive, isAdminBidang, userDivision } = useRBAC();
 
-  const canApproveSupervisor =
-    isSuperAdmin || isExecutive || isAdminBidang || hasPermission('hrd:leave:approve');
-  const canApproveHrd =
-    isSuperAdmin || isExecutive || userDivision === 'HRD' || hasPermission('hrd:leave:approve');
+  const canApproveSupervisor = isSuperAdmin || isExecutive || isAdminBidang;
+  const canApproveHrd = isSuperAdmin || isExecutive || userDivision === 'HRD';
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState<ExitPermitRecord | null>(null);
+  const [editMode, setEditMode] = useState(false);
   const [confirmReturnMode, setConfirmReturnMode] = useState(false);
+
+  const [confirmState, setConfirmState] = useState<{
+    type: 'sup_approve' | 'sup_reject' | 'hrd_approve' | 'hrd_reject' | 'delete';
+    row: ExitPermitRecord;
+  } | null>(null);
 
   const { data: list = [], isLoading } = useQuery({
     queryKey: ['hrdExitPermits', typeFilter, statusFilter, search],
@@ -55,6 +63,7 @@ export const ExitPermitsTab: React.FC = () => {
     onSuccess: () => {
       toast.success('Persetujuan Atasan diproses');
       refresh();
+      setConfirmState(null);
     },
   });
 
@@ -64,6 +73,16 @@ export const ExitPermitsTab: React.FC = () => {
     onSuccess: () => {
       toast.success('Persetujuan HRD diproses');
       refresh();
+      setConfirmState(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteExitPermitApi(id),
+    onSuccess: () => {
+      toast.success('Surat ijin berhasil dibatalkan (Soft Delete)');
+      refresh();
+      setConfirmState(null);
     },
   });
 
@@ -107,6 +126,7 @@ export const ExitPermitsTab: React.FC = () => {
         <button
           onClick={() => {
             setSelected(null);
+            setEditMode(false);
             setConfirmReturnMode(false);
             setModalOpen(true);
           }}
@@ -149,6 +169,7 @@ export const ExitPermitsTab: React.FC = () => {
                   row.supervisorStatus === 'APPROVED' &&
                   (!row.hrdStatus || row.hrdStatus === 'PENDING');
                 const canReturn = row.status === 'APPROVED' && !row.returnConfirmed;
+                const isPendingEditable = (row.status || '').startsWith('PENDING');
 
                 return (
                   <tr key={row.id} className="hover:bg-slate-50/70">
@@ -188,6 +209,7 @@ export const ExitPermitsTab: React.FC = () => {
                         <button
                           onClick={() => {
                             setSelected(row);
+                            setEditMode(false);
                             setConfirmReturnMode(false);
                             setModalOpen(true);
                           }}
@@ -196,16 +218,40 @@ export const ExitPermitsTab: React.FC = () => {
                           <Eye className="w-3.5 h-3.5" /> Form
                         </button>
 
+                        {isPendingEditable && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setSelected(row);
+                                setEditMode(true);
+                                setConfirmReturnMode(false);
+                                setModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 cursor-pointer"
+                              title="Edit Surat Ijin"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setConfirmState({ type: 'delete', row })}
+                              className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 cursor-pointer"
+                              title="Batalkan / Hapus"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+
                         {canApproveSupervisor && supPending && (
                           <>
                             <button
-                              onClick={() => supMutation.mutate({ id: row.id, action: 'APPROVE' })}
+                              onClick={() => setConfirmState({ type: 'sup_approve', row })}
                               className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" /> Acc Atasan
                             </button>
                             <button
-                              onClick={() => supMutation.mutate({ id: row.id, action: 'REJECT' })}
+                              onClick={() => setConfirmState({ type: 'sup_reject', row })}
                               className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                             >
                               <XCircle className="w-3.5 h-3.5" /> Tolak
@@ -216,13 +262,13 @@ export const ExitPermitsTab: React.FC = () => {
                         {canApproveHrd && hrdPending && (
                           <>
                             <button
-                              onClick={() => hrdMutation.mutate({ id: row.id, action: 'APPROVE' })}
+                              onClick={() => setConfirmState({ type: 'hrd_approve', row })}
                               className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" /> Acc HRD
                             </button>
                             <button
-                              onClick={() => hrdMutation.mutate({ id: row.id, action: 'REJECT' })}
+                              onClick={() => setConfirmState({ type: 'hrd_reject', row })}
                               className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                             >
                               <XCircle className="w-3.5 h-3.5" /> Tolak
@@ -234,6 +280,7 @@ export const ExitPermitsTab: React.FC = () => {
                           <button
                             onClick={() => {
                               setSelected(row);
+                              setEditMode(false);
                               setConfirmReturnMode(true);
                               setModalOpen(true);
                             }}
@@ -266,11 +313,49 @@ export const ExitPermitsTab: React.FC = () => {
       <ExitPermitFormModal
         open={modalOpen}
         record={selected}
+        editMode={editMode}
         confirmReturnMode={confirmReturnMode}
         onClose={() => setModalOpen(false)}
         onSuccess={refresh}
       />
+
+      <ConfirmActionModal
+        open={!!confirmState}
+        variant={
+          confirmState?.type === 'delete' ||
+          confirmState?.type === 'sup_reject' ||
+          confirmState?.type === 'hrd_reject'
+            ? 'danger'
+            : 'success'
+        }
+        title={
+          confirmState?.type === 'delete'
+            ? 'Batalkan Surat Ijin?'
+            : confirmState?.type?.includes('reject')
+            ? 'Tolak Surat Ijin?'
+            : 'Konfirmasi Persetujuan'
+        }
+        message={
+          confirmState?.type === 'delete'
+            ? `Batalkan / Nonaktifkan surat ijin milik ${confirmState.row.employeeName || 'karyawan'} ini?`
+            : `Lanjutkan proses aksi pada surat ijin milik ${confirmState?.row.employeeName || 'karyawan'}?`
+        }
+        loading={supMutation.isPending || hrdMutation.isPending || deleteMutation.isPending}
+        onCancel={() => setConfirmState(null)}
+        onConfirm={() => {
+          if (!confirmState) return;
+          const id = confirmState.row.id;
+          if (confirmState.type === 'delete') deleteMutation.mutate(id);
+          else if (confirmState.type === 'sup_approve')
+            supMutation.mutate({ id, action: 'APPROVE' });
+          else if (confirmState.type === 'sup_reject')
+            supMutation.mutate({ id, action: 'REJECT' });
+          else if (confirmState.type === 'hrd_approve')
+            hrdMutation.mutate({ id, action: 'APPROVE' });
+          else if (confirmState.type === 'hrd_reject')
+            hrdMutation.mutate({ id, action: 'REJECT' });
+        }}
+      />
     </div>
   );
 };
-

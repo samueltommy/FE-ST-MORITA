@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Upload, Loader2, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   createOutOfTownVisitApi,
+  getMyEmployeeProfileApi,
   OutOfTownVisitRecord,
   printHrdReport,
   resolveBackendFileUrl,
+  updateOutOfTownVisitApi,
   uploadEmployeeDocumentApi,
   VehicleBookingRecord,
 } from '../../services/hrdService';
@@ -27,6 +30,7 @@ const formatIdr = (val: number) =>
 interface Props {
   open: boolean;
   record?: OutOfTownVisitRecord | null;
+  editMode?: boolean;
   vehicleBookings: VehicleBookingRecord[];
   onClose: () => void;
   onSuccess: () => void;
@@ -35,18 +39,27 @@ interface Props {
 export const OutOfTownVisitFormModal: React.FC<Props> = ({
   open,
   record,
+  editMode = false,
   vehicleBookings,
   onClose,
   onSuccess,
 }) => {
   const user = useAuthStore((s) => s.user);
-  const isReadOnly = !!record;
+  const isReadOnly = !!record && !editMode;
   const todayStr = new Date().toISOString().split('T')[0];
 
+  const { data: myProfile } = useQuery({
+    queryKey: ['myEmployeeProfile'],
+    queryFn: getMyEmployeeProfileApi,
+    enabled: open && !record,
+  });
+
   const [destinationCity, setDestinationCity] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [purpose, setPurpose] = useState('');
   const [departureDate, setDepartureDate] = useState(todayStr);
   const [returnDate, setReturnDate] = useState(todayStr);
+  const [transportMode, setTransportMode] = useState('Mobil Kantor');
   const [vehicleBookingId, setVehicleBookingId] = useState('');
   const [transportCost, setTransportCost] = useState(0);
   const [lodgingCost, setLodgingCost] = useState(0);
@@ -60,9 +73,11 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
   useEffect(() => {
     if (record) {
       setDestinationCity(record.destinationCity || '');
+      setCustomerName(record.customerName || '');
       setPurpose(record.purpose || '');
       setDepartureDate(record.departureDate?.slice(0, 10) || todayStr);
       setReturnDate(record.returnDate?.slice(0, 10) || todayStr);
+      setTransportMode(record.transportMode || 'Mobil Kantor');
       setVehicleBookingId(record.vehicleBookingId || '');
       setTransportCost(record.transportCost || 0);
       setLodgingCost(record.lodgingCost || 0);
@@ -72,9 +87,11 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
       setNotes(record.notes || '');
     } else {
       setDestinationCity('');
+      setCustomerName('');
       setPurpose('');
       setDepartureDate(todayStr);
       setReturnDate(todayStr);
+      setTransportMode('Mobil Kantor');
       setVehicleBookingId('');
       setTransportCost(0);
       setLodgingCost(0);
@@ -87,12 +104,13 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
 
   const totalCost = useMemo(
     () =>
-      record?.totalEstimatedCost ??
-      (Number(transportCost) || 0) +
-        (Number(lodgingCost) || 0) +
-        (Number(mealCost) || 0) +
-        (Number(otherCost) || 0),
-    [record, transportCost, lodgingCost, mealCost, otherCost]
+      !editMode && record?.totalEstimatedCost !== undefined
+        ? record.totalEstimatedCost
+        : (Number(transportCost) || 0) +
+          (Number(lodgingCost) || 0) +
+          (Number(mealCost) || 0) +
+          (Number(otherCost) || 0),
+    [record, editMode, transportCost, lodgingCost, mealCost, otherCost]
   );
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,11 +136,13 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
     }
     setSubmitting(true);
     try {
-      await createOutOfTownVisitApi({
+      const payload = {
         destinationCity: destinationCity.trim(),
+        customerName: customerName.trim() || undefined,
         purpose: purpose.trim(),
         departureDate,
         returnDate,
+        transportMode: transportMode || undefined,
         vehicleBookingId: vehicleBookingId || undefined,
         transportCost: Number(transportCost) || 0,
         lodgingCost: Number(lodgingCost) || 0,
@@ -130,8 +150,14 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
         otherCost: Number(otherCost) || 0,
         attachmentUrl: attachmentUrl || undefined,
         notes: notes || undefined,
-      });
-      toast.success('Pengajuan Visit Luar Kota berhasil dikirim');
+      };
+      if (record && editMode) {
+        await updateOutOfTownVisitApi(record.id, payload);
+        toast.success('Pengajuan Visit Luar Kota diperbarui');
+      } else {
+        await createOutOfTownVisitApi(payload);
+        toast.success('Pengajuan Visit Luar Kota berhasil dikirim');
+      }
       onSuccess();
       onClose();
     } catch {
@@ -141,9 +167,11 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
     }
   };
 
-  const displayName = record?.employeeName || user?.fullName || user?.username || '-';
-  const displayNik = record?.employeeNik || (user as any)?.nik || '-';
-  const displayDept = record?.department || user?.department || '-';
+  const displayName =
+    record?.employeeName || myProfile?.fullName || user?.fullName || user?.username || '-';
+  const displayNik = record?.employeeNik || myProfile?.nik || (user as any)?.nik || '-';
+  const displayDept =
+    record?.department || myProfile?.department || user?.department || '-';
   const displayDate = record?.createdAt?.slice(0, 10) || todayStr;
 
   const renderSig = (status?: string, byName?: string, at?: string) => {
@@ -193,29 +221,40 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
         />
 
         <div className="border border-black text-xs">
-          {/* Kota Tujuan */}
           <div className="grid grid-cols-12 border-b border-black">
             <div className="col-span-3 border-r border-black px-2 py-1.5 font-bold bg-slate-50 flex items-center">
               KOTA TUJUAN
             </div>
-            <div className="col-span-9 px-2 py-1.5">
+            <div className="col-span-4 border-r border-black px-2 py-1.5">
               <input
                 type="text"
                 value={destinationCity}
                 disabled={isReadOnly}
                 onChange={(e) => setDestinationCity(e.target.value)}
-                placeholder="cth: Surabaya / Semarang / Bandung"
+                placeholder="cth: Surabaya / Bandung"
                 className="w-full border-b border-black bg-transparent py-0.5 text-xs focus:outline-none disabled:border-transparent font-semibold"
+              />
+            </div>
+            <div className="col-span-2 border-r border-black px-2 py-1.5 font-bold bg-slate-50 flex items-center">
+              CUSTOMER / INSTANSI
+            </div>
+            <div className="col-span-3 px-2 py-1.5">
+              <input
+                type="text"
+                value={customerName}
+                disabled={isReadOnly}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Nama PT / RS / Klinik"
+                className="w-full border-b border-black bg-transparent py-0.5 text-xs focus:outline-none disabled:border-transparent"
               />
             </div>
           </div>
 
-          {/* Periode Dinas */}
           <div className="grid grid-cols-12 border-b border-black">
             <div className="col-span-3 border-r border-black px-2 py-1.5 font-bold bg-slate-50 flex items-center">
               PERIODE DINAS
             </div>
-            <div className="col-span-9 px-2 py-1.5 flex flex-wrap items-center gap-2">
+            <div className="col-span-4 border-r border-black px-2 py-1.5 flex flex-wrap items-center gap-1.5">
               <input
                 type="date"
                 value={departureDate}
@@ -232,9 +271,25 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
                 className="border-b border-black bg-transparent px-1 py-0.5 text-xs disabled:border-transparent"
               />
             </div>
+            <div className="col-span-2 border-r border-black px-2 py-1.5 font-bold bg-slate-50 flex items-center">
+              TRANSPORTASI
+            </div>
+            <div className="col-span-3 px-2 py-1.5">
+              <select
+                value={transportMode}
+                disabled={isReadOnly}
+                onChange={(e) => setTransportMode(e.target.value)}
+                className="w-full border-b border-black bg-transparent py-0.5 text-xs focus:outline-none disabled:border-transparent"
+              >
+                <option value="Mobil Kantor">Mobil Kantor</option>
+                <option value="Kereta Api">Kereta Api</option>
+                <option value="Pesawat">Pesawat</option>
+                <option value="Bus / Travel">Bus / Travel</option>
+                <option value="Kendaraan Pribadi">Kendaraan Pribadi</option>
+              </select>
+            </div>
           </div>
 
-          {/* Kendaraan Kantor */}
           <div className="grid grid-cols-12 border-b border-black">
             <div className="col-span-3 border-r border-black px-2 py-1.5 font-bold bg-slate-50 flex items-center">
               KENDARAAN KANTOR
@@ -256,7 +311,6 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Tujuan / Keperluan */}
           <div className="grid grid-cols-12 border-b border-black">
             <div className="col-span-3 border-r border-black px-2 py-2 font-bold bg-slate-50">
               TUJUAN / KEPERLUAN
@@ -296,7 +350,6 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Rincian Estimasi Biaya */}
           <div className="grid grid-cols-12 border-b border-black">
             <div className="col-span-3 border-r border-black px-2 py-2 font-bold bg-slate-50">
               ESTIMASI BIAYA (IDR)
@@ -369,7 +422,6 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* 3-Column Signature Table: PEMOHON | HRD | FA / ACC */}
           <div className="grid grid-cols-3 divide-x divide-black text-center">
             <div className="py-1 border-b border-black font-bold bg-slate-50">PEMOHON</div>
             <div className="py-1 border-b border-black font-bold bg-slate-50">HRD</div>
@@ -408,7 +460,7 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
               disabled={submitting || uploading}
               className="px-5 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white text-xs font-bold disabled:opacity-50 cursor-pointer"
             >
-              {submitting ? 'Mengirim...' : 'Kirim Pengajuan'}
+              {submitting ? 'Menyimpan...' : editMode ? 'Simpan Perubahan' : 'Kirim Pengajuan'}
             </button>
           )}
         </div>
@@ -416,4 +468,3 @@ export const OutOfTownVisitFormModal: React.FC<Props> = ({
     </PaperFormModal>
   );
 };
-

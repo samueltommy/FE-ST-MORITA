@@ -33,6 +33,7 @@ import { LeaveAndSickTab } from './LeaveAndSickTab';
 import { ExitPermitsTab } from './ExitPermitsTab';
 import { VehiclesAndBookingsTab } from './VehiclesAndBookingsTab';
 import { OutOfTownVisitsTab } from './OutOfTownVisitsTab';
+import { MyEmployeeProfileView } from './MyEmployeeProfileView';
 import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
 import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
 import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
@@ -131,9 +132,9 @@ export const HrdModule: React.FC = () => {
   const [viewUserDetail, setViewUserDetail] = useState<any>(null);
 
   const currentUser = useAppStore((state) => state.currentUser);
-  const { isSuperAdmin, isExecutive, isAdminBidang, hasPermission } = useRBAC();
-  const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
-  const canManageUsersTab = isSuperAdmin || isExecutive || isAdminBidang;
+  const { isSuperAdmin, isExecutive, userDivision, hasPermission } = useRBAC();
+  const isHrdAdmin = isSuperAdmin || isExecutive || userDivision === 'HRD' || hasPermission('hrd:employee:read');
+  const canManageUsersTab = isSuperAdmin || isExecutive || userDivision === 'HRD';
 
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [formModalTab, setFormModalTab] = useState<'leave' | 'vehicle' | 'visit' | 'employee'>('leave');
@@ -179,16 +180,14 @@ export const HrdModule: React.FC = () => {
           },
         ]
       : []),
-    ...(isHrdAdmin
-      ? [
-          {
-            id: 'employees',
-            label: 'Database Karyawan',
-            subtitle: '/hrd/employees â€¢ 17 grup profil & berkas',
-            icon: Users,
-          },
-        ]
-      : []),
+    {
+      id: 'employees',
+      label: isHrdAdmin ? 'Database Karyawan' : 'Profil & Sisa Cuti Saya',
+      subtitle: isHrdAdmin
+        ? '/hrd/employees • 17 grup profil & berkas'
+        : '/hrd/employees/me • Profil pribadi & sisa cuti aktif',
+      icon: Users,
+    },
     {
       id: 'cuti',
       label: 'Pengajuan Cuti (RM-HRD-303)',
@@ -240,20 +239,18 @@ export const HrdModule: React.FC = () => {
             },
           ]
         : []),
-      ...(isHrdAdmin
-        ? [
-            {
-              id: 'employees',
-              label: 'Database Karyawan (/hrd/employees)',
-              subtitle: 'Direktori data induk karyawan, 17 grup profil lengkap & berkas KTP/KK/NPWP/Ijazah',
-              icon: Users,
-              iconColor: 'text-purple-600',
-              badge: '17 Field Group',
-              badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
-              onClick: () => appStore.setActiveSubFeature('hrd', 'employees'),
-            },
-          ]
-        : []),
+      {
+        id: 'employees',
+        label: isHrdAdmin ? 'Database Karyawan (/hrd/employees)' : 'Profil & Sisa Cuti Saya (/hrd/employees/me)',
+        subtitle: isHrdAdmin
+          ? 'Direktori data induk karyawan, 17 grup profil lengkap & berkas KTP/KK/NPWP/Ijazah'
+          : 'Lihat profil kepegawaian dan sisa kuota cuti tahunan Anda',
+        icon: Users,
+        iconColor: 'text-purple-600',
+        badge: isHrdAdmin ? '17 Field Group' : 'Profil Saya',
+        badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
+        onClick: () => appStore.setActiveSubFeature('hrd', 'employees'),
+      },
       {
         id: 'cuti',
         label: 'Pengajuan Cuti â€” Form RM-HRD-303',
@@ -347,7 +344,9 @@ export const HrdModule: React.FC = () => {
 
       {currentTab === 'user_management' && <UserManagementTab />}
 
-      {currentTab === 'employees' && <UserManagementModule hideHeader={true} />}
+      {currentTab === 'employees' && (
+        isHrdAdmin ? <UserManagementModule hideHeader={true} /> : <MyEmployeeProfileView />
+      )}
 
       {currentTab === 'cuti' && <LeaveAndSickTab requestGroup="CUTI" />}
 

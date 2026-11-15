@@ -10,6 +10,8 @@ import {
   RotateCcw,
   Loader2,
   ExternalLink,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -17,6 +19,7 @@ import {
   approveHrdLeaveSupervisorApi,
   approveHrdLeaveHrdApi,
   confirmHrdLeaveReturnApi,
+  deleteHrdLeaveRequestApi,
   printHrdReport,
   resolveBackendFileUrl,
   HrdLeaveRequestRecord,
@@ -24,6 +27,7 @@ import {
 } from '../../services/hrdService';
 import { useRBAC } from '../../hooks/useRBAC';
 import { LeaveRequestFormModal } from './LeaveRequestFormModal';
+import { ConfirmActionModal } from './ConfirmActionModal';
 
 interface Props {
   requestGroup: LeaveRequestGroup;
@@ -31,17 +35,21 @@ interface Props {
 
 export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
   const queryClient = useQueryClient();
-  const { isSuperAdmin, isExecutive, isAdminBidang, userDivision, hasPermission } = useRBAC();
+  const { isSuperAdmin, isExecutive, isAdminBidang, userDivision } = useRBAC();
 
-  const canApproveSupervisor =
-    isSuperAdmin || isExecutive || isAdminBidang || hasPermission('hrd:leave:approve');
-  const canApproveHrd =
-    isSuperAdmin || isExecutive || userDivision === 'HRD' || hasPermission('hrd:leave:approve');
+  const canApproveSupervisor = isSuperAdmin || isExecutive || isAdminBidang;
+  const canApproveHrd = isSuperAdmin || isExecutive || userDivision === 'HRD';
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<HrdLeaveRequestRecord | null>(null);
+  const [editMode, setEditMode] = useState(false);
+
+  const [confirmState, setConfirmState] = useState<{
+    type: 'sup_approve' | 'sup_reject' | 'hrd_approve' | 'hrd_reject' | 'return' | 'delete';
+    row: HrdLeaveRequestRecord;
+  } | null>(null);
 
   const { data: list = [], isLoading } = useQuery({
     queryKey: ['hrdLeaveRequests', requestGroup, statusFilter, search],
@@ -55,6 +63,7 @@ export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['hrdLeaveRequests'] });
+    queryClient.invalidateQueries({ queryKey: ['myEmployeeProfile'] });
   };
 
   const supMutation = useMutation({
@@ -63,6 +72,7 @@ export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
     onSuccess: () => {
       toast.success('Persetujuan Atasan berhasil diproses');
       refresh();
+      setConfirmState(null);
     },
   });
 
@@ -72,6 +82,7 @@ export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
     onSuccess: () => {
       toast.success('Persetujuan HRD berhasil diproses');
       refresh();
+      setConfirmState(null);
     },
   });
 
@@ -80,6 +91,16 @@ export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
     onSuccess: () => {
       toast.success('Konfirmasi kembali bekerja berhasil');
       refresh();
+      setConfirmState(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteHrdLeaveRequestApi(id),
+    onSuccess: () => {
+      toast.success('Pengajuan berhasil dibatalkan (Soft Delete)');
+      refresh();
+      setConfirmState(null);
     },
   });
 
@@ -151,6 +172,7 @@ export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
         <button
           onClick={() => {
             setSelectedRecord(null);
+            setEditMode(false);
             setModalOpen(true);
           }}
           className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold flex items-center gap-2 cursor-pointer"
@@ -188,13 +210,12 @@ export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
               </tr>
             ) : (
               list.map((row) => {
-                const supPending =
-                  !row.supervisorStatus || row.supervisorStatus === 'PENDING';
+                const supPending = !row.supervisorStatus || row.supervisorStatus === 'PENDING';
                 const hrdPending =
                   row.supervisorStatus === 'APPROVED' &&
                   (!row.hrdStatus || row.hrdStatus === 'PENDING');
-                const canReturn =
-                  row.status === 'APPROVED' && !row.returnConfirmed;
+                const canReturn = row.status === 'APPROVED' && !row.returnConfirmed;
+                const isPendingEditable = (row.status || '').startsWith('PENDING');
 
                 return (
                   <tr key={row.id} className="hover:bg-slate-50/70">
@@ -239,6 +260,7 @@ export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
                         <button
                           onClick={() => {
                             setSelectedRecord(row);
+                            setEditMode(false);
                             setModalOpen(true);
                           }}
                           className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
@@ -247,16 +269,39 @@ export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
                           <Eye className="w-3.5 h-3.5" /> Form
                         </button>
 
+                        {isPendingEditable && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setSelectedRecord(row);
+                                setEditMode(true);
+                                setModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 cursor-pointer"
+                              title="Edit Pengajuan"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setConfirmState({ type: 'delete', row })}
+                              className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 cursor-pointer"
+                              title="Batalkan / Hapus Pengajuan"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+
                         {canApproveSupervisor && supPending && (
                           <>
                             <button
-                              onClick={() => supMutation.mutate({ id: row.id, action: 'APPROVE' })}
+                              onClick={() => setConfirmState({ type: 'sup_approve', row })}
                               className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" /> Acc Atasan
                             </button>
                             <button
-                              onClick={() => supMutation.mutate({ id: row.id, action: 'REJECT' })}
+                              onClick={() => setConfirmState({ type: 'sup_reject', row })}
                               className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                             >
                               <XCircle className="w-3.5 h-3.5" /> Tolak
@@ -267,13 +312,13 @@ export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
                         {canApproveHrd && hrdPending && (
                           <>
                             <button
-                              onClick={() => hrdMutation.mutate({ id: row.id, action: 'APPROVE' })}
+                              onClick={() => setConfirmState({ type: 'hrd_approve', row })}
                               className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" /> Acc HRD
                             </button>
                             <button
-                              onClick={() => hrdMutation.mutate({ id: row.id, action: 'REJECT' })}
+                              onClick={() => setConfirmState({ type: 'hrd_reject', row })}
                               className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                             >
                               <XCircle className="w-3.5 h-3.5" /> Tolak
@@ -283,7 +328,7 @@ export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
 
                         {canApproveHrd && canReturn && (
                           <button
-                            onClick={() => returnMutation.mutate(row.id)}
+                            onClick={() => setConfirmState({ type: 'return', row })}
                             className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                           >
                             <RotateCcw className="w-3.5 h-3.5" /> Kembali Kerja
@@ -315,10 +360,54 @@ export const LeaveAndSickTab: React.FC<Props> = ({ requestGroup }) => {
         open={modalOpen}
         requestGroup={requestGroup}
         record={selectedRecord}
+        editMode={editMode}
         onClose={() => setModalOpen(false)}
         onSuccess={refresh}
+      />
+
+      <ConfirmActionModal
+        open={!!confirmState}
+        variant={
+          confirmState?.type === 'delete' ||
+          confirmState?.type === 'sup_reject' ||
+          confirmState?.type === 'hrd_reject'
+            ? 'danger'
+            : 'success'
+        }
+        title={
+          confirmState?.type === 'delete'
+            ? 'Batalkan Pengajuan?'
+            : confirmState?.type?.includes('reject')
+            ? 'Tolak Pengajuan?'
+            : 'Konfirmasi Persetujuan'
+        }
+        message={
+          confirmState?.type === 'delete'
+            ? `Batalkan / Nonaktifkan pengajuan milik ${confirmState.row.employeeName || 'karyawan'} ini?`
+            : `Lanjutkan proses aksi pada pengajuan milik ${confirmState?.row.employeeName || 'karyawan'}?`
+        }
+        loading={
+          supMutation.isPending ||
+          hrdMutation.isPending ||
+          returnMutation.isPending ||
+          deleteMutation.isPending
+        }
+        onCancel={() => setConfirmState(null)}
+        onConfirm={() => {
+          if (!confirmState) return;
+          const id = confirmState.row.id;
+          if (confirmState.type === 'delete') deleteMutation.mutate(id);
+          else if (confirmState.type === 'sup_approve')
+            supMutation.mutate({ id, action: 'APPROVE' });
+          else if (confirmState.type === 'sup_reject')
+            supMutation.mutate({ id, action: 'REJECT' });
+          else if (confirmState.type === 'hrd_approve')
+            hrdMutation.mutate({ id, action: 'APPROVE' });
+          else if (confirmState.type === 'hrd_reject')
+            hrdMutation.mutate({ id, action: 'REJECT' });
+          else if (confirmState.type === 'return') returnMutation.mutate(id);
+        }}
       />
     </div>
   );
 };
-

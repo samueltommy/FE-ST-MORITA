@@ -1,4 +1,4 @@
-﻿import { apiClient } from '../lib/apiClient';
+import { apiClient } from '../lib/apiClient';
 import type { VehicleBooking, SalesOutdoorVisit } from '../types';
 import type {
   Employee,
@@ -45,7 +45,7 @@ export function resolveBackendFileUrl(fileUrl?: string | null): string | null {
   return `${backendOrigin}${normalizedPath}`;
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ HRD Service Functions Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// HRD Service Functions
 
 /**
  * Get paginated list of employees.
@@ -407,6 +407,35 @@ export async function getAttendanceApi(page: number = 1, limit: number = 10, sta
 // CETAK LAPORAN HTML (/print) DENGAN AUTHORIZATION BEARER TOKEN
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
+export interface MyEmployeeProfile {
+  id: string;
+  nik?: string;
+  fullName?: string;
+  username?: string;
+  email?: string;
+  phone?: string;
+  department?: string;
+  userLevel?: string;
+  roleId?: string;
+  employmentStatus?: string;
+  joinDate?: string;
+  annualLeaveQuota?: number;
+  annualLeaveUsed?: number;
+  annualLeaveBalance?: number;
+  hakCutiTahunan?: number;
+  cutiTerpakai?: number;
+  sisaCutiAktif?: number;
+}
+
+export async function getMyEmployeeProfileApi(): Promise<MyEmployeeProfile | null> {
+  try {
+    const res = await apiClient.get('/hrd/employees/me');
+    return (res.data?.data || res.data || null) as MyEmployeeProfile | null;
+  } catch {
+    return null;
+  }
+}
+
 export async function printHrdReport(path: string): Promise<void> {
   const baseUrl = apiClient.defaults.baseURL || 'http://127.0.0.1:8000/api/v1';
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -450,14 +479,14 @@ export type LeaveRequestGroup = 'CUTI' | 'SAKIT_IZIN';
 
 export type LeaveCategory =
   | 'CUTI_TAHUNAN_PRIBADI'
-  | 'CUTI_NIKAH_KARYAWAN'
-  | 'CUTI_NIKAH_ANAK'
-  | 'CUTI_KHITAN_BAPTIS_ANAK'
-  | 'CUTI_ISTRI_MELAHIRKAN_KEGUGURAN'
-  | 'CUTI_KELUARGA_INTI_MENINGGAL'
-  | 'CUTI_KELUARGA_SERUMAH_MENINGGAL'
-  | 'CUTI_MELAHIRKAN_KEGUGURAN'
-  | 'CUTI_KHUSUS_LAINNYA'
+  | 'PERNIKAHAN_KARYAWAN'
+  | 'MENIKAHKAN_ANAK'
+  | 'OPNAM_KELUARGA'
+  | 'ISTRI_MELAHIRKAN_KEGUGURAN'
+  | 'KELUARGA_INTI_MENINGGAL'
+  | 'SAUDARA_MENINGGAL'
+  | 'URUS_KTP_SIM'
+  | 'KHITANAN_PEMBAPTISAN_ANAK'
   | 'SAKIT'
   | 'IZIN_LAINNYA';
 
@@ -529,8 +558,8 @@ export async function getHrdLeaveRequestsApi(params?: {
   return Array.isArray(payload)
     ? payload
     : Array.isArray(payload?.data)
-    ? payload.data
-    : [];
+      ? payload.data
+      : [];
 }
 
 export async function createHrdLeaveRequestApi(
@@ -538,6 +567,18 @@ export async function createHrdLeaveRequestApi(
 ): Promise<HrdLeaveRequestRecord> {
   const res = await apiClient.post('/hrd/leave-requests', payload);
   return res.data?.data || res.data;
+}
+
+export async function updateHrdLeaveRequestApi(
+  id: string,
+  payload: Partial<CreateHrdLeaveRequestPayload>
+): Promise<HrdLeaveRequestRecord> {
+  const res = await apiClient.put(`/hrd/leave-requests/${id}`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function deleteHrdLeaveRequestApi(id: string): Promise<void> {
+  await apiClient.delete(`/hrd/leave-requests/${id}`);
 }
 
 export async function approveHrdLeaveSupervisorApi(
@@ -621,8 +662,8 @@ export async function getExitPermitsApi(params?: {
   return Array.isArray(payload)
     ? payload
     : Array.isArray(payload?.data)
-    ? payload.data
-    : [];
+      ? payload.data
+      : [];
 }
 
 export async function createExitPermitApi(
@@ -630,6 +671,18 @@ export async function createExitPermitApi(
 ): Promise<ExitPermitRecord> {
   const res = await apiClient.post('/hrd/exit-permits', payload);
   return res.data?.data || res.data;
+}
+
+export async function updateExitPermitApi(
+  id: string,
+  payload: Partial<CreateExitPermitPayload>
+): Promise<ExitPermitRecord> {
+  const res = await apiClient.put(`/hrd/exit-permits/${id}`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function deleteExitPermitApi(id: string): Promise<void> {
+  await apiClient.delete(`/hrd/exit-permits/${id}`);
 }
 
 export async function approveExitPermitSupervisorApi(
@@ -716,8 +769,8 @@ export async function getVehiclesApi(params?: {
   return Array.isArray(payload)
     ? payload
     : Array.isArray(payload?.data)
-    ? payload.data
-    : [];
+      ? payload.data
+      : [];
 }
 
 export async function createVehicleApi(payload: {
@@ -758,8 +811,8 @@ export async function getHrdVehicleBookingsApi(params?: {
   return Array.isArray(payload)
     ? payload
     : Array.isArray(payload?.data)
-    ? payload.data
-    : [];
+      ? payload.data
+      : [];
 }
 
 export async function createHrdVehicleBookingApi(payload: {
@@ -774,6 +827,26 @@ export async function createHrdVehicleBookingApi(payload: {
 }): Promise<VehicleBookingRecord> {
   const res = await apiClient.post('/hrd/vehicle-bookings', payload);
   return res.data?.data || res.data;
+}
+
+export async function updateHrdVehicleBookingApi(
+  id: string,
+  payload: Partial<{
+    vehicleId: string;
+    purposeType: VehiclePurposeType;
+    destination: string;
+    departureAt: string;
+    initialKm: number;
+    initialFuel: FuelLevel;
+    notes?: string;
+  }>
+): Promise<VehicleBookingRecord> {
+  const res = await apiClient.put(`/hrd/vehicle-bookings/${id}`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function deleteHrdVehicleBookingApi(id: string): Promise<void> {
+  await apiClient.delete(`/hrd/vehicle-bookings/${id}`);
 }
 
 export async function approveVehicleKabagApi(
@@ -824,9 +897,11 @@ export interface OutOfTownVisitRecord {
   employeeNik?: string;
   department?: string;
   destinationCity: string;
+  customerName?: string;
   purpose: string;
   departureDate: string;
   returnDate: string;
+  transportMode?: string;
   vehicleBookingId?: string;
   transportCost: number;
   lodgingCost: number;
@@ -860,16 +935,18 @@ export async function getOutOfTownVisitsApi(params?: {
   return Array.isArray(payload)
     ? payload
     : Array.isArray(payload?.data)
-    ? payload.data
-    : [];
+      ? payload.data
+      : [];
 }
 
-export async function createOutOfTownVisitApi(payload: {
+export interface CreateOutOfTownVisitPayload {
   employeeId?: string;
   destinationCity: string;
+  customerName?: string;
   purpose: string;
   departureDate: string;
   returnDate: string;
+  transportMode?: string;
   vehicleBookingId?: string;
   transportCost: number;
   lodgingCost: number;
@@ -877,9 +954,25 @@ export async function createOutOfTownVisitApi(payload: {
   otherCost: number;
   attachmentUrl?: string;
   notes?: string;
-}): Promise<OutOfTownVisitRecord> {
+}
+
+export async function createOutOfTownVisitApi(
+  payload: CreateOutOfTownVisitPayload
+): Promise<OutOfTownVisitRecord> {
   const res = await apiClient.post('/hrd/out-of-town-visits', payload);
   return res.data?.data || res.data;
+}
+
+export async function updateOutOfTownVisitApi(
+  id: string,
+  payload: Partial<CreateOutOfTownVisitPayload>
+): Promise<OutOfTownVisitRecord> {
+  const res = await apiClient.put(`/hrd/out-of-town-visits/${id}`, payload);
+  return res.data?.data || res.data;
+}
+
+export async function deleteOutOfTownVisitApi(id: string): Promise<void> {
+  await apiClient.delete(`/hrd/out-of-town-visits/${id}`);
 }
 
 export async function approveVisitHrdApi(

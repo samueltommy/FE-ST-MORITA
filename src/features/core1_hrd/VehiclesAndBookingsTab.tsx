@@ -11,6 +11,8 @@ import {
   RotateCcw,
   Loader2,
   X,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -18,6 +20,7 @@ import {
   approveVehicleHrdApi,
   approveVehicleKabagApi,
   createVehicleApi,
+  deleteHrdVehicleBookingApi,
   getHrdVehicleBookingsApi,
   getVehiclesApi,
   printHrdReport,
@@ -25,6 +28,7 @@ import {
 } from '../../services/hrdService';
 import { useRBAC } from '../../hooks/useRBAC';
 import { VehicleBookingFormModal } from './VehicleBookingFormModal';
+import { ConfirmActionModal } from './ConfirmActionModal';
 
 export const VehiclesAndBookingsTab: React.FC = () => {
   const queryClient = useQueryClient();
@@ -33,7 +37,7 @@ export const VehiclesAndBookingsTab: React.FC = () => {
   const canApproveKabag = isSuperAdmin || isExecutive || isAdminBidang;
   const canApproveHrd = isSuperAdmin || isExecutive || userDivision === 'HRD';
   const canApproveFinance = isSuperAdmin || isExecutive || userDivision === 'FINANCE';
-  const canManageVehicles = isSuperAdmin || isExecutive || userDivision === 'HRD';
+  const canManageVehicles = isSuperAdmin || isExecutive || isAdminBidang || userDivision === 'HRD';
 
   const [subTab, setSubTab] = useState<'bookings' | 'vehicles'>('bookings');
   const [search, setSearch] = useState('');
@@ -41,7 +45,20 @@ export const VehiclesAndBookingsTab: React.FC = () => {
 
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<VehicleBookingRecord | null>(null);
+  const [editMode, setEditMode] = useState(false);
   const [returnMode, setReturnMode] = useState(false);
+
+  const [confirmState, setConfirmState] = useState<{
+    type:
+      | 'kabag_approve'
+      | 'kabag_reject'
+      | 'hrd_approve'
+      | 'hrd_reject'
+      | 'fin_approve'
+      | 'fin_reject'
+      | 'delete';
+    row: VehicleBookingRecord;
+  } | null>(null);
 
   const [vehModalOpen, setVehModalOpen] = useState(false);
   const [vehForm, setVehForm] = useState({
@@ -76,6 +93,7 @@ export const VehiclesAndBookingsTab: React.FC = () => {
     onSuccess: () => {
       toast.success('Persetujuan Kabag diproses');
       refreshAll();
+      setConfirmState(null);
     },
   });
 
@@ -85,6 +103,7 @@ export const VehiclesAndBookingsTab: React.FC = () => {
     onSuccess: () => {
       toast.success('Persetujuan HRD/GA diproses');
       refreshAll();
+      setConfirmState(null);
     },
   });
 
@@ -94,6 +113,16 @@ export const VehiclesAndBookingsTab: React.FC = () => {
     onSuccess: () => {
       toast.success('Persetujuan FA/ACC diproses');
       refreshAll();
+      setConfirmState(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteHrdVehicleBookingApi(id),
+    onSuccess: () => {
+      toast.success('Peminjaman kendaraan dibatalkan (Soft Delete)');
+      refreshAll();
+      setConfirmState(null);
     },
   });
 
@@ -138,6 +167,7 @@ export const VehiclesAndBookingsTab: React.FC = () => {
           <button
             onClick={() => {
               setSelectedBooking(null);
+              setEditMode(false);
               setReturnMode(false);
               setBookingModalOpen(true);
             }}
@@ -221,6 +251,7 @@ export const VehiclesAndBookingsTab: React.FC = () => {
                       row.hrdStatus === 'APPROVED' &&
                       (!row.financeStatus || row.financeStatus === 'PENDING');
                     const canReturn = row.status === 'APPROVED' && !row.returnAt;
+                    const isPendingEditable = (row.status || '').startsWith('PENDING');
 
                     return (
                       <tr key={row.id} className="hover:bg-slate-50/70">
@@ -266,6 +297,7 @@ export const VehiclesAndBookingsTab: React.FC = () => {
                             <button
                               onClick={() => {
                                 setSelectedBooking(row);
+                                setEditMode(false);
                                 setReturnMode(false);
                                 setBookingModalOpen(true);
                               }}
@@ -274,20 +306,40 @@ export const VehiclesAndBookingsTab: React.FC = () => {
                               <Eye className="w-3.5 h-3.5" /> Form
                             </button>
 
+                            {isPendingEditable && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setSelectedBooking(row);
+                                    setEditMode(true);
+                                    setReturnMode(false);
+                                    setBookingModalOpen(true);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 cursor-pointer"
+                                  title="Edit Peminjaman"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => setConfirmState({ type: 'delete', row })}
+                                  className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 cursor-pointer"
+                                  title="Batalkan / Hapus"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+
                             {canApproveKabag && kabagPending && (
                               <>
                                 <button
-                                  onClick={() =>
-                                    kabagMutation.mutate({ id: row.id, action: 'APPROVE' })
-                                  }
+                                  onClick={() => setConfirmState({ type: 'kabag_approve', row })}
                                   className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5" /> Acc Kabag
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    kabagMutation.mutate({ id: row.id, action: 'REJECT' })
-                                  }
+                                  onClick={() => setConfirmState({ type: 'kabag_reject', row })}
                                   className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                                 >
                                   <XCircle className="w-3.5 h-3.5" /> Tolak
@@ -298,17 +350,13 @@ export const VehiclesAndBookingsTab: React.FC = () => {
                             {canApproveHrd && hrdPending && (
                               <>
                                 <button
-                                  onClick={() =>
-                                    hrdMutation.mutate({ id: row.id, action: 'APPROVE' })
-                                  }
+                                  onClick={() => setConfirmState({ type: 'hrd_approve', row })}
                                   className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5" /> Acc HRD
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    hrdMutation.mutate({ id: row.id, action: 'REJECT' })
-                                  }
+                                  onClick={() => setConfirmState({ type: 'hrd_reject', row })}
                                   className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                                 >
                                   <XCircle className="w-3.5 h-3.5" /> Tolak
@@ -319,17 +367,13 @@ export const VehiclesAndBookingsTab: React.FC = () => {
                             {canApproveFinance && finPending && (
                               <>
                                 <button
-                                  onClick={() =>
-                                    financeMutation.mutate({ id: row.id, action: 'APPROVE' })
-                                  }
+                                  onClick={() => setConfirmState({ type: 'fin_approve', row })}
                                   className="px-2.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5" /> Acc FA
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    financeMutation.mutate({ id: row.id, action: 'REJECT' })
-                                  }
+                                  onClick={() => setConfirmState({ type: 'fin_reject', row })}
                                   className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                                 >
                                   <XCircle className="w-3.5 h-3.5" /> Tolak
@@ -341,6 +385,7 @@ export const VehiclesAndBookingsTab: React.FC = () => {
                               <button
                                 onClick={() => {
                                   setSelectedBooking(row);
+                                  setEditMode(false);
                                   setReturnMode(true);
                                   setBookingModalOpen(true);
                                 }}
@@ -415,6 +460,7 @@ export const VehiclesAndBookingsTab: React.FC = () => {
         open={bookingModalOpen}
         vehicles={vehicles}
         record={selectedBooking}
+        editMode={editMode}
         returnMode={returnMode}
         onClose={() => setBookingModalOpen(false)}
         onSuccess={refreshAll}
@@ -490,7 +536,51 @@ export const VehiclesAndBookingsTab: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmActionModal
+        open={!!confirmState}
+        variant={
+          confirmState?.type === 'delete' || confirmState?.type?.includes('reject')
+            ? 'danger'
+            : 'success'
+        }
+        title={
+          confirmState?.type === 'delete'
+            ? 'Batalkan Peminjaman Kendaraan?'
+            : confirmState?.type?.includes('reject')
+            ? 'Tolak Peminjaman Kendaraan?'
+            : 'Konfirmasi Persetujuan'
+        }
+        message={
+          confirmState?.type === 'delete'
+            ? `Batalkan / Nonaktifkan peminjaman kendaraan oleh ${confirmState.row.borrowerName || 'karyawan'}?`
+            : `Lanjutkan proses persetujuan untuk peminjaman kendaraan oleh ${confirmState?.row.borrowerName || 'karyawan'}?`
+        }
+        loading={
+          kabagMutation.isPending ||
+          hrdMutation.isPending ||
+          financeMutation.isPending ||
+          deleteMutation.isPending
+        }
+        onCancel={() => setConfirmState(null)}
+        onConfirm={() => {
+          if (!confirmState) return;
+          const id = confirmState.row.id;
+          if (confirmState.type === 'delete') deleteMutation.mutate(id);
+          else if (confirmState.type === 'kabag_approve')
+            kabagMutation.mutate({ id, action: 'APPROVE' });
+          else if (confirmState.type === 'kabag_reject')
+            kabagMutation.mutate({ id, action: 'REJECT' });
+          else if (confirmState.type === 'hrd_approve')
+            hrdMutation.mutate({ id, action: 'APPROVE' });
+          else if (confirmState.type === 'hrd_reject')
+            hrdMutation.mutate({ id, action: 'REJECT' });
+          else if (confirmState.type === 'fin_approve')
+            financeMutation.mutate({ id, action: 'APPROVE' });
+          else if (confirmState.type === 'fin_reject')
+            financeMutation.mutate({ id, action: 'REJECT' });
+        }}
+      />
     </div>
   );
 };
-
