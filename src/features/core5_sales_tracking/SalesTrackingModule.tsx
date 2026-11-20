@@ -28,6 +28,8 @@ import { getQuotationsApi, getSalesOrdersApi, approveQuotationApi } from '../../
 import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
 import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
 import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
+import { CustomerPosTab } from '../core6_finance_analytics/CustomerPosTab';
+import { useRBAC } from '../../hooks/useRBAC';
 
 const CONTENT = {
   id: {
@@ -170,6 +172,12 @@ export const SalesTrackingModule: React.FC = () => {
       badge: `${trackingOrders.length} Kirim`,
       badgeColor: 'bg-blue-600 text-white',
     },
+    {
+      id: 'customer_pos',
+      label: '3. 5.2.1 PO Customer (View)',
+      subtitle: 'Purchase Order dari Customer (Read-Only)',
+      icon: FileSpreadsheet,
+    },
   ];
 
   const activeSubFeature = useAppStore((state) => state.activeSubFeature?.sales);
@@ -220,6 +228,16 @@ export const SalesTrackingModule: React.FC = () => {
         onClick: () => appStore.setActiveSubFeature('sales', 'customer'),
       },
       {
+        id: 'customer_pos',
+        label: '5.2.1 Purchase Order Customer (View)',
+        subtitle: 'Lihat daftar PO Customer dari e-mail yang dicatat Finance (Mode Read-Only)',
+        icon: FileSpreadsheet,
+        iconColor: 'text-emerald-600',
+        badge: 'View Only',
+        badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        onClick: () => appStore.setActiveSubFeature('sales', 'customer_pos'),
+      },
+      {
         id: 'form',
         label: 'Buat Penawaran / Form Penjualan & DO',
         subtitle: 'Formulir input draft Quotation resmi, SO, dan Surat Jalan (DO)',
@@ -246,7 +264,9 @@ export const SalesTrackingModule: React.FC = () => {
     );
   }
 
-  const currentTab = activeSubFeature === 'e_tracking' ? 'e_tracking' : activeSubFeature === 'sales_report' ? 'sales_report' : activeSubFeature === 'customer' ? 'customer' : 'quotation_gating';
+  const { isSuperAdmin, isExecutive, userDivision } = useRBAC();
+  const canMutateCustomerPos = isSuperAdmin || isExecutive || userDivision === 'FINANCE';
+  const currentTab = activeSubFeature === 'e_tracking' ? 'e_tracking' : activeSubFeature === 'sales_report' ? 'sales_report' : activeSubFeature === 'customer' ? 'customer' : activeSubFeature === 'customer_pos' ? 'customer_pos' : 'quotation_gating';
 
   return (
     <div className="space-y-6">
@@ -687,6 +707,10 @@ export const SalesTrackingModule: React.FC = () => {
             </table>
           </div>
         </div>
+      )}
+
+      {currentTab === 'customer_pos' && (
+        <CustomerPosTab canMutate={canMutateCustomerPos} />
       )}
 
       {/* ─── Client Standard Bottom Action Toolbar with prominent BACK Button ─── */}

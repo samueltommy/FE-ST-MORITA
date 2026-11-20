@@ -64,6 +64,7 @@ const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
   sales: [
     { id: 'quotations', label: 'Quotation (/sales/quotations)', icon: FileSpreadsheet },
     { id: 'incoming_orders', label: 'Incoming Order / IO (/sales/incoming-orders)', icon: FileText },
+    { id: 'customer_pos', label: '5.2.1 PO Customer (View)', icon: FileCheck2, endpoint: '/finance/customer-pos' },
     { id: 'sales_activities', label: 'Aktivitas & Kunjungan Sales / SDA', icon: Navigation },
     { id: 'customers', label: 'Master Customer (/mdm/customers)', icon: Users },
   ],
@@ -91,10 +92,9 @@ const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
     { id: 'suppliers', label: 'Master Supplier (/mdm/suppliers)', icon: Building2, endpoint: '/mdm/suppliers' },
   ],
   finance: [
-    { id: 'cost_control', label: 'Validasi Cost Control Quotation', icon: ShieldCheck, endpoint: '/cost-control/quotations/{id}/validate' },
-    { id: 'invoices', label: 'Kalkulasi & Sales Invoice 13 Rumus', icon: Calculator, endpoint: '/finance/invoices' },
-    { id: 'ar_payments', label: 'Piutang AR & Pembayaran', icon: FileSpreadsheet, endpoint: '/finance/account-receivables/{id}/payments' },
-    { id: 'complaints', label: 'E-Complaint & RMA (/complaints)', icon: AlertCircle, endpoint: '/complaints' },
+    { id: 'invoices', label: '6.1.1 Sales Invoice (13 Rumus)', icon: Calculator, endpoint: '/finance/invoices' },
+    { id: 'payments', label: '6.1.2 Pelunasan & Rekonsiliasi AR', icon: FileSpreadsheet, endpoint: '/finance/payments' },
+    { id: 'customer_pos', label: '5.2.1 Purchase Order Customer', icon: FileCheck2, endpoint: '/finance/customer-pos' },
   ],
   rnd: [
     { id: 'rnd_trials', label: 'R&D Trial Formula (/rnd/trials)', icon: FlaskConical, endpoint: '/rnd/trials' },
