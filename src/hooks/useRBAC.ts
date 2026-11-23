@@ -104,6 +104,9 @@ export const useRBAC = () => {
     if (isExternal) return false;
 
     if (moduleId === 'home') return true;
+    // All internal employees (L0–L3) can access HRD self-service (Profil Saya, Cuti, Sakit/Izin, Keluar Kantor, Kendaraan, Visit Luar Kota)
+    // Sensitive HRD sub-tabs (User Management & All Employees DB) are gated inside HrdModule.
+    if (moduleId === 'hrd') return true;
     if (moduleId === 'users') return canAccessAdminUsers();
 
     const mappedDivision = MODULE_TO_DIVISION_MAP[moduleId] || normalizeDivisionCode(moduleId);

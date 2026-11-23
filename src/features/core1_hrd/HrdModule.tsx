@@ -312,7 +312,11 @@ export const HrdModule: React.FC = () => {
   const rawSub = (activeSubFeature as any) || (isHrdAdmin ? 'employees' : 'cuti');
   const currentTab =
     rawSub === 'user_management'
-      ? 'user_management'
+      ? canManageUsersTab
+        ? 'user_management'
+        : 'employees'
+      : rawSub === 'employees'
+      ? 'employees'
       : rawSub === 'cuti' || rawSub === 'leave_requests' || rawSub === 'requests'
       ? 'cuti'
       : rawSub === 'sakit_izin'

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Receipt,
   Wallet,
@@ -28,7 +28,7 @@ import { ComplaintsAndRmaTab } from './ComplaintsAndRmaTab';
 export const FinanceAnalyticsModule: React.FC = () => {
   const { isSuperAdmin, isExecutive, userDivision, hasPermission } = useRBAC();
   const activeSubFeature = useAppStore((state) => state.activeSubFeature?.finance);
-  const [poIoSubTab, setPoIoSubTab] = useState<'po' | 'io'>('po');
+  const poIoSubTab: 'po' | 'io' = activeSubFeature === 'incoming_orders' ? 'io' : 'po';
 
   const isFinanceUser = isSuperAdmin || isExecutive || userDivision === 'FINANCE';
   const isSalesOrCostControl =
@@ -271,7 +271,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
           <div className="inline-flex rounded-xl bg-slate-100 p-1 gap-1 border border-slate-200">
             <button
               type="button"
-              onClick={() => setPoIoSubTab('po')}
+              onClick={() => appStore.setActiveSubFeature('finance', 'customer_pos')}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 poIoSubTab === 'po' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
               }`}
@@ -280,7 +280,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => setPoIoSubTab('io')}
+              onClick={() => appStore.setActiveSubFeature('finance', 'incoming_orders')}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 poIoSubTab === 'io' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
               }`}

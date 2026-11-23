@@ -206,7 +206,7 @@ export const Sidebar: React.FC = () => {
   const isMobileSidebarOpen = useAppStore((state) => state.isMobileSidebarOpen);
   const language = useAppStore((state) => state.language);
   const t = CONTENT[language] || CONTENT.id;
-  const { canAccessModule, canAccessAdminUsers, canAccessTool, isSuperAdmin, isExecutive } = useRBAC();
+  const { canAccessModule, canAccessAdminUsers, canAccessTool, isSuperAdmin, isExecutive, userDivision } = useRBAC();
 
   const [expandedModules, setExpandedModules] = React.useState<Record<string, boolean>>({
     sales: true,
@@ -482,28 +482,41 @@ export const Sidebar: React.FC = () => {
                       {/* Sub-features under division */}
                       {!isSidebarCollapsed && isExpanded && children && children.length > 0 && (
                         <div className="ml-5 pl-2.5 border-l-2 border-slate-200 space-y-0.5 my-1">
-                          {children.map((child) => {
-                            const isChildActive = activeModule === m.id && activeSubFeature?.[m.id] === child.id;
-                            const ChildIcon = child.icon;
-                            return (
-                              <button
-                                key={child.id}
-                                type="button"
-                                onClick={() => handleSelectChild(m.id, child.id)}
-                                className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-all cursor-pointer ${
-                                  isChildActive
-                                    ? 'bg-blue-100 text-blue-900 font-extrabold shadow-2xs'
-                                    : 'text-slate-600 hover:text-blue-700 hover:bg-slate-100 font-medium'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <ChildIcon
-                                    className={`w-3.5 h-3.5 shrink-0 ${
-                                      isChildActive ? 'text-blue-700' : 'text-slate-400'
-                                    }`}
-                                  />
-                                  <span className="truncate">{child.label}</span>
-                                </div>
+                          {children
+                            .filter((child) => {
+                              if (m.id === 'hrd' && child.id === 'user_management') {
+                                return isSuperAdmin || isExecutive || userDivision === 'HRD';
+                              }
+                              return true;
+                            })
+                            .map((child) => {
+                              const isChildActive = activeModule === m.id && activeSubFeature?.[m.id] === child.id;
+                              const ChildIcon = child.icon;
+                              const childLabel =
+                                m.id === 'hrd' &&
+                                child.id === 'employees' &&
+                                !(isSuperAdmin || isExecutive || userDivision === 'HRD')
+                                  ? 'Profil & Sisa Cuti Saya'
+                                  : child.label;
+                              return (
+                                <button
+                                  key={child.id}
+                                  type="button"
+                                  onClick={() => handleSelectChild(m.id, child.id)}
+                                  className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-all cursor-pointer ${
+                                    isChildActive
+                                      ? 'bg-blue-100 text-blue-900 font-extrabold shadow-2xs'
+                                      : 'text-slate-600 hover:text-blue-700 hover:bg-slate-100 font-medium'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <ChildIcon
+                                      className={`w-3.5 h-3.5 shrink-0 ${
+                                        isChildActive ? 'text-blue-700' : 'text-slate-400'
+                                      }`}
+                                    />
+                                    <span className="truncate">{childLabel}</span>
+                                  </div>
                                 {child.badge && (
                                   <span
                                     className={`text-xs px-1 py-0.2 rounded-full font-bold uppercase shrink-0 ${
