@@ -107,6 +107,8 @@ export const useRBAC = () => {
     // All internal employees (L0–L3) can access HRD self-service (Profil Saya, Cuti, Sakit/Izin, Keluar Kantor, Kendaraan, Visit Luar Kota)
     // Sensitive HRD sub-tabs (User Management & All Employees DB) are gated inside HrdModule.
     if (moduleId === 'hrd') return true;
+    // Production & QA/QC allows cross-division view & specific write access (PPIC: Plans/Stocks/Rework, RND: QC/Dev, SALES: Dev)
+    if (moduleId === 'produksi_qc' || moduleId === 'qc') return true;
     if (moduleId === 'users') return canAccessAdminUsers();
 
     const mappedDivision = MODULE_TO_DIVISION_MAP[moduleId] || normalizeDivisionCode(moduleId);

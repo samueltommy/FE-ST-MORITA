@@ -1,803 +1,170 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  ShieldCheck,
-  Lock,
-  Unlock,
-  AlertTriangle,
-  CheckCircle2,
-  FileSpreadsheet,
-  Plus,
-  Search,
-  Printer,
-  ChevronRight,
-  Sparkles,
+  ClipboardList,
+  Factory,
+  ShieldAlert,
+  Microscope,
+  Activity,
+  RotateCcw,
   Award,
-  QrCode,
+  FlaskConical,
+  Trash2,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAppStore, appStore } from '../../store/useAppStore';
-import { QcInspectionRecord, QcStatus } from '../../types';
-import { Can } from '../../components/rbac/Can';
-import { ProductionQcFormsModal } from '../../components/forms/ProductionQcFormsModal';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getQcRecordsApi, overrideQcHoldApi } from '../../services/productionService';
-import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
+import { getProductionDashboardSummaryApi } from '../../services/productionService';
 import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
 import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
-
-const CONTENT = {
-  id: {
-    title: 'Production Floor & Quality Control (QC Hold Lockout)',
-    desc: 'Inspeksi lot bahan baku & hasil slitting roll pita perekat, mekanisme cekal transfer otomatis (QC Hold), dan penerbitan COA',
-    btnForm: 'Form Produksi & QC',
-    btnScan: 'Scan Lot',
-    lblPass: '[PASS] Lulus Standar QC',
-    batch: 'Batch',
-    lblPassDesc: 'Bebas ditransfer ke Gudang & dialokasikan ke SPK',
-    lblHold: '[HOLD] Dicekal QC (Terkunci)',
-    lblHoldDesc: 'Transfer gudang & SPK diblokir sistem secara mutlak',
-    lblRework: '[REWORK] Proses Pembersihan / Ulang',
-    lblReworkDesc: 'Tahap treatment ulang sebelum uji ulang lab',
-    searchPl: 'Cari nomor lot batch, kode bahan baku, nama item...',
-    roleActive: 'Role Aktif:',
-    authOverride: '✓ Punya Hak Override Hold',
-    noOverride: '✕ Tanpa Izin Override',
-    inspector: 'Inspektur:',
-    date: 'Tanggal:',
-    defect: 'Catatan Ketidaksesuaian Mutu:',
-    overrideHist: 'Histori Override Otoritas:',
-    overrideDesc: 'Diloloskan oleh',
-    overrideReason: 'dengan alasan:',
-    labResult: 'Hasil Uji Laboratorium QC',
-    btnBlocked: 'Transfer Stok Dicekal',
-    btnBlockedTitle: 'Tindakan dicekal karena status batch sedang HOLD oleh QC',
-    btnNoAccess: '[Terkunci: Memerlukan Role QC Manager]',
-    btnReleaseHold: 'Release Hold Lock',
-    btnTransfer: 'Transfer ke Produksi / SPK',
-    btnViewCoa: 'Lihat COA',
-    btnGenCoa: 'Generate COA',
-    alertTransfer: 'Berhasil mentransfer Lot',
-    alertTransferTo: 'ke Staging Line Produksi.',
-    modalTitle: 'Otorisasi Override QC Hold Lockout',
-    modalDesc: 'Wewenang Khusus QC Manager (ISO 9001 / BPOM Compliance)',
-    lot: 'Lot:',
-    item: 'Item:',
-    initDefect: 'Alasan Cekal Awal:',
-    lblReason: 'Alasan Otorisasi Supervisor / Disposisi Khusus (Wajib Diisi):',
-    plReason: 'Contoh: Telah melalui pengenceran terkontrol 2% & re-test lolos spesifikasi, aman untuk aplikasi masking tape line 2...',
-    btnCancel: 'Batal',
-    btnConfirm: 'Konfirmasi Release Hold',
-    coaTitle: 'CERTIFICATE OF ANALYSIS (COA)',
-    coaSubtitle: 'Laboratorium Quality Control & Jaminan Mutu Terpadu',
-    coaStatus: 'Status: CERTIFIED PASS',
-    coaProductName: 'Nama Produk:',
-    coaLotNo: 'No. LOT:',
-    coaBatchSize: 'Ukuran Batch:',
-    coaReleaseDate: 'Tgl Rilis:',
-    coaParam: 'Parameter Uji',
-    coaStandard: 'Standar Baku',
-    coaResult: 'Hasil Analisis',
-    coaStatusCol: 'Status',
-    coaApprovedBy: 'Disetujui oleh:',
-    btnColse: 'Tutup',
-    btnPrint: 'Cetak Dokumen COA',
-  },
-  en: {
-    title: 'Production Floor & Quality Control (QC Hold Lockout)',
-    desc: 'Raw material & slitting roll inspection, automatic transfer hold mechanism (QC Hold), and COA issuance',
-    btnForm: 'Production & QC Form',
-    btnScan: 'Scan Lot',
-    lblPass: '[PASS] QC Standard Passed',
-    batch: 'Batches',
-    lblPassDesc: 'Free to transfer to Warehouse & allocate to SPK',
-    lblHold: '[HOLD] QC Hold (Locked)',
-    lblHoldDesc: 'Warehouse & SPK transfer strictly blocked by system',
-    lblRework: '[REWORK] Cleaning / Rework Process',
-    lblReworkDesc: 'Re-treatment stage before lab re-test',
-    searchPl: 'Search batch lot number, item code, item name...',
-    roleActive: 'Active Role:',
-    authOverride: '✓ Has Override Hold Rights',
-    noOverride: '✕ No Override Permission',
-    inspector: 'Inspector:',
-    date: 'Date:',
-    defect: 'Quality Non-conformance Note:',
-    overrideHist: 'Authority Override History:',
-    overrideDesc: 'Cleared by',
-    overrideReason: 'with reason:',
-    labResult: 'QC Laboratory Test Results',
-    btnBlocked: 'Stock Transfer Blocked',
-    btnBlockedTitle: 'Action blocked because batch status is HOLD by QC',
-    btnNoAccess: '[Locked: Requires QC Manager Role]',
-    btnReleaseHold: 'Release Hold Lock',
-    btnTransfer: 'Transfer to Production / SPK',
-    btnViewCoa: 'View COA',
-    btnGenCoa: 'Generate COA',
-    alertTransfer: 'Successfully transferred Lot',
-    alertTransferTo: 'to Production Staging Line.',
-    modalTitle: 'QC Hold Lockout Override Authorization',
-    modalDesc: 'Special Authority of QC Manager (ISO 9001 / BPOM Compliance)',
-    lot: 'Lot:',
-    item: 'Item:',
-    initDefect: 'Initial Hold Reason:',
-    lblReason: 'Supervisor Authorization / Special Disposition Reason (Required):',
-    plReason: 'Example: Has undergone 2% controlled dilution & re-test passed specification, safe for line 2 masking tape application...',
-    btnCancel: 'Cancel',
-    btnConfirm: 'Confirm Release Hold',
-    coaTitle: 'CERTIFICATE OF ANALYSIS (COA)',
-    coaSubtitle: 'Quality Control & Integrated Quality Assurance Laboratory',
-    coaStatus: 'Status: CERTIFIED PASS',
-    coaProductName: 'Product Name:',
-    coaLotNo: 'LOT No.:',
-    coaBatchSize: 'Batch Size:',
-    coaReleaseDate: 'Release Date:',
-    coaParam: 'Test Parameter',
-    coaStandard: 'Standard',
-    coaResult: 'Analysis Result',
-    coaStatusCol: 'Status',
-    coaApprovedBy: 'Approved by:',
-    btnColse: 'Close',
-    btnPrint: 'Print COA Document',
-  }
-};
+import { ProductionPlansTab } from './ProductionPlansTab';
+import { ProductionOutputsTab } from './ProductionOutputsTab';
+import { StockHoldControlTab } from './StockHoldControlTab';
+import { QcInspectionsTab } from './QcInspectionsTab';
+import { ReworkOrdersTab } from './ReworkOrdersTab';
+import { ProductDevelopmentsTab } from './ProductDevelopmentsTab';
+import { ProductionWastesTab } from './ProductionWastesTab';
 
 export const ProductionQcModule: React.FC = () => {
-  const language = useAppStore((state) => state.language);
-  const t = CONTENT[language] || CONTENT.id;
-  const queryClient = useQueryClient();
+  const activeSubFeature = useAppStore((state) => state.activeSubFeature?.produksi_qc || state.activeSubFeature?.qc);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const { data: qcRes } = useQuery({
-    queryKey: ['qcRecords', currentPage, pageSize, searchQuery],
-    queryFn: () => getQcRecordsApi(currentPage, pageSize, searchQuery),
-  });
-  
-  const qcRecords = qcRes?.data || [];
-  const totalPages = qcRes?.meta?.totalPages || qcRes?.meta?.total_pages || 1;
-
-  const currentUser = useAppStore((state) => state.currentUser);
-
-  const [selectedRecord, setSelectedRecord] = useState<QcInspectionRecord | null>(null);
-  const [overrideModalOpen, setOverrideModalOpen] = useState(false);
-  const [supervisorReason, setSupervisorReason] = useState('');
-  const [coaModalRecord, setCoaModalRecord] = useState<QcInspectionRecord | null>(null);
-  const [qcFormsOpen, setQcFormsOpen] = useState(false);
-  const [qcFormsTab, setQcFormsTab] = useState<'spk' | 'qc_test' | 'hold_override'>('spk');
-
-  const [activeOption, setActiveOption] = useState<'all' | 'hold' | 'pass' | 'rework'>('all');
-
-  const pageOptions: PageOptionItem[] = [
-    {
-      id: 'all',
-      label: '1. Semua Batch QC',
-      subtitle: `${qcRecords.length} Total Batch`,
-      icon: ShieldCheck,
-      badge: qcRecords.length,
-    },
-    {
-      id: 'hold',
-      label: '2. Batch Dicekal (QC Hold)',
-      subtitle: `${qcRecords.filter((r) => r.status === 'HOLD').length} Batch Terkunci`,
-      icon: Lock,
-      badge: qcRecords.filter((r) => r.status === 'HOLD').length > 0 ? `${qcRecords.filter((r) => r.status === 'HOLD').length} HOLD` : undefined,
-      badgeColor: 'bg-rose-500 text-white animate-pulse',
-    },
-    {
-      id: 'pass',
-      label: '3. Lulus Uji & COA (PASS)',
-      subtitle: `${qcRecords.filter((r) => r.status === 'PASS').length} Batch Siap Transfer`,
-      icon: CheckCircle2,
-      badge: `${qcRecords.filter((r) => r.status === 'PASS').length} PASS`,
-      badgeColor: 'bg-emerald-600 text-white',
-    },
-    {
-      id: 'rework',
-      label: '4. Treatment Rework Ulang',
-      subtitle: `${qcRecords.filter((r) => r.status === 'REWORK').length} Batch Perbaikan`,
-      icon: AlertTriangle,
-      badge: qcRecords.filter((r) => r.status === 'REWORK').length > 0 ? `${qcRecords.filter((r) => r.status === 'REWORK').length} REWORK` : undefined,
-      badgeColor: 'bg-amber-500 text-white',
-    },
-  ];
-
-  const filteredRecords = qcRecords.filter((rec) => {
-    if (activeOption === 'hold') return rec.status === 'HOLD';
-    if (activeOption === 'pass') return rec.status === 'PASS';
-    if (activeOption === 'rework') return rec.status === 'REWORK';
-    return true;
+  const { data: summary } = useQuery({
+    queryKey: ['productionDashboardSummary'],
+    queryFn: getProductionDashboardSummaryApi,
   });
 
-  const handleOpenOverride = (rec: QcInspectionRecord) => {
-    setSelectedRecord(rec);
-    setSupervisorReason('');
-    setOverrideModalOpen(true);
-  };
-
-  const overrideHoldMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => overrideQcHoldApi(id, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['qcRecords'] });
-      setOverrideModalOpen(false);
-      setSelectedRecord(null);
-    }
-  });
-
-  const handleConfirmOverride = () => {
-    if (!selectedRecord || !supervisorReason.trim()) return;
-    overrideHoldMutation.mutate({ id: selectedRecord.id, reason: supervisorReason.trim() });
-  };
-
-  const activeSubFeature = useAppStore((state) => state.activeSubFeature?.qc);
-
-  // When no feature is selected yet, render simple selection menu hub (matches client reference screenshot 1)
   if (!activeSubFeature) {
-    const holdCount = qcRecords.filter((r) => r.status === 'HOLD').length;
-    const passCount = qcRecords.filter((r) => r.status === 'PASS').length;
-    const reworkCount = qcRecords.filter((r) => r.status === 'REWORK').length;
-
     const hubItems: ModuleFeatureHubItem[] = [
       {
-        id: 'all',
-        label: 'Semua Batch QC & Inspeksi Mutu',
-        subtitle: `Seluruh lot inspeksi pita perekat & slitting (${qcRecords.length} Total Batch)`,
-        icon: ShieldCheck,
-        iconColor: 'text-rose-600',
-        badge: `${qcRecords.length} Batch`,
-        badgeColor: 'bg-slate-100 text-slate-800 border-slate-200',
-        onClick: () => appStore.setActiveSubFeature('qc', 'all'),
-      },
-      {
-        id: 'hold',
-        label: 'Batch Dicekal (QC Hold Lockout)',
-        subtitle: `Batch dicekal cacat mutu, transfer diblokir mutlak (${holdCount} Terkunci)`,
-        icon: Lock,
-        iconColor: 'text-rose-700',
-        badge: holdCount > 0 ? `${holdCount} HOLD` : undefined,
-        badgeColor: 'bg-rose-500 text-white font-black',
-        onClick: () => appStore.setActiveSubFeature('qc', 'hold'),
-      },
-      {
-        id: 'pass',
-        label: 'Batch Lulus Standar & Sertifikat COA (PASS)',
-        subtitle: `Lulus parameter spesifikasi lab, siap terbit COA & alokasi SPK (${passCount} Lulus)`,
-        icon: CheckCircle2,
-        iconColor: 'text-emerald-600',
-        badge: `${passCount} PASS`,
-        badgeColor: 'bg-emerald-600 text-white font-bold',
-        onClick: () => appStore.setActiveSubFeature('qc', 'pass'),
-      },
-      {
-        id: 'rework',
-        label: 'Antrean Treatment Rework Ulang',
-        subtitle: `Proses penanganan khusus & formulasi ulang sebelum re-test lab (${reworkCount} Batch)`,
-        icon: AlertTriangle,
-        iconColor: 'text-amber-600',
-        badge: reworkCount > 0 ? `${reworkCount} REWORK` : undefined,
-        badgeColor: 'bg-amber-500 text-white font-bold',
-        onClick: () => appStore.setActiveSubFeature('qc', 'rework'),
-      },
-      {
-        id: 'form',
-        label: 'Buat SPK / Formulir Uji QC Baru',
-        subtitle: 'Input Surat Perintah Kerja (SPK) slitting atau formulir pengujian inspeksi baru',
-        icon: Plus,
+        id: 'plans',
+        label: '4.1.1 Production Planning & 4.1.2 Penerbitan SPK',
+        subtitle: `Rencana produksi PPIC, alokasi BOM RM (anti-HOLD), terbitkan SPK & cetak SPK (${summary?.spkActive ?? 0} SPK Aktif)`,
+        icon: ClipboardList,
         iconColor: 'text-blue-600',
-        badge: 'Input Baru',
+        badge: `${summary?.plansPlanned ?? 0} Planned · ${summary?.spkActive ?? 0} SPK`,
         badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
-        onClick: () => {
-          setQcFormsTab('spk');
-          setQcFormsOpen(true);
-        },
+        onClick: () => appStore.setActiveSubFeature('produksi_qc', 'plans'),
+      },
+      {
+        id: 'outputs',
+        label: '4.1.3 Output Produksi & Pemotongan Stok RM',
+        subtitle: 'Catat hasil Good/NG/Rework/Waste operator, potong batch RM otomatis & auto-FG berstatus HOLD',
+        icon: Factory,
+        iconColor: 'text-emerald-600',
+        badge: `${summary?.spkCompleted ?? 0} Selesai`,
+        badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        onClick: () => appStore.setActiveSubFeature('produksi_qc', 'outputs'),
+      },
+      {
+        id: 'stocks',
+        label: '4.5.3 Pengendalian Stok & Status HOLD QC',
+        subtitle: `Database batch stok gudang (${summary?.stockAvailableBatches ?? 0} AVAILABLE · ${summary?.stockHoldBatches ?? 0} HOLD) & otorisasi Release HOLD`,
+        icon: ShieldAlert,
+        iconColor: 'text-amber-600',
+        badge: `${summary?.stockHoldBatches ?? 0} HOLD`,
+        badgeColor: (summary?.stockHoldBatches ?? 0) > 0 ? 'bg-rose-500 text-white font-bold' : 'bg-emerald-100 text-emerald-800',
+        onClick: () => appStore.setActiveSubFeature('produksi_qc', 'stocks'),
+      },
+      {
+        id: 'iqc',
+        label: '4.3.1 Incoming QC (IQC — Material Masuk)',
+        subtitle: 'Uji material masuk terhadap TDS, auto-release HOLD → AVAILABLE & Cetak LKP',
+        icon: Microscope,
+        iconColor: 'text-cyan-600',
+        badge: `${summary?.qcIqcCount ?? 0} IQC`,
+        badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+        onClick: () => appStore.setActiveSubFeature('produksi_qc', 'iqc'),
+      },
+      {
+        id: 'pqc',
+        label: '4.4.1 In-Process QC (PQC — Lini Produksi)',
+        subtitle: 'Inspeksi lini per SPK/lot, auto-routing ke Jalur Rework 4.5.2 & Cetak LKP',
+        icon: Activity,
+        iconColor: 'text-indigo-600',
+        badge: `${summary?.qcPqcCount ?? 0} PQC`,
+        badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+        onClick: () => appStore.setActiveSubFeature('produksi_qc', 'pqc'),
+      },
+      {
+        id: 'reworks',
+        label: '4.5.2 Jalur Rework / Repair & Re-Inspeksi QC',
+        subtitle: `Pengerjaan ulang barang NG/rework (${summary?.reworkOpen ?? 0} Open · ${summary?.reworkPassed ?? 0} Passed · ${summary?.reworkScrapped ?? 0} Scrap)`,
+        icon: RotateCcw,
+        iconColor: 'text-orange-600',
+        badge: `${summary?.reworkOpen ?? 0} Open`,
+        badgeColor: 'bg-orange-100 text-orange-800 border-orange-200',
+        onClick: () => appStore.setActiveSubFeature('produksi_qc', 'reworks'),
+      },
+      {
+        id: 'oqc',
+        label: '4.5.1 Outgoing QC (OQC / COA)',
+        subtitle: `Inspeksi produk akhir sebelum DO, auto-generate nomor COA, release FG & Cetak COA (Pass Rate ${summary?.qcPassRatePct ?? 0}%)`,
+        icon: Award,
+        iconColor: 'text-teal-600',
+        badge: `${summary?.qcOqcCount ?? 0} OQC`,
+        badgeColor: 'bg-teal-100 text-teal-800 border-teal-200',
+        onClick: () => appStore.setActiveSubFeature('produksi_qc', 'oqc'),
+      },
+      {
+        id: 'product_developments',
+        label: '4.2.1 & 4.2.2 Pengembangan Produk & Approval Sampel',
+        subtitle: 'Input proyek riset oleh Sales/R&D, upload dokumen spesifikasi, Approval Sampel Akhir & Cetak Approval Sheet',
+        icon: FlaskConical,
+        iconColor: 'text-purple-600',
+        badge: `${summary?.rndPendingApproval ?? 0} Pending R&D`,
+        badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
+        onClick: () => appStore.setActiveSubFeature('produksi_qc', 'product_developments'),
+      },
+      {
+        id: 'wastes',
+        label: '3.5.1 RM Wastes & 3.6.1 Product Wastes (CAPA)',
+        subtitle: `Laporan limbah RM (${summary?.rmWasteQty ?? 0}) & Produk Jadi (${summary?.productWasteQty ?? 0} · ${summary?.productWasteCriticalCount ?? 0} Critical) + CAPA`,
+        icon: Trash2,
+        iconColor: 'text-rose-600',
+        badge: `${summary?.productWasteCriticalCount ?? 0} Critical`,
+        badgeColor: (summary?.productWasteCriticalCount ?? 0) > 0 ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-700',
+        onClick: () => appStore.setActiveSubFeature('produksi_qc', 'wastes'),
       },
     ];
 
     return (
       <ModuleFeatureHub
-        moduleCode="PRODUKSI_QC"
-        moduleName="PRODUKSI & QUALITY CONTROL (QC)"
-        moduleDescription="Inspeksi lot bahan baku & hasil slitting roll pita perekat, pencekalan transfer QC Hold, dan penerbitan sertifikat analisis (COA)."
-        headerBgColor="bg-rose-600"
+        moduleCode="PRODUKSI & QC"
+        moduleName="DIVISI PRODUKSI & QA/QC (CORE 4 & 3.5/3.6)"
+        moduleDescription="Production Planning, SPK, Output Produksi, Pengendalian HOLD 4.5.3, IQC/PQC/OQC (COA), Jalur Rework 4.5.2, Pengembangan Produk R&D, serta RM & Product Wastes (CAPA)."
+        headerBgColor="bg-blue-700"
         items={hubItems}
         onBackToHome={() => appStore.setActiveModule('home')}
       />
     );
   }
 
-  const currentTab = (activeSubFeature as any) || 'all';
+  // Normalize legacy & direct route names
+  const currentTab = (() => {
+    if (activeSubFeature === 'outputs' || activeSubFeature === 'production_outputs') return 'outputs';
+    if (activeSubFeature === 'stocks' || activeSubFeature === 'hold_release') return 'stocks';
+    if (activeSubFeature === 'iqc' || activeSubFeature === 'qc_inspections') return 'iqc';
+    if (activeSubFeature === 'pqc' || activeSubFeature === 'qc_records') return 'pqc';
+    if (activeSubFeature === 'reworks') return 'reworks';
+    if (activeSubFeature === 'oqc') return 'oqc';
+    if (activeSubFeature === 'product_developments') return 'product_developments';
+    if (activeSubFeature === 'wastes') return 'wastes';
+    return 'plans';
+  })();
 
   return (
-    <div className="space-y-6">
-      {/* ─── Module Page Header with Senior-Friendly Options ─── */}
-      <ModulePageHeader
-        moduleCode="PRODUKSI_QC"
-        title={t.title}
-        description={t.desc}
-        badgeColor="bg-rose-50 text-rose-800 border-rose-300"
-        options={pageOptions}
-        activeOption={currentTab}
-        onSelectOption={(optId) => appStore.setActiveSubFeature('qc', optId)}
-        onBackToMenu={() => appStore.setActiveSubFeature('qc', null)}
-        menuName="Produksi & QC"
-        actionButtons={
-          <>
-            <button
-              onClick={() => {
-                setQcFormsTab('spk');
-                setQcFormsOpen(true);
-              }}
-              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm sm:text-base font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{t.btnForm}</span>
-            </button>
-            <button
-              onClick={() => appStore.setBarcodeModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 text-sm sm:text-base font-bold transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
-            >
-              <QrCode className="w-4 h-4" />
-              <span>{t.btnScan}</span>
-            </button>
-          </>
-        }
-      />
+    <div className="space-y-4">
+      {currentTab === 'plans' && <ProductionPlansTab />}
+      {currentTab === 'outputs' && <ProductionOutputsTab />}
+      {currentTab === 'stocks' && <StockHoldControlTab />}
+      {currentTab === 'iqc' && <QcInspectionsTab qcType="IQC" />}
+      {currentTab === 'pqc' && <QcInspectionsTab qcType="PQC" />}
+      {currentTab === 'reworks' && <ReworkOrdersTab />}
+      {currentTab === 'oqc' && <QcInspectionsTab qcType="OQC" />}
+      {currentTab === 'product_developments' && <ProductDevelopmentsTab />}
+      {currentTab === 'wastes' && <ProductionWastesTab />}
 
-      {/* QC Status Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/30">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase">
-              {t.lblPass}
-            </span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="text-2xl font-black text-emerald-900 dark:text-emerald-200 mt-1">
-            {qcRecords.filter((r) => r.status === 'PASS').length} {t.batch}
-          </div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
-            {t.lblPassDesc}
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl border-2 border-rose-400 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 qc-hold-pulse">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-rose-800 dark:text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
-              {t.lblHold}
-            </span>
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping" />
-          </div>
-          <div className="text-2xl font-black text-rose-900 dark:text-rose-200 mt-1">
-            {qcRecords.filter((r) => r.status === 'HOLD').length} {t.batch}
-          </div>
-          <div className="text-xs text-rose-700 dark:text-rose-300 mt-0.5 font-semibold">
-            {t.lblHoldDesc}
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/30">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase">
-              {t.lblRework}
-            </span>
-            <AlertTriangle className="w-4 h-4 text-amber-600" />
-          </div>
-          <div className="text-2xl font-black text-amber-900 dark:text-amber-200 mt-1">
-            {qcRecords.filter((r) => r.status === 'REWORK').length} {t.batch}
-          </div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-            {t.lblReworkDesc}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Records Table Card */}
-      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t.searchPl}
-              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden"
-            />
-          </div>
-
-          <div className="text-xs text-slate-500 flex items-center gap-2">
-            <span>{t.roleActive} <strong>{currentUser.role}</strong></span>
-            {currentUser.permissions.includes('qc:hold:override') || currentUser.permissions.includes('*') ? (
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono text-xs font-bold">
-                {t.authOverride}
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-mono text-xs">
-                {t.noOverride}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Inspections List */}
-        <div className="space-y-3 overflow-auto max-h-[60vh] 2xl:max-h-[70vh] pr-1">
-          {filteredRecords.map((rec, recIdx) => {
-            const isHold = rec.status === 'HOLD';
-            return (
-              <div
-                key={rec.id || rec.lotNumber || `qc-rec-${recIdx}`}
-                className={`p-4 rounded-2xl border transition-all ${
-                  isHold
-                    ? 'border-rose-400 bg-rose-50/40 dark:bg-rose-950/20 dark:border-rose-800'
-                    : rec.status === 'REWORK'
-                    ? 'border-amber-300 bg-amber-50/40 dark:bg-amber-950/20 dark:border-amber-800'
-                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20'
-                }`}
-              >
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
-                  {/* Left Specs Info */}
-                  <div className="space-y-1.5 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
-                          rec.status === 'PASS'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300'
-                            : isHold
-                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-400 animate-pulse'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300'
-                        }`}
-                      >
-                        {rec.status === 'PASS' && <CheckCircle2 className="w-3.5 h-3.5" />}
-                        {isHold && <Lock className="w-3.5 h-3.5" />}
-                        {rec.status === 'REWORK' && <AlertTriangle className="w-3.5 h-3.5" />}
-                        [{rec.status}]
-                      </span>
-
-                      <span className="font-mono font-bold text-xs text-slate-800 dark:text-slate-200">
-                        {rec.lotNumber}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        ID: {rec.id} • Batch: {rec.batchSize} {rec.unit}
-                      </span>
-                    </div>
-
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                      {rec.itemName} ({rec.itemCode})
-                    </h3>
-
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {t.inspector} <strong>{rec.inspectorName}</strong> • {t.date} {rec.inspectionDate}
-                    </div>
-
-                    {/* Defect warning or override trail */}
-                    {rec.defectReason && (
-                      <div className="p-2.5 rounded-xl bg-rose-100/70 dark:bg-rose-950/60 text-xs text-rose-900 dark:text-rose-200 flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
-                        <div>
-                          <strong>{t.defect}</strong> {rec.defectReason}
-                        </div>
-                      </div>
-                    )}
-
-                    {rec.overrideBy && (
-                      <div className="p-2 rounded-xl bg-emerald-100/70 dark:bg-emerald-950/60 text-xs text-emerald-900 dark:text-emerald-200">
-                        <strong>{t.overrideHist}</strong> {t.overrideDesc}{' '}
-                        <strong>{rec.overrideBy}</strong> {t.overrideReason} "{rec.overrideReason}"
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right Side: Tested Parameters Table & Actions */}
-                  <div className="lg:w-96 space-y-2 shrink-0">
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 text-xs space-y-1">
-                      <div className="font-bold text-slate-500 uppercase text-xs mb-1">
-                        {t.labResult}
-                      </div>
-                      {(rec.testedParameters || []).map((param, pIdx) => (
-                        <div key={pIdx} className="flex justify-between text-xs py-0.5">
-                          <span className="text-slate-600 dark:text-slate-400 truncate max-w-[140px]">
-                            {param.name}:
-                          </span>
-                          <span className="font-mono text-slate-500">{param.standard}</span>
-                          <span
-                            className={`font-mono font-bold ${
-                              param.result === 'OK' ? 'text-emerald-600' : 'text-rose-600'
-                            }`}
-                          >
-                            {param.actual}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Action Bar based on QC Hold Status */}
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                      {isHold ? (
-                        <>
-                          {/* CRITICAL QC HOLD LOCKOUT: Disable transfer & SPK assignment buttons */}
-                          <button
-                            disabled
-                            className="flex-1 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 text-xs font-bold cursor-not-allowed border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center gap-1.5"
-                            title={t.btnBlockedTitle}
-                          >
-                            <Lock className="w-3.5 h-3.5 text-rose-500" />
-                            {t.btnBlocked}
-                          </button>
-
-                          {/* Override Button protected by <Can perform="qc:hold:override"> */}
-                          <Can
-                            perform="qc:hold:override"
-                            fallback={
-                              <div className="text-xs text-rose-600 dark:text-rose-400 font-bold px-2 py-1">
-                                {t.btnNoAccess}
-                              </div>
-                            }
-                          >
-                            <button
-                              onClick={() => handleOpenOverride(rec)}
-                              className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
-                            >
-                              <Unlock className="w-3.5 h-3.5" />
-                              {t.btnReleaseHold}
-                            </button>
-                          </Can>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() =>
-                              alert(`${t.alertTransfer} ${rec.lotNumber} ${t.alertTransferTo}`)
-                            }
-                            className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
-                          >
-                            {t.btnTransfer}
-                          </button>
-
-                          {rec.coaNumber ? (
-                            <button
-                              onClick={() => setCoaModalRecord(rec)}
-                              className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
-                            >
-                              <Award className="w-3.5 h-3.5 text-amber-500" />
-                              {t.btnViewCoa}
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                const coaNo = `COA/SM/${new Date().getFullYear()}/09/${Math.floor(
-                                  Math.random() * 9000 + 1000
-                                )}`;
-                                rec.coaNumber = coaNo;
-                                setCoaModalRecord(rec);
-                              }}
-                              className="py-2 px-3 rounded-xl border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-50 text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5"
-                            >
-                              <FileSpreadsheet className="w-3.5 h-3.5" />
-                              {t.btnGenCoa}
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* KONTROL PAGINATION QC */}
-        <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 rounded-b-2xl">
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-500 font-medium">
-              Halaman {currentPage} dari {totalPages}
-            </span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="text-xs font-medium border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 px-2 py-1 text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
-            >
-              <option value={10}>10 Baris</option>
-              <option value={20}>20 Baris</option>
-              <option value={50}>50 Baris</option>
-              <option value={100}>100 Baris</option>
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <button 
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
-            >
-              Sebelumnya
-            </button>
-            <button 
-              disabled={currentPage >= totalPages}
-              onClick={() => setCurrentPage(p => p + 1)}
-              className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
-            >
-              Selanjutnya
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Supervisor Override Modal */}
-      {overrideModalOpen && selectedRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                <Unlock className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                  {t.modalTitle}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  {t.modalDesc}
-                </p>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-xs space-y-1">
-              <div>
-                {t.lot} <strong>{selectedRecord.lotNumber}</strong>
-              </div>
-              <div>
-                {t.item} <strong>{selectedRecord.itemName}</strong>
-              </div>
-              <div className="text-rose-600 dark:text-rose-400">
-                {t.initDefect} {selectedRecord.defectReason}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                {t.lblReason}
-              </label>
-              <textarea
-                rows={3}
-                value={supervisorReason}
-                onChange={(e) => setSupervisorReason(e.target.value)}
-                placeholder={t.plReason}
-                className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setOverrideModalOpen(false)}
-                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300"
-              >
-                {t.btnCancel}
-              </button>
-              <button
-                onClick={handleConfirmOverride}
-                disabled={!supervisorReason.trim()}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold"
-              >
-                {t.btnConfirm}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* COA Certificate Modal */}
-      {coaModalRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
-            <div className="border-b border-slate-200 dark:border-slate-800 pb-3 flex justify-between items-start">
-              <div>
-                <div className="text-xs font-bold text-slate-400 uppercase">
-                  {t.coaTitle}
-                </div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  ST. Morita Industries
-                </h3>
-                <div className="text-xs text-slate-500">
-                  {t.coaSubtitle}
-                </div>
-              </div>
-              <div className="text-right font-mono text-xs">
-                <div className="font-bold text-blue-600">{coaModalRecord.coaNumber}</div>
-                <div className="text-slate-400">{t.coaStatus}</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-xs p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-              <div>
-                <span className="text-slate-400">{t.coaProductName} </span>
-                <strong>{coaModalRecord.itemName}</strong>
-              </div>
-              <div>
-                <span className="text-slate-400">{t.coaLotNo} </span>
-                <strong className="font-mono">{coaModalRecord.lotNumber}</strong>
-              </div>
-              <div>
-                <span className="text-slate-400">{t.coaBatchSize} </span>
-                <strong>{coaModalRecord.batchSize} {coaModalRecord.unit}</strong>
-              </div>
-              <div>
-                <span className="text-slate-400">{t.coaReleaseDate} </span>
-                <strong>{coaModalRecord.inspectionDate}</strong>
-              </div>
-            </div>
-
-            <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden text-xs">
-              <table className="w-full text-left">
-                <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  <tr>
-                    <th className="p-2">{t.coaParam}</th>
-                    <th className="p-2">{t.coaStandard}</th>
-                    <th className="p-2">{t.coaResult}</th>
-                    <th className="p-2 text-center">{t.coaStatusCol}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
-                  {coaModalRecord.testedParameters.map((p, idx) => (
-                    <tr key={idx}>
-                      <td className="p-2 font-sans">{p.name}</td>
-                      <td className="p-2">{p.standard}</td>
-                      <td className="p-2 font-bold">{p.actual}</td>
-                      <td className="p-2 text-center text-emerald-600 font-bold">PASSED</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex justify-between items-center pt-2">
-              <div className="text-xs text-slate-400">
-                {t.coaApprovedBy} <strong>{coaModalRecord.inspectorName}</strong>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCoaModalRecord(null)}
-                  className="px-4 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold"
-                >
-                  {t.btnColse}
-                </button>
-                <button
-                  onClick={() => window.print()}
-                  className="px-4 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold flex items-center gap-1.5"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  {t.btnPrint}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Client Standard Bottom Action Toolbar with prominent BACK Button ─── */}
       <ModuleViewFooter
-        onBack={() => appStore.setActiveSubFeature('qc', null)}
-        backLabel="BACK (KEMBALI KE MENU PRODUKSI & QC)"
-        actions={
-          <button
-            onClick={() => {
-              setQcFormsTab('spk');
-              setQcFormsOpen(true);
-            }}
-            className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Form SPK / QC Baru</span>
-          </button>
-        }
-      />
-
-      {/* Production & QC Forms Modal */}
-      <ProductionQcFormsModal
-        isOpen={qcFormsOpen}
-        onClose={() => setQcFormsOpen(false)}
-        defaultTab={qcFormsTab}
+        onBack={() => appStore.setActiveSubFeature('produksi_qc', null)}
+        backLabel="BACK (KEMBALI KE MENU PRODUKSI & QA/QC)"
       />
     </div>
   );
