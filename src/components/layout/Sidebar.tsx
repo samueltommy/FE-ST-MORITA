@@ -64,7 +64,9 @@ const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
   sales: [
     { id: 'quotations', label: 'Quotation (/sales/quotations)', icon: FileSpreadsheet },
     { id: 'incoming_orders', label: 'Incoming Order / IO (/sales/incoming-orders)', icon: FileText },
-    { id: 'customer_pos', label: '5.2.1 PO Customer (View)', icon: FileCheck2, endpoint: '/finance/customer-pos' },
+    { id: 'customer_pos', label: '5.2 PO Customer & IO', icon: FileCheck2, endpoint: '/finance/customer-pos' },
+    { id: 'commissions', label: '6.3 Komisi Sales', icon: Award, endpoint: '/finance/commissions' },
+    { id: 'entertainments', label: '6.4 Entertain Sales', icon: FileText, endpoint: '/finance/entertainments' },
     { id: 'sales_activities', label: 'Aktivitas & Kunjungan Sales / SDA', icon: Navigation },
     { id: 'customers', label: 'Master Customer (/mdm/customers)', icon: Users },
   ],
@@ -94,7 +96,11 @@ const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
   finance: [
     { id: 'invoices', label: '6.1.1 Sales Invoice (13 Rumus)', icon: Calculator, endpoint: '/finance/invoices' },
     { id: 'payments', label: '6.1.2 Pelunasan & Rekonsiliasi AR', icon: FileSpreadsheet, endpoint: '/finance/payments' },
-    { id: 'customer_pos', label: '5.2.1 Purchase Order Customer', icon: FileCheck2, endpoint: '/finance/customer-pos' },
+    { id: 'ap', label: 'Account Payable (AP / Hutang)', icon: Building2, endpoint: '/finance/supplier-invoices' },
+    { id: 'customer_pos', label: '5.2 PO Customer & Incoming Order', icon: FileCheck2, endpoint: '/finance/customer-pos' },
+    { id: 'commissions', label: '6.3 Komisi Sales', icon: Award, endpoint: '/finance/commissions' },
+    { id: 'entertainments', label: '6.4 Entertain Sales', icon: FileText, endpoint: '/finance/entertainments' },
+    { id: 'visit_approvals', label: 'Approval Visit Luar Kota', icon: Navigation, endpoint: '/hrd/out-of-town-visits' },
   ],
   rnd: [
     { id: 'rnd_trials', label: 'R&D Trial Formula (/rnd/trials)', icon: FlaskConical, endpoint: '/rnd/trials' },

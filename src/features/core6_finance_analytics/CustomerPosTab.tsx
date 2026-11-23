@@ -20,6 +20,7 @@ import {
   createCustomerPoApi,
   updateCustomerPoApi,
   deleteCustomerPoApi,
+  createIncomingOrderApi,
   listMdmCustomersApi,
   listMdmItemsApi,
   uploadFinanceDocument,
@@ -146,6 +147,17 @@ export const CustomerPosTab: React.FC<Props> = ({ canMutate }) => {
       invalidateAll();
     },
     onError: (err: any) => toast.error(extractFinanceErrorMessage(err, 'Gagal membatalkan Customer PO')),
+  });
+
+  const convertToIoMutation = useMutation({
+    mutationFn: (poId: string) =>
+      createIncomingOrderApi({ customerPoId: poId, date: todayStr() }),
+    onSuccess: (io) => {
+      toast.success(`Incoming Order ${io.ioNumber || ''} berhasil diterbitkan dari PO`);
+      invalidateAll();
+      queryClient.invalidateQueries({ queryKey: ['financeIncomingOrders'] });
+    },
+    onError: (err: any) => toast.error(extractFinanceErrorMessage(err, 'Gagal menerbitkan Incoming Order')),
   });
 
   const recomputeTotal = (
@@ -711,6 +723,17 @@ export const CustomerPosTab: React.FC<Props> = ({ canMutate }) => {
                         <td className="px-3 py-2.5 text-center">{getStatusBadge(po.status)}</td>
                         <td className="px-3 py-2.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1">
+                            {canMutate && !isVoid && po.status !== 'CONVERTED_TO_IO' && (
+                              <button
+                                type="button"
+                                onClick={() => convertToIoMutation.mutate(po.id)}
+                                disabled={convertToIoMutation.isPending}
+                                title="Konversi PO menjadi Incoming Order (IO)"
+                                className="px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold cursor-pointer disabled:opacity-50"
+                              >
+                                → Terbitkan IO
+                              </button>
+                            )}
                             {canMutate && !isVoid && (
                               <button
                                 type="button"

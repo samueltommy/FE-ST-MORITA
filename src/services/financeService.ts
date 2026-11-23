@@ -37,8 +37,16 @@ export function resolveFinanceFileUrl(fileUrl?: string | null): string | null {
   return `${backendOrigin}${normalizedPath}`;
 }
 
+export type FinanceDocType =
+  | 'customer_po'
+  | 'payment_proof'
+  | 'faktur_pajak'
+  | 'supplier_invoice'
+  | 'ap_payment_proof'
+  | 'entertainment_receipt';
+
 export async function uploadFinanceDocument(
-  docType: 'customer_po' | 'payment_proof' | 'faktur_pajak',
+  docType: FinanceDocType,
   file: File
 ): Promise<string> {
   const baseUrl = apiClient.defaults.baseURL || 'http://127.0.0.1:8000/api/v1';
@@ -59,16 +67,17 @@ export async function uploadFinanceDocument(
   return json?.data?.file_url || json?.data?.fileUrl || json?.file_url || json?.fileUrl || '';
 }
 
-export async function printFinanceInvoice(invoiceId: string): Promise<void> {
+export async function printFinanceHtmlReport(path: string): Promise<void> {
   const baseUrl = apiClient.defaults.baseURL || 'http://127.0.0.1:8000/api/v1';
   const token = localStorage.getItem('samhance_access_token') || '';
-  const res = await fetch(`${baseUrl}/finance/invoices/${invoiceId}/print`, {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const res = await fetch(`${baseUrl}${normalized}`, {
     method: 'GET',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
-    throw new Error(errText || `Gagal memuat dokumen cetak Sales Invoice (${res.status})`);
+    throw new Error(errText || `Gagal memuat dokumen cetak (${res.status})`);
   }
   const html = await res.text();
   const win = window.open('', '_blank', 'width=960,height=740');
@@ -86,6 +95,10 @@ export async function printFinanceInvoice(invoiceId: string): Promise<void> {
       // ignore if window was closed
     }
   }, 350);
+}
+
+export async function printFinanceInvoice(invoiceId: string): Promise<void> {
+  return printFinanceHtmlReport(`/finance/invoices/${invoiceId}/print`);
 }
 
 // ─── Types ────────────────────────────────────────────────────
@@ -609,6 +622,513 @@ export async function listMdmItemsApi(): Promise<MdmItemOption[]> {
   } catch {
     return [];
   }
+}
+
+// ─── Account Payable (AP) Types & API ────────────────────────
+
+export interface ApSummary {
+  totalBilled: number;
+  totalInvoices: number;
+  totalPaid: number;
+  totalOutstanding: number;
+  overdueCount: number;
+  overdueAmount: number;
+  unreconciledPaymentsCount: number;
+}
+
+export interface SupplierInvoicePayload {
+  invoiceNumber: string;
+  supplierId: string;
+  invoiceDate: string;
+  dueDate: string;
+  paymentTerm?: string;
+  fakturPajakNumber?: string | null;
+  subtotal: number;
+  freight: number;
+  discount: number;
+  taxRate: number;
+  pphRate: number;
+  fileUrl?: string | null;
+  notes?: string | null;
+}
+
+export interface SupplierPaymentPayload {
+  paymentDate: string;
+  paymentAmount: number;
+  paymentMethod: 'BANK_TRANSFER' | 'CASH' | 'GIRO' | 'CHEQUE' | 'VIRTUAL_ACCOUNT';
+  bankAccount?: string;
+  referenceNumber?: string;
+  proofFileUrl?: string | null;
+  notes?: string | null;
+}
+
+export interface SupplierPaymentRecord {
+  id: string;
+  paymentNumber: string;
+  supplierInvoiceId: string;
+  invoiceNumber?: string;
+  supplierName?: string;
+  paymentDate: string;
+  paymentAmount: number;
+  paymentMethod: string;
+  bankAccount?: string;
+  referenceNumber?: string;
+  proofFileUrl?: string | null;
+  reconciliationStatus: string;
+  notes?: string | null;
+}
+
+export interface SupplierInvoiceRecord {
+  id: string;
+  invoiceNumber: string;
+  supplierId: string;
+  supplierName?: string;
+  invoiceDate: string;
+  dueDate: string;
+  paymentTerm?: string;
+  fakturPajakNumber?: string | null;
+  subtotal: number;
+  freight: number;
+  discount: number;
+  taxRate: number;
+  pphRate: number;
+  grandTotal: number;
+  paidAmount: number;
+  outstandingAmount: number;
+  isOverdue: boolean;
+  status: string;
+  fileUrl?: string | null;
+  notes?: string | null;
+}
+
+export interface MdmSupplierOption {
+  id: string;
+  code?: string;
+  name: string;
+  paymentTerm?: string;
+}
+
+export async function getApSummaryApi(): Promise<ApSummary> {
+  try {
+    const res = await apiClient.get('/finance/ap/summary');
+    const d = (res.data?.data || res.data || {}) as any;
+    return {
+      totalBilled: Number(d.totalBilled ?? 0),
+      totalInvoices: Number(d.totalInvoices ?? 0),
+      totalPaid: Number(d.totalPaid ?? 0),
+      totalOutstanding: Number(d.totalOutstanding ?? 0),
+      overdueCount: Number(d.overdueCount ?? 0),
+      overdueAmount: Number(d.overdueAmount ?? 0),
+      unreconciledPaymentsCount: Number(d.unreconciledPaymentsCount ?? 0),
+    };
+  } catch {
+    return {
+      totalBilled: 0,
+      totalInvoices: 0,
+      totalPaid: 0,
+      totalOutstanding: 0,
+      overdueCount: 0,
+      overdueAmount: 0,
+      unreconciledPaymentsCount: 0,
+    };
+  }
+}
+
+function normalizeSupplierInvoice(inv: any): SupplierInvoiceRecord {
+  const grandTotal = Number(inv.grandTotal ?? inv.totalAmount ?? 0);
+  const paidAmount = Number(inv.paidAmount ?? inv.totalPaid ?? 0);
+  const outstandingAmount = Number(inv.outstandingAmount ?? Math.max(0, grandTotal - paidAmount));
+  const dueDate = String(inv.dueDate || '').split('T')[0];
+  const status = String(inv.status || 'UNPAID').toUpperCase();
+  const isOverdue =
+    typeof inv.isOverdue === 'boolean'
+      ? inv.isOverdue
+      : Boolean(dueDate && status !== 'PAID' && status !== 'CANCELLED' && dueDate < new Date().toISOString().split('T')[0]);
+  return {
+    id: String(inv.id),
+    invoiceNumber: String(inv.invoiceNumber || '-'),
+    supplierId: String(inv.supplierId || ''),
+    supplierName: String(inv.supplierName || inv.supplier?.name || inv.supplier?.supplierName || '-'),
+    invoiceDate: String(inv.invoiceDate || '').split('T')[0],
+    dueDate,
+    paymentTerm: inv.paymentTerm || 'NET 30',
+    fakturPajakNumber: inv.fakturPajakNumber || null,
+    subtotal: Number(inv.subtotal ?? 0),
+    freight: Number(inv.freight ?? 0),
+    discount: Number(inv.discount ?? 0),
+    taxRate: Number(inv.taxRate ?? 11),
+    pphRate: Number(inv.pphRate ?? 0),
+    grandTotal,
+    paidAmount,
+    outstandingAmount,
+    isOverdue,
+    status,
+    fileUrl: inv.fileUrl || null,
+    notes: inv.notes || null,
+  };
+}
+
+function normalizeSupplierPayment(p: any): SupplierPaymentRecord {
+  return {
+    id: String(p.id),
+    paymentNumber: String(p.paymentNumber || '-'),
+    supplierInvoiceId: String(p.supplierInvoiceId || ''),
+    invoiceNumber: p.invoiceNumber || p.supplierInvoice?.invoiceNumber || '-',
+    supplierName: p.supplierName || p.supplierInvoice?.supplierName || '-',
+    paymentDate: String(p.paymentDate || '').split('T')[0],
+    paymentAmount: Number(p.paymentAmount ?? 0),
+    paymentMethod: String(p.paymentMethod || 'BANK_TRANSFER'),
+    bankAccount: p.bankAccount || '',
+    referenceNumber: p.referenceNumber || '',
+    proofFileUrl: p.proofFileUrl || p.fileUrl || null,
+    reconciliationStatus: String(p.reconciliationStatus || 'UNRECONCILED').toUpperCase(),
+    notes: p.notes || null,
+  };
+}
+
+export async function listSupplierInvoicesApi(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  supplierId?: string;
+  overdueOnly?: boolean;
+}) {
+  const query: Record<string, unknown> = { page: params.page || 1, limit: params.limit || 20 };
+  if (params.search) query.search = params.search;
+  if (params.status && params.status !== 'ALL') query.status = params.status;
+  if (params.supplierId && params.supplierId !== 'ALL') query.supplierId = params.supplierId;
+  if (params.overdueOnly) query.overdueOnly = true;
+  const res = await apiClient.get('/finance/supplier-invoices', { params: query });
+  const raw = res.data?.data || res.data?.items || (Array.isArray(res.data) ? res.data : []);
+  const meta = res.data?.meta || { totalPages: 1, page: 1, total: Array.isArray(raw) ? raw.length : 0 };
+  return { data: Array.isArray(raw) ? raw.map(normalizeSupplierInvoice) : [], meta };
+}
+
+export async function createSupplierInvoiceApi(payload: SupplierInvoicePayload): Promise<SupplierInvoiceRecord> {
+  const res = await apiClient.post('/finance/supplier-invoices', payload);
+  return normalizeSupplierInvoice(res.data?.data || res.data);
+}
+
+export async function updateSupplierInvoiceApi(id: string, payload: Partial<SupplierInvoicePayload>): Promise<SupplierInvoiceRecord> {
+  const res = await apiClient.put(`/finance/supplier-invoices/${id}`, payload);
+  return normalizeSupplierInvoice(res.data?.data || res.data);
+}
+
+export async function deleteSupplierInvoiceApi(id: string): Promise<void> {
+  await apiClient.delete(`/finance/supplier-invoices/${id}`);
+}
+
+export async function listSupplierPaymentsApi(params: {
+  page?: number;
+  limit?: number;
+  supplierInvoiceId?: string;
+  reconciliationStatus?: string;
+}) {
+  const query: Record<string, unknown> = { page: params.page || 1, limit: params.limit || 50 };
+  if (params.supplierInvoiceId && params.supplierInvoiceId !== 'ALL') query.supplierInvoiceId = params.supplierInvoiceId;
+  if (params.reconciliationStatus && params.reconciliationStatus !== 'ALL') query.reconciliationStatus = params.reconciliationStatus;
+  const res = await apiClient.get('/finance/supplier-payments', { params: query });
+  const raw = res.data?.data || res.data?.items || (Array.isArray(res.data) ? res.data : []);
+  const meta = res.data?.meta || { totalPages: 1, page: 1 };
+  return { data: Array.isArray(raw) ? raw.map(normalizeSupplierPayment) : [], meta };
+}
+
+export async function createSupplierPaymentApi(invoiceId: string, payload: SupplierPaymentPayload): Promise<SupplierPaymentRecord> {
+  const res = await apiClient.post(`/finance/supplier-invoices/${invoiceId}/payments`, payload);
+  return normalizeSupplierPayment(res.data?.data || res.data);
+}
+
+export async function reconcileSupplierPaymentApi(paymentId: string, reconciliationStatus: 'RECONCILED' | 'UNRECONCILED' = 'RECONCILED') {
+  const res = await apiClient.patch(`/finance/supplier-payments/${paymentId}/reconcile`, { reconciliationStatus });
+  return normalizeSupplierPayment(res.data?.data || res.data);
+}
+
+export async function deleteSupplierPaymentApi(paymentId: string): Promise<void> {
+  await apiClient.delete(`/finance/supplier-payments/${paymentId}`);
+}
+
+export async function listMdmSuppliersApi(): Promise<MdmSupplierOption[]> {
+  try {
+    const res = await apiClient.get('/mdm/suppliers', { params: { page: 1, limit: 100 } });
+    const raw = res.data?.data || res.data || [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((s: any) => ({
+      id: String(s.id),
+      code: s.supplierCode || s.code || '',
+      name: String(s.supplierName || s.name || s.companyName || s.id),
+      paymentTerm: s.paymentTerm || 'NET 30',
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ─── 5.2.2 & 5.2.3 Incoming Orders (IO) ──────────────────────
+
+export interface IncomingOrderPayload {
+  customerPoId: string;
+  date: string;
+  estimatedDeliveryDate?: string | null;
+  notes?: string | null;
+}
+
+export interface IncomingOrderRecord {
+  id: string;
+  ioNumber: string;
+  customerPoId?: string | null;
+  poNumber?: string | null;
+  customerId?: string | null;
+  customerName?: string;
+  date: string;
+  estimatedDeliveryDate?: string | null;
+  totalAmount: number;
+  managerMarketingConfirmed: boolean;
+  managerMarketingConfirmedBy?: string | null;
+  costControlConfirmed: boolean;
+  costControlConfirmedBy?: string | null;
+  status: string;
+  notes?: string | null;
+}
+
+function normalizeIncomingOrder(io: any): IncomingOrderRecord {
+  return {
+    id: String(io.id),
+    ioNumber: String(io.ioNumber || io.number || '-'),
+    customerPoId: io.customerPoId ? String(io.customerPoId) : null,
+    poNumber: io.poNumber || io.customerPoNumber || io.customerPo?.poNumber || '-',
+    customerId: io.customerId ? String(io.customerId) : null,
+    customerName: String(io.customerName || io.customer?.name || io.customerPo?.customerName || '-'),
+    date: String(io.date || io.ioDate || '').split('T')[0],
+    estimatedDeliveryDate: io.estimatedDeliveryDate ? String(io.estimatedDeliveryDate).split('T')[0] : null,
+    totalAmount: Number(io.totalAmount ?? io.grandTotal ?? 0),
+    managerMarketingConfirmed: Boolean(io.managerMarketingConfirmed || io.managerMarketingStatus === 'CONFIRMED' || io.managerMarketingStatus === 'APPROVED'),
+    managerMarketingConfirmedBy: io.managerMarketingConfirmedBy || null,
+    costControlConfirmed: Boolean(io.costControlConfirmed || io.costControlStatus === 'CONFIRMED' || io.costControlStatus === 'APPROVED'),
+    costControlConfirmedBy: io.costControlConfirmedBy || null,
+    status: String(io.status || 'OPEN').toUpperCase(),
+    notes: io.notes || null,
+  };
+}
+
+export async function listIncomingOrdersApi(params: { page?: number; limit?: number; search?: string; status?: string }) {
+  const query: Record<string, unknown> = { page: params.page || 1, limit: params.limit || 20 };
+  if (params.search) query.search = params.search;
+  if (params.status && params.status !== 'ALL') query.status = params.status;
+  const res = await apiClient.get('/finance/incoming-orders', { params: query });
+  const raw = res.data?.data || res.data?.items || (Array.isArray(res.data) ? res.data : []);
+  const meta = res.data?.meta || { totalPages: 1, page: 1 };
+  return { data: Array.isArray(raw) ? raw.map(normalizeIncomingOrder) : [], meta };
+}
+
+export async function createIncomingOrderApi(payload: IncomingOrderPayload): Promise<IncomingOrderRecord> {
+  const res = await apiClient.post('/finance/incoming-orders', payload);
+  return normalizeIncomingOrder(res.data?.data || res.data);
+}
+
+export async function deleteIncomingOrderApi(id: string): Promise<void> {
+  await apiClient.delete(`/finance/incoming-orders/${id}`);
+}
+
+export async function confirmIoManagerMarketingApi(id: string): Promise<IncomingOrderRecord> {
+  const res = await apiClient.patch(`/finance/incoming-orders/${id}/confirm-manager-marketing`, {});
+  return normalizeIncomingOrder(res.data?.data || res.data);
+}
+
+export async function confirmIoCostControlApi(id: string): Promise<IncomingOrderRecord> {
+  const res = await apiClient.patch(`/finance/incoming-orders/${id}/confirm-cost-control`, {});
+  return normalizeIncomingOrder(res.data?.data || res.data);
+}
+
+// ─── 6.3 Sales Commissions ───────────────────────────────────
+
+export interface SalesCommissionPayload {
+  employeeId: string;
+  periodMonth: number;
+  periodYear: number;
+  existingSalesAmount: number;
+  existingSalesRate: number;
+  newCustomerSalesAmount: number;
+  newCustomerRate: number;
+  newCustomerCount: number;
+  bonusAmount: number;
+  deductionAmount: number;
+  notes?: string | null;
+}
+
+export interface SalesCommissionRecord extends SalesCommissionPayload {
+  id: string;
+  commissionNumber?: string;
+  employeeName?: string;
+  employeeNik?: string;
+  totalCommission: number;
+  status: string;
+}
+
+function normalizeCommission(c: any): SalesCommissionRecord {
+  const existingAmt = Number(c.existingSalesAmount ?? 0);
+  const existingRate = Number(c.existingSalesRate ?? 0);
+  const newAmt = Number(c.newCustomerSalesAmount ?? 0);
+  const newRate = Number(c.newCustomerRate ?? 0);
+  const bonus = Number(c.bonusAmount ?? 0);
+  const deduction = Number(c.deductionAmount ?? 0);
+  const fallbackTotal = Math.round((existingAmt * existingRate) / 100 + (newAmt * newRate) / 100 + bonus - deduction);
+  return {
+    id: String(c.id),
+    commissionNumber: c.commissionNumber || c.number || undefined,
+    employeeId: String(c.employeeId || ''),
+    employeeName: c.employeeName || c.employee?.fullName || c.employee?.name || '-',
+    employeeNik: c.employeeNik || c.employee?.nik || '',
+    periodMonth: Number(c.periodMonth ?? 1),
+    periodYear: Number(c.periodYear ?? new Date().getFullYear()),
+    existingSalesAmount: existingAmt,
+    existingSalesRate: existingRate,
+    newCustomerSalesAmount: newAmt,
+    newCustomerRate: newRate,
+    newCustomerCount: Number(c.newCustomerCount ?? 0),
+    bonusAmount: bonus,
+    deductionAmount: deduction,
+    totalCommission: Number(c.totalCommission ?? fallbackTotal),
+    status: String(c.status || 'DRAFT').toUpperCase(),
+    notes: c.notes || null,
+  };
+}
+
+export async function listSalesCommissionsApi(params: {
+  page?: number;
+  limit?: number;
+  employeeId?: string;
+  periodMonth?: number;
+  periodYear?: number;
+  status?: string;
+}) {
+  const query: Record<string, unknown> = { page: params.page || 1, limit: params.limit || 20 };
+  if (params.employeeId && params.employeeId !== 'ALL') query.employeeId = params.employeeId;
+  if (params.periodMonth) query.periodMonth = params.periodMonth;
+  if (params.periodYear) query.periodYear = params.periodYear;
+  if (params.status && params.status !== 'ALL') query.status = params.status;
+  const res = await apiClient.get('/finance/commissions', { params: query });
+  const raw = res.data?.data || res.data?.items || (Array.isArray(res.data) ? res.data : []);
+  const meta = res.data?.meta || { totalPages: 1, page: 1 };
+  return { data: Array.isArray(raw) ? raw.map(normalizeCommission) : [], meta };
+}
+
+export async function createSalesCommissionApi(payload: SalesCommissionPayload): Promise<SalesCommissionRecord> {
+  const res = await apiClient.post('/finance/commissions', payload);
+  return normalizeCommission(res.data?.data || res.data);
+}
+
+export async function updateSalesCommissionApi(id: string, payload: Partial<SalesCommissionPayload>): Promise<SalesCommissionRecord> {
+  const res = await apiClient.put(`/finance/commissions/${id}`, payload);
+  return normalizeCommission(res.data?.data || res.data);
+}
+
+export async function deleteSalesCommissionApi(id: string): Promise<void> {
+  await apiClient.delete(`/finance/commissions/${id}`);
+}
+
+export async function approveSalesCommissionApi(id: string): Promise<SalesCommissionRecord> {
+  const res = await apiClient.patch(`/finance/commissions/${id}/approve`, {});
+  return normalizeCommission(res.data?.data || res.data);
+}
+
+export async function markPaidSalesCommissionApi(id: string): Promise<SalesCommissionRecord> {
+  const res = await apiClient.patch(`/finance/commissions/${id}/mark-paid`, {});
+  return normalizeCommission(res.data?.data || res.data);
+}
+
+export async function listSalesEmployeesApi(): Promise<{ id: string; nik?: string; fullName: string }[]> {
+  try {
+    const res = await apiClient.get('/hrd/employees', { params: { page: 1, limit: 100, department: 'SALES' } });
+    const raw = res.data?.data || res.data?.employees || (Array.isArray(res.data) ? res.data : []);
+    if (!Array.isArray(raw)) return [];
+    return raw.map((e: any) => ({
+      id: String(e.id),
+      nik: e.nik || '',
+      fullName: String(e.fullName || e.name || e.username || e.id),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ─── 6.4 Sales Entertainments ────────────────────────────────
+
+export interface SalesEntertainmentPayload {
+  customerId?: string | null;
+  customerName?: string | null;
+  entertainmentDate: string;
+  location: string;
+  attendees: string;
+  purpose: string;
+  estimatedAmount: number;
+  actualAmount: number;
+  receiptFileUrl?: string | null;
+  notes?: string | null;
+}
+
+export interface SalesEntertainmentRecord extends SalesEntertainmentPayload {
+  id: string;
+  entertainmentNumber?: string;
+  requesterName?: string;
+  managerStatus: string;
+  financeStatus: string;
+  status: string;
+}
+
+function normalizeEntertainment(e: any): SalesEntertainmentRecord {
+  return {
+    id: String(e.id),
+    entertainmentNumber: e.entertainmentNumber || e.number || undefined,
+    requesterName: e.requesterName || e.employeeName || e.employee?.fullName || '-',
+    customerId: e.customerId ? String(e.customerId) : null,
+    customerName: e.customerName || e.customer?.name || '-',
+    entertainmentDate: String(e.entertainmentDate || '').split('T')[0],
+    location: e.location || '',
+    attendees: e.attendees || '',
+    purpose: e.purpose || '',
+    estimatedAmount: Number(e.estimatedAmount ?? 0),
+    actualAmount: Number(e.actualAmount ?? 0),
+    receiptFileUrl: e.receiptFileUrl || e.fileUrl || null,
+    notes: e.notes || null,
+    managerStatus: String(e.managerStatus || 'PENDING').toUpperCase(),
+    financeStatus: String(e.financeStatus || 'PENDING').toUpperCase(),
+    status: String(e.status || 'PENDING').toUpperCase(),
+  };
+}
+
+export async function listSalesEntertainmentsApi(params: { page?: number; limit?: number; search?: string; status?: string }) {
+  const query: Record<string, unknown> = { page: params.page || 1, limit: params.limit || 20 };
+  if (params.search) query.search = params.search;
+  if (params.status && params.status !== 'ALL') query.status = params.status;
+  const res = await apiClient.get('/finance/entertainments', { params: query });
+  const raw = res.data?.data || res.data?.items || (Array.isArray(res.data) ? res.data : []);
+  const meta = res.data?.meta || { totalPages: 1, page: 1 };
+  return { data: Array.isArray(raw) ? raw.map(normalizeEntertainment) : [], meta };
+}
+
+export async function createSalesEntertainmentApi(payload: SalesEntertainmentPayload): Promise<SalesEntertainmentRecord> {
+  const res = await apiClient.post('/finance/entertainments', payload);
+  return normalizeEntertainment(res.data?.data || res.data);
+}
+
+export async function updateSalesEntertainmentApi(id: string, payload: Partial<SalesEntertainmentPayload>): Promise<SalesEntertainmentRecord> {
+  const res = await apiClient.put(`/finance/entertainments/${id}`, payload);
+  return normalizeEntertainment(res.data?.data || res.data);
+}
+
+export async function deleteSalesEntertainmentApi(id: string): Promise<void> {
+  await apiClient.delete(`/finance/entertainments/${id}`);
+}
+
+export async function approveEntertainmentManagerApi(id: string, action: 'APPROVE' | 'REJECT', notes?: string) {
+  const res = await apiClient.patch(`/finance/entertainments/${id}/approve-manager`, { action, notes });
+  return normalizeEntertainment(res.data?.data || res.data);
+}
+
+export async function approveEntertainmentFinanceApi(id: string, action: 'APPROVE' | 'REJECT', notes?: string) {
+  const res = await apiClient.patch(`/finance/entertainments/${id}/approve-finance`, { action, notes });
+  return normalizeEntertainment(res.data?.data || res.data);
 }
 
 // ─── Backward-compatible Legacy Exports ──────────────────────

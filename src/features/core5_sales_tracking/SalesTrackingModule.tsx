@@ -29,6 +29,9 @@ import { ModulePageHeader, PageOptionItem } from '../../components/layout/Module
 import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
 import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
 import { CustomerPosTab } from '../core6_finance_analytics/CustomerPosTab';
+import { IncomingOrdersTab } from '../core6_finance_analytics/IncomingOrdersTab';
+import { SalesCommissionsTab } from '../core6_finance_analytics/SalesCommissionsTab';
+import { SalesEntertainmentsTab } from '../core6_finance_analytics/SalesEntertainmentsTab';
 import { useRBAC } from '../../hooks/useRBAC';
 
 const CONTENT = {
@@ -174,9 +177,21 @@ export const SalesTrackingModule: React.FC = () => {
     },
     {
       id: 'customer_pos',
-      label: '3. 5.2.1 PO Customer (View)',
-      subtitle: 'Purchase Order dari Customer (Read-Only)',
+      label: '3. 5.2 PO Customer & IO',
+      subtitle: 'PO Customer (View) & Konfirmasi IO',
       icon: FileSpreadsheet,
+    },
+    {
+      id: 'commissions',
+      label: '4. 6.3 Komisi Sales',
+      subtitle: 'Input & Pantau Komisi',
+      icon: CheckCircle2,
+    },
+    {
+      id: 'entertainments',
+      label: '5. 6.4 Entertain Sales',
+      subtitle: 'Pengajuan & Approval Mkt',
+      icon: Users,
     },
   ];
 
@@ -229,13 +244,33 @@ export const SalesTrackingModule: React.FC = () => {
       },
       {
         id: 'customer_pos',
-        label: '5.2.1 Purchase Order Customer (View)',
-        subtitle: 'Lihat daftar PO Customer dari e-mail yang dicatat Finance (Mode Read-Only)',
+        label: '5.2 PO Customer (View) & Incoming Order (IO)',
+        subtitle: 'Lihat PO Customer (Read-Only) & Konfirmasi Manager Marketing pada Incoming Order',
         icon: FileSpreadsheet,
         iconColor: 'text-emerald-600',
-        badge: 'View Only',
+        badge: 'PO / IO',
         badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
         onClick: () => appStore.setActiveSubFeature('sales', 'customer_pos'),
+      },
+      {
+        id: 'commissions',
+        label: '6.3 Komisi Sales',
+        subtitle: 'Input & pantau perhitungan komisi penjualan existing & new customer',
+        icon: CheckCircle2,
+        iconColor: 'text-purple-600',
+        badge: '6.3 Komisi',
+        badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
+        onClick: () => appStore.setActiveSubFeature('sales', 'commissions'),
+      },
+      {
+        id: 'entertainments',
+        label: '6.4 Entertain Sales',
+        subtitle: 'Pengajuan entertain customer, upload nota & approval Manager Marketing',
+        icon: Users,
+        iconColor: 'text-rose-600',
+        badge: '6.4 Entertain',
+        badgeColor: 'bg-rose-100 text-rose-800 border-rose-200',
+        onClick: () => appStore.setActiveSubFeature('sales', 'entertainments'),
       },
       {
         id: 'form',
@@ -266,7 +301,20 @@ export const SalesTrackingModule: React.FC = () => {
 
   const { isSuperAdmin, isExecutive, userDivision } = useRBAC();
   const canMutateCustomerPos = isSuperAdmin || isExecutive || userDivision === 'FINANCE';
-  const currentTab = activeSubFeature === 'e_tracking' ? 'e_tracking' : activeSubFeature === 'sales_report' ? 'sales_report' : activeSubFeature === 'customer' ? 'customer' : activeSubFeature === 'customer_pos' ? 'customer_pos' : 'quotation_gating';
+  const currentTab =
+    activeSubFeature === 'e_tracking'
+      ? 'e_tracking'
+      : activeSubFeature === 'sales_report'
+      ? 'sales_report'
+      : activeSubFeature === 'customer'
+      ? 'customer'
+      : activeSubFeature === 'customer_pos'
+      ? 'customer_pos'
+      : activeSubFeature === 'commissions'
+      ? 'commissions'
+      : activeSubFeature === 'entertainments'
+      ? 'entertainments'
+      : 'quotation_gating';
 
   return (
     <div className="space-y-6">
@@ -710,8 +758,17 @@ export const SalesTrackingModule: React.FC = () => {
       )}
 
       {currentTab === 'customer_pos' && (
-        <CustomerPosTab canMutate={canMutateCustomerPos} />
+        <div className="space-y-6">
+          <CustomerPosTab canMutate={canMutateCustomerPos} />
+          <div className="pt-2 border-t border-slate-200">
+            <h3 className="text-sm font-bold text-slate-800 mb-3">5.2.2 &amp; 5.2.3 Incoming Order (IO)</h3>
+            <IncomingOrdersTab />
+          </div>
+        </div>
       )}
+
+      {currentTab === 'commissions' && <SalesCommissionsTab />}
+      {currentTab === 'entertainments' && <SalesEntertainmentsTab />}
 
       {/* ─── Client Standard Bottom Action Toolbar with prominent BACK Button ─── */}
       <ModuleViewFooter
