@@ -101,6 +101,7 @@ const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
     { id: 'commissions', label: '6.3 Komisi Sales', icon: Award, endpoint: '/finance/commissions' },
     { id: 'entertainments', label: '6.4 Entertain Sales', icon: FileText, endpoint: '/finance/entertainments' },
     { id: 'visit_approvals', label: 'Approval Visit Luar Kota', icon: Navigation, endpoint: '/hrd/out-of-town-visits' },
+    { id: 'complaints_rma', label: '6.6 E-Complaint & RMA / CN / DN', icon: AlertCircle, endpoint: '/finance/complaints' },
   ],
   rnd: [
     { id: 'rnd_trials', label: 'R&D Trial Formula (/rnd/trials)', icon: FlaskConical, endpoint: '/rnd/trials' },
@@ -109,9 +110,13 @@ const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
     { id: 'sample_requests', label: 'Permintaan Sampel (/public/request-sample)', icon: Send, endpoint: '/public/request-sample' },
   ],
   hrd: [
-    { id: 'employees', label: 'Master Data Karyawan (/hrd/employees)', icon: Users, endpoint: '/hrd/employees' },
-    { id: 'requests', label: 'Pengajuan & Approval Cuti/Izin', icon: Calendar, endpoint: '/hrd/requests' },
-    { id: 'attendance', label: 'Presensi / Kehadiran Harian', icon: CheckCircle2, endpoint: '/hrd/attendance' },
+    { id: 'user_management', label: 'User Management', icon: Users, endpoint: '/user-management' },
+    { id: 'employees', label: 'Database Karyawan / Profil', icon: Users, endpoint: '/hrd/employees' },
+    { id: 'cuti', label: 'Pengajuan Cuti (RM-HRD-303)', icon: Calendar, endpoint: '/hrd/leave-requests' },
+    { id: 'sakit_izin', label: 'Sakit / Izin Lainnya', icon: FileText, endpoint: '/hrd/leave-requests' },
+    { id: 'exit_permits', label: 'Keluar Kantor (RM-HRD-013)', icon: Navigation, endpoint: '/hrd/exit-permits' },
+    { id: 'vehicles', label: 'Kendaraan Kantor', icon: Truck, endpoint: '/hrd/vehicle-bookings' },
+    { id: 'out_of_town_visits', label: 'Visit Luar Kota', icon: Send, endpoint: '/hrd/out-of-town-visits' },
   ],
   users: [
     { id: 'list', label: 'Daftar Akun Pegawai & RBAC', icon: Users },

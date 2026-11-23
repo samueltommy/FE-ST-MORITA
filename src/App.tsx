@@ -231,9 +231,9 @@ export default function App() {
         {/* Main Content Area - Completely Independent Scroll */}
         <main
           id="main-content-viewport"
-          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-4 sm:p-6 lg:p-8 select-text focus:outline-hidden"
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-3 sm:p-4 lg:p-5 select-text focus:outline-hidden"
         >
-          <div className="w-full max-w-7xl mx-auto pb-12">
+          <div className="w-full pb-10">
             {!canAccessModule(activeModule) ? (
               <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400">
                 <Lock className="w-16 h-16 text-slate-300 mb-4" />

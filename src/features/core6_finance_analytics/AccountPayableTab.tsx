@@ -12,6 +12,7 @@ import {
   ExternalLink,
   CheckCircle2,
   AlertTriangle,
+  Printer,
   Loader2,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -26,8 +27,11 @@ import {
   reconcileSupplierPaymentApi,
   deleteSupplierPaymentApi,
   listMdmSuppliersApi,
+  getFinancePaymentTermsApi,
+  DEFAULT_PAYMENT_TERMS,
   uploadFinanceDocument,
   resolveFinanceFileUrl,
+  printFinanceHtmlReport,
   extractFinanceErrorMessage,
   SupplierInvoiceRecord,
   SupplierInvoicePayload,
@@ -47,6 +51,9 @@ interface ApDraft {
   invoiceDate: string;
   dueDate: string;
   paymentTerm: string;
+  billingStage: string;
+  terminNumber: string;
+  terminPercentage: string;
   fakturPajakNumber: string;
   subtotal: number;
   freight: number;
@@ -64,8 +71,11 @@ const emptyDraft = (): ApDraft => ({
   invoiceNumber: '',
   supplierId: '',
   invoiceDate: todayStr(),
-  dueDate: plus30Str(),
+  dueDate: '',
   paymentTerm: 'NET 30',
+  billingStage: 'FINAL_PAYMENT',
+  terminNumber: '',
+  terminPercentage: '',
   fakturPajakNumber: '',
   subtotal: 0,
   freight: 0,
@@ -124,6 +134,11 @@ export const AccountPayableTab: React.FC<Props> = ({ canMutate }) => {
   const { data: suppliers = [] } = useQuery({
     queryKey: ['mdmSuppliersDropdown'],
     queryFn: listMdmSuppliersApi,
+  });
+
+  const { data: termsDict = DEFAULT_PAYMENT_TERMS } = useQuery({
+    queryKey: ['financePaymentTerms'],
+    queryFn: getFinancePaymentTermsApi,
   });
 
   const { data: expandedPaymentsRes, isLoading: isLoadingPayments } = useQuery({
@@ -248,8 +263,11 @@ export const AccountPayableTab: React.FC<Props> = ({ canMutate }) => {
       invoiceNumber: inv.invoiceNumber,
       supplierId: inv.supplierId,
       invoiceDate: inv.invoiceDate || todayStr(),
-      dueDate: inv.dueDate || plus30Str(),
+      dueDate: inv.dueDate || '',
       paymentTerm: inv.paymentTerm || 'NET 30',
+      billingStage: inv.billingStage || 'FINAL_PAYMENT',
+      terminNumber: inv.terminNumber != null ? String(inv.terminNumber) : '',
+      terminPercentage: inv.terminPercentage != null ? String(inv.terminPercentage) : '',
       fakturPajakNumber: inv.fakturPajakNumber || '',
       subtotal: inv.subtotal,
       freight: inv.freight,
@@ -280,8 +298,11 @@ export const AccountPayableTab: React.FC<Props> = ({ canMutate }) => {
       invoiceNumber: draft.invoiceNumber.trim(),
       supplierId: draft.supplierId,
       invoiceDate: draft.invoiceDate,
-      dueDate: draft.dueDate,
+      dueDate: draft.dueDate || null,
       paymentTerm: draft.paymentTerm,
+      billingStage: draft.billingStage || null,
+      terminNumber: draft.terminNumber ? Number(draft.terminNumber) : null,
+      terminPercentage: draft.terminPercentage ? Number(draft.terminPercentage) : null,
       fakturPajakNumber: draft.fakturPajakNumber || null,
       subtotal: Number(draft.subtotal) || 0,
       freight: Number(draft.freight) || 0,
@@ -350,13 +371,17 @@ export const AccountPayableTab: React.FC<Props> = ({ canMutate }) => {
             onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })}
             className="px-2 py-1 rounded border border-slate-300 text-xs bg-white"
           />
-          <input
-            type="text"
-            placeholder="NET 30"
+          <select
             value={draft.paymentTerm}
             onChange={(e) => setDraft({ ...draft, paymentTerm: e.target.value })}
             className="w-full px-2 py-0.5 rounded border border-slate-300 text-[11px] bg-white"
-          />
+          >
+            {termsDict.paymentTerms.map((pt) => (
+              <option key={pt.code} value={pt.code}>
+                {pt.code}
+              </option>
+            ))}
+          </select>
         </td>
         <td className="px-3 py-2.5 text-right font-mono font-bold text-indigo-800 whitespace-nowrap">
           {formatIDR(computeDraftGrandTotal(draft))}
@@ -449,14 +474,34 @@ export const AccountPayableTab: React.FC<Props> = ({ canMutate }) => {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-[11px] font-semibold text-slate-600">Catatan</span>
-              <input
-                type="text"
-                placeholder="Catatan..."
-                value={draft.notes}
-                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-                className="w-full px-2 py-1 rounded border border-slate-300"
-              />
+              <span className="text-[11px] font-semibold text-slate-600">Tahap / Termin</span>
+              <div className="flex gap-1">
+                <select
+                  value={draft.billingStage}
+                  onChange={(e) => setDraft({ ...draft, billingStage: e.target.value })}
+                  className="w-full px-1.5 py-1 rounded border border-slate-300 bg-white text-[11px]"
+                >
+                  {termsDict.billingStages.map((bs) => (
+                    <option key={bs.code} value={bs.code}>
+                      {bs.code}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  placeholder="#"
+                  value={draft.terminNumber}
+                  onChange={(e) => setDraft({ ...draft, terminNumber: e.target.value })}
+                  className="w-10 px-1 py-1 rounded border border-slate-300 font-mono text-[11px]"
+                />
+                <input
+                  type="number"
+                  placeholder="%"
+                  value={draft.terminPercentage}
+                  onChange={(e) => setDraft({ ...draft, terminPercentage: e.target.value })}
+                  className="w-12 px-1 py-1 rounded border border-slate-300 font-mono text-[11px]"
+                />
+              </div>
             </label>
             <div>
               <label className="w-full inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-[11px] font-semibold cursor-pointer">
@@ -617,6 +662,18 @@ export const AccountPayableTab: React.FC<Props> = ({ canMutate }) => {
                         <td className="px-3 py-2.5 text-center">{getStatusBadge(inv.status)}</td>
                         <td className="px-3 py-2.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                printFinanceHtmlReport(`/finance/supplier-invoices/${inv.id}/print`).catch((e) =>
+                                  toast.error(e?.message || 'Gagal mencetak voucher AP')
+                                )
+                              }
+                              title="Cetak Voucher AP"
+                              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                            </button>
                             {fileHref && (
                               <a
                                 href={fileHref}

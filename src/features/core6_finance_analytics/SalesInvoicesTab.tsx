@@ -18,6 +18,8 @@ import { toast } from 'sonner';
 import {
   listFinanceInvoicesApi,
   getFinanceFormulasApi,
+  getFinancePaymentTermsApi,
+  DEFAULT_PAYMENT_TERMS,
   calculateFinanceInvoiceApi,
   createFinanceInvoiceApi,
   updateFinanceInvoiceApi,
@@ -49,6 +51,9 @@ interface InvoiceDraft {
   dueDate: string;
   invoiceType: InvoiceType;
   paymentTerm: string;
+  billingStage: string;
+  terminNumber: string;
+  terminPercentage: string;
   taxFactureNumber: string;
   taxPeriod: string;
   formulaId: number;
@@ -69,9 +74,12 @@ const emptyDraft = (): InvoiceDraft => ({
   customerId: '',
   customerPoId: '',
   invoiceDate: todayStr(),
-  dueDate: plus30Str(),
+  dueDate: '',
   invoiceType: 'FINAL_PAYMENT_100',
   paymentTerm: 'NET 30',
+  billingStage: 'FINAL_PAYMENT',
+  terminNumber: '',
+  terminPercentage: '',
   taxFactureNumber: '',
   taxPeriod: todayStr().slice(0, 7),
   formulaId: 1,
@@ -99,6 +107,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [customerFilter, setCustomerFilter] = useState('ALL');
+  const [overdueOnly, setOverdueOnly] = useState(false);
 
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -120,7 +129,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
   const [voidTarget, setVoidTarget] = useState<SalesInvoiceRecord | null>(null);
 
   const { data: invoicesRes, isLoading } = useQuery({
-    queryKey: ['financeInvoices', page, search, statusFilter, customerFilter],
+    queryKey: ['financeInvoices', page, search, statusFilter, customerFilter, overdueOnly],
     queryFn: () =>
       listFinanceInvoicesApi({
         page,
@@ -128,6 +137,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
         search: search || undefined,
         status: statusFilter,
         customerId: customerFilter,
+        overdueOnly,
       }),
   });
 
@@ -137,6 +147,11 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
   const { data: formulas = [] } = useQuery({
     queryKey: ['financeFormulas'],
     queryFn: getFinanceFormulasApi,
+  });
+
+  const { data: termsDict = DEFAULT_PAYMENT_TERMS } = useQuery({
+    queryKey: ['financePaymentTerms'],
+    queryFn: getFinancePaymentTermsApi,
   });
 
   const { data: customers = [] } = useQuery({
@@ -267,9 +282,12 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
       customerId: inv.customerId,
       customerPoId: inv.customerPoId || '',
       invoiceDate: inv.invoiceDate || todayStr(),
-      dueDate: inv.dueDate || plus30Str(),
+      dueDate: inv.dueDate || '',
       invoiceType: (inv.invoiceType as InvoiceType) || 'FINAL_PAYMENT_100',
       paymentTerm: inv.paymentTerm || 'NET 30',
+      billingStage: inv.billingStage || 'FINAL_PAYMENT',
+      terminNumber: inv.terminNumber != null ? String(inv.terminNumber) : '',
+      terminPercentage: inv.terminPercentage != null ? String(inv.terminPercentage) : '',
       taxFactureNumber: inv.taxFactureNumber || '',
       taxPeriod: inv.taxPeriod || '',
       formulaId: inv.formulaId || 1,
@@ -300,9 +318,12 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
       customerId: draft.customerId,
       customerPoId: draft.customerPoId || null,
       invoiceDate: draft.invoiceDate,
-      dueDate: draft.dueDate,
+      dueDate: draft.dueDate || null,
       invoiceType: draft.invoiceType,
       paymentTerm: draft.paymentTerm,
+      billingStage: draft.billingStage || null,
+      terminNumber: draft.terminNumber ? Number(draft.terminNumber) : null,
+      terminPercentage: draft.terminPercentage ? Number(draft.terminPercentage) : null,
       taxFactureNumber: draft.taxFactureNumber || null,
       taxPeriod: draft.taxPeriod || null,
       formulaId: Number(draft.formulaId),
@@ -426,7 +447,32 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 items-center pt-2 border-t border-slate-100">
-            <div className="md:col-span-1">
+            <div className="md:col-span-1 flex flex-wrap gap-1.5">
+              <select
+                value={draft.billingStage}
+                onChange={(e) => setDraft({ ...draft, billingStage: e.target.value })}
+                className="flex-1 min-w-[120px] px-2 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
+              >
+                {termsDict.billingStages.map((bs) => (
+                  <option key={bs.code} value={bs.code}>
+                    {bs.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                placeholder="Termin #"
+                value={draft.terminNumber}
+                onChange={(e) => setDraft({ ...draft, terminNumber: e.target.value })}
+                className="w-20 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
+              />
+              <input
+                type="number"
+                placeholder="Termin %"
+                value={draft.terminPercentage}
+                onChange={(e) => setDraft({ ...draft, terminPercentage: e.target.value })}
+                className="w-20 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
+              />
               <input
                 type="text"
                 placeholder="Catatan invoice (opsional)..."
@@ -546,13 +592,17 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
             className="w-full px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
           />
           <div className="flex gap-1">
-            <input
-              type="text"
-              placeholder="Term"
+            <select
               value={draft.paymentTerm}
               onChange={(e) => setDraft({ ...draft, paymentTerm: e.target.value })}
-              className="w-1/2 px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-            />
+              className="w-1/2 px-1.5 py-1 rounded-md border border-slate-300 text-[11px] bg-white"
+            >
+              {termsDict.paymentTerms.map((pt) => (
+                <option key={pt.code} value={pt.code}>
+                  {pt.code}
+                </option>
+              ))}
+            </select>
             <input
               type="month"
               value={draft.taxPeriod}
@@ -644,6 +694,18 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
               </option>
             ))}
           </select>
+          <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-bold cursor-pointer">
+            <input
+              type="checkbox"
+              checked={overdueOnly}
+              onChange={(e) => {
+                setOverdueOnly(e.target.checked);
+                setPage(1);
+              }}
+              className="rounded"
+            />
+            <span>Overdue Saja</span>
+          </label>
         </div>
 
         {canMutate && (

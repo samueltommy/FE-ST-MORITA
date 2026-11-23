@@ -21,6 +21,7 @@ import {
   updateCustomerPoApi,
   deleteCustomerPoApi,
   createIncomingOrderApi,
+  getCustomerPoBillingProgressApi,
   listMdmCustomersApi,
   listMdmItemsApi,
   uploadFinanceDocument,
@@ -109,6 +110,12 @@ export const CustomerPosTab: React.FC<Props> = ({ canMutate }) => {
   const { data: mdmItems = [] } = useQuery({
     queryKey: ['mdmItemsDropdown'],
     queryFn: listMdmItemsApi,
+  });
+
+  const { data: billingProgress, isLoading: isLoadingProgress } = useQuery({
+    queryKey: ['customerPoBillingProgress', expandedId],
+    queryFn: () => getCustomerPoBillingProgressApi(expandedId!),
+    enabled: Boolean(expandedId),
   });
 
   const invalidateAll = () => {
@@ -760,7 +767,45 @@ export const CustomerPosTab: React.FC<Props> = ({ canMutate }) => {
 
                       {isExpanded && (
                         <tr className="bg-slate-50/90 border-b border-slate-200">
-                          <td colSpan={9} className="p-4 space-y-2">
+                          <td colSpan={9} className="p-4 space-y-3">
+                            {/* PO Billing Progress Bar */}
+                            <div className="bg-white rounded-xl border border-slate-200 p-3 space-y-1.5">
+                              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <span className="font-bold text-slate-700">Progres Penagihan PO (Billing Progress)</span>
+                                {isLoadingProgress ? (
+                                  <span className="text-slate-400">Memuat progres...</span>
+                                ) : (
+                                  <span className="font-mono text-[11px] font-bold text-emerald-700">
+                                    {billingProgress?.billedPercentage ?? 0}% Tertagih ({billingProgress?.invoiceCount ?? 0} Inv)
+                                  </span>
+                                )}
+                              </div>
+                              <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                                <div
+                                  className="h-full bg-emerald-500 transition-all"
+                                  style={{ width: `${Math.min(100, billingProgress?.billedPercentage ?? 0)}%` }}
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1">
+                                <div>
+                                  <span className="text-slate-400">Total PO:</span>{' '}
+                                  <strong className="font-mono">{formatIDR(billingProgress?.totalPoAmount ?? po.totalAmount)}</strong>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400">Sudah Ditagih:</span>{' '}
+                                  <strong className="font-mono text-emerald-700">{formatIDR(billingProgress?.billedAmount ?? 0)}</strong>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400">Sisa Belum Ditagih:</span>{' '}
+                                  <strong className="font-mono text-amber-700">{formatIDR(billingProgress?.unbilledAmount ?? po.totalAmount)}</strong>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400">Total DP:</span>{' '}
+                                  <strong className="font-mono text-blue-700">{formatIDR(billingProgress?.downPaymentTotal ?? 0)}</strong>
+                                </div>
+                              </div>
+                            </div>
+
                             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                               <div className="text-slate-600">
                                 <strong>Diskon:</strong> {formatIDR(po.discount)} •{' '}

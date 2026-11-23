@@ -57,30 +57,57 @@ export const ArSummaryStrip: React.FC = () => {
     },
   ];
 
+  const agingBuckets = [
+    { label: 'Belum JT (Current)', ar: arSummary?.agingCurrent ?? 0, ap: apSummary?.agingCurrent ?? 0, tone: 'text-emerald-700' },
+    { label: '1 – 30 Hari', ar: arSummary?.aging130 ?? 0, ap: apSummary?.aging130 ?? 0, tone: 'text-amber-700' },
+    { label: '31 – 60 Hari', ar: arSummary?.aging3160 ?? 0, ap: apSummary?.aging3160 ?? 0, tone: 'text-orange-700' },
+    { label: '61 – 90 Hari', ar: arSummary?.aging6190 ?? 0, ap: apSummary?.aging6190 ?? 0, tone: 'text-rose-600' },
+    { label: '> 90 Hari', ar: arSummary?.agingOver90 ?? 0, ap: apSummary?.agingOver90 ?? 0, tone: 'text-rose-800 font-black' },
+  ];
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      {cards.map((c) => {
-        const Icon = c.icon;
-        return (
-          <div
-            key={c.label}
-            className={`rounded-xl border p-3.5 shadow-2xs flex items-start justify-between gap-3 ${c.tone}`}
-          >
-            <div className="min-w-0">
-              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide truncate">
-                {c.label}
+    <div className="space-y-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {cards.map((c) => {
+          const Icon = c.icon;
+          return (
+            <div
+              key={c.label}
+              className={`rounded-xl border p-3.5 shadow-2xs flex items-start justify-between gap-3 ${c.tone}`}
+            >
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide truncate">
+                  {c.label}
+                </div>
+                <div className="text-base sm:text-lg font-extrabold text-slate-900 mt-1 font-mono truncate">
+                  {c.value}
+                </div>
+                <div className="text-[11px] text-slate-600 mt-0.5 truncate">{c.sub}</div>
               </div>
-              <div className="text-base sm:text-lg font-extrabold text-slate-900 mt-1 font-mono truncate">
-                {c.value}
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${c.iconBg}`}>
+                <Icon className="w-4 h-4" />
               </div>
-              <div className="text-[11px] text-slate-600 mt-0.5 truncate">{c.sub}</div>
             </div>
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${c.iconBg}`}>
-              <Icon className="w-4 h-4" />
+          );
+        })}
+      </div>
+
+      {/* Aging 5 Bucket Strip (AR & AP) */}
+      <div className="bg-white rounded-xl border border-slate-200 px-3.5 py-2.5 shadow-2xs">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+          {agingBuckets.map((b) => (
+            <div key={b.label} className="sm:pl-3 first:pl-0 pt-1.5 sm:pt-0">
+              <div className="text-[10px] font-bold uppercase text-slate-400">{b.label}</div>
+              <div className={`text-xs font-mono font-bold mt-0.5 ${b.tone}`}>
+                AR: {loading ? '...' : formatIDR(b.ar)}
+              </div>
+              <div className="text-[11px] font-mono text-slate-500">
+                AP: {loading ? '...' : formatIDR(b.ap)}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

@@ -7,6 +7,7 @@ import {
   Award,
   Utensils,
   Plane,
+  AlertTriangle,
   Lock,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
@@ -14,7 +15,6 @@ import { useRBAC } from '../../hooks/useRBAC';
 import { ModulePageHeader, PageOptionItem } from '../../components/layout/ModulePageHeader';
 import { ModuleFeatureHub, ModuleFeatureHubItem } from '../../components/layout/ModuleFeatureHub';
 import { ModuleViewFooter } from '../../components/layout/ModuleViewFooter';
-import { ArSummaryStrip } from './ArSummaryStrip';
 import { SalesInvoicesTab } from './SalesInvoicesTab';
 import { ArPaymentsTab } from './ArPaymentsTab';
 import { AccountPayableTab } from './AccountPayableTab';
@@ -23,6 +23,7 @@ import { IncomingOrdersTab } from './IncomingOrdersTab';
 import { SalesCommissionsTab } from './SalesCommissionsTab';
 import { SalesEntertainmentsTab } from './SalesEntertainmentsTab';
 import { FinanceVisitApprovalTab } from './FinanceVisitApprovalTab';
+import { ComplaintsAndRmaTab } from './ComplaintsAndRmaTab';
 
 export const FinanceAnalyticsModule: React.FC = () => {
   const { isSuperAdmin, isExecutive, userDivision, hasPermission } = useRBAC();
@@ -32,11 +33,13 @@ export const FinanceAnalyticsModule: React.FC = () => {
   const isFinanceUser = isSuperAdmin || isExecutive || userDivision === 'FINANCE';
   const isSalesOrCostControl =
     userDivision === 'SALES' || hasPermission('cost_control:margin:approve');
+  const isQcUser = userDivision === 'PRODUKSI_QC';
 
   const canViewFinanceCore = isFinanceUser;
   const canViewSharedSalesFinance = isFinanceUser || isSalesOrCostControl;
+  const canViewComplaintsRma = isFinanceUser || isSalesOrCostControl || isQcUser;
 
-  if (!canViewFinanceCore && !canViewSharedSalesFinance) {
+  if (!canViewFinanceCore && !canViewSharedSalesFinance && !canViewComplaintsRma) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400">
         <Lock className="w-16 h-16 text-slate-300 mb-4" />
@@ -100,6 +103,16 @@ export const FinanceAnalyticsModule: React.FC = () => {
             label: 'Approval Visit Luar Kota',
             subtitle: 'Anggaran Dinas Luar',
             icon: Plane,
+          },
+        ]
+      : []),
+    ...(canViewComplaintsRma
+      ? [
+          {
+            id: 'complaints_rma',
+            label: '6.6 E-Complaint & RMA',
+            subtitle: 'CHR, Credit/Debit Note',
+            icon: AlertTriangle,
           },
         ]
       : []),
@@ -189,6 +202,20 @@ export const FinanceAnalyticsModule: React.FC = () => {
             },
           ]
         : []),
+      ...(canViewComplaintsRma
+        ? [
+            {
+              id: 'complaints_rma',
+              label: '6.6 E-Complaint (CHR) & RMA / Credit-Debit Note',
+              subtitle: 'Pencatatan komplain, QC Corrective Action, RMA Credit Note (AR) & Debit Note (AP) 2-tahap + cetak',
+              icon: AlertTriangle,
+              iconColor: 'text-orange-600',
+              badge: 'CHR & RMA',
+              badgeColor: 'bg-orange-100 text-orange-800 border-orange-200',
+              onClick: () => appStore.setActiveSubFeature('finance', 'complaints_rma'),
+            },
+          ]
+        : []),
     ];
 
     return (
@@ -210,12 +237,15 @@ export const FinanceAnalyticsModule: React.FC = () => {
     if (activeSubFeature === 'commissions') return 'commissions';
     if (activeSubFeature === 'entertainments') return 'entertainments';
     if (activeSubFeature === 'visit_approvals') return 'visit_approvals';
-    return canViewFinanceCore ? 'invoices' : 'customer_pos';
+    if (activeSubFeature === 'complaints_rma' || activeSubFeature === 'complaints') return 'complaints_rma';
+    return canViewFinanceCore ? 'invoices' : canViewSharedSalesFinance ? 'customer_pos' : 'complaints_rma';
   })();
 
   const currentTab =
-    !canViewFinanceCore && !['customer_pos', 'commissions', 'entertainments'].includes(normalizedTab)
-      ? 'customer_pos'
+    !canViewFinanceCore && !['customer_pos', 'commissions', 'entertainments', 'complaints_rma'].includes(normalizedTab)
+      ? canViewSharedSalesFinance
+        ? 'customer_pos'
+        : 'complaints_rma'
       : normalizedTab;
 
   return (
@@ -231,8 +261,6 @@ export const FinanceAnalyticsModule: React.FC = () => {
         onBackToMenu={() => appStore.setActiveSubFeature('finance', null)}
         menuName="Keuangan"
       />
-
-      {canViewFinanceCore && <ArSummaryStrip />}
 
       {currentTab === 'invoices' && canViewFinanceCore && <SalesInvoicesTab canMutate={isFinanceUser} />}
       {currentTab === 'payments' && canViewFinanceCore && <ArPaymentsTab canMutate={isFinanceUser} />}
@@ -272,6 +300,7 @@ export const FinanceAnalyticsModule: React.FC = () => {
       {currentTab === 'commissions' && canViewSharedSalesFinance && <SalesCommissionsTab />}
       {currentTab === 'entertainments' && canViewSharedSalesFinance && <SalesEntertainmentsTab />}
       {currentTab === 'visit_approvals' && canViewFinanceCore && <FinanceVisitApprovalTab />}
+      {currentTab === 'complaints_rma' && canViewComplaintsRma && <ComplaintsAndRmaTab />}
 
       <ModuleViewFooter
         onBack={() => appStore.setActiveSubFeature('finance', null)}
