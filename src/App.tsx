@@ -1,18 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { useAppStore, appStore } from './store/useAppStore';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useAppStore, appStore, registerRouterNavigate, syncRouteFromUrl } from './store/useAppStore';
 import { useAuthStore } from './store/useAuthStore';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
-import { FinanceAnalyticsModule } from './features/core6_finance_analytics/FinanceAnalyticsModule';
-import { ProductionQcModule } from './features/core4_production_qc/ProductionQcModule';
-import { ProcurementEximModule } from './features/core3_procurement_exim/ProcurementEximModule';
-import { SalesTrackingModule } from './features/core5_sales_tracking/SalesTrackingModule';
-import { MasterDataModule } from './features/core2_master_data/MasterDataModule';
-import { HrdModule } from './features/core1_hrd/HrdModule';
-import { DeliveryDivisionModule } from './features/delivery/DeliveryDivisionModule';
-import { WarehousePpicDivisionModule } from './features/warehouse_ppic/WarehousePpicDivisionModule';
-import { RndDivisionModule } from './features/rnd/RndDivisionModule';
-import { MainHomeLauncher } from './features/home/MainHomeLauncher';
 import { LoginPage } from './features/auth/LoginPage';
 import { ActivationPage } from './features/auth/ActivationPage';
 import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage';
@@ -24,25 +15,141 @@ import { AuditLogsDrawer } from './components/shared/AuditLogsDrawer';
 import { KeyboardShortcutsModal } from './components/shared/KeyboardShortcutsModal';
 import { ToastNotification } from './components/shared/ToastNotification';
 import { useRBAC } from './hooks/useRBAC';
+import { ActiveModule } from './types';
 import { Lock } from 'lucide-react';
+
+// ─── Lazy-Loaded Per-Department Micro-Pages (Code-Split Chunks) ───
+const MainHomeLauncher = lazy(() =>
+  import('./features/home/MainHomeLauncher').then((m) => ({ default: m.MainHomeLauncher }))
+);
+const SalesTrackingModule = lazy(() =>
+  import('./features/core5_sales_tracking/SalesTrackingModule').then((m) => ({
+    default: m.SalesTrackingModule,
+  }))
+);
+const DeliveryDivisionModule = lazy(() =>
+  import('./features/delivery/DeliveryDivisionModule').then((m) => ({
+    default: m.DeliveryDivisionModule,
+  }))
+);
+const WarehousePpicDivisionModule = lazy(() =>
+  import('./features/warehouse_ppic/WarehousePpicDivisionModule').then((m) => ({
+    default: m.WarehousePpicDivisionModule,
+  }))
+);
+const ProductionQcModule = lazy(() =>
+  import('./features/core4_production_qc/ProductionQcModule').then((m) => ({
+    default: m.ProductionQcModule,
+  }))
+);
+const ProcurementEximModule = lazy(() =>
+  import('./features/core3_procurement_exim/ProcurementEximModule').then((m) => ({
+    default: m.ProcurementEximModule,
+  }))
+);
+const FinanceAnalyticsModule = lazy(() =>
+  import('./features/core6_finance_analytics/FinanceAnalyticsModule').then((m) => ({
+    default: m.FinanceAnalyticsModule,
+  }))
+);
+const RndDivisionModule = lazy(() =>
+  import('./features/rnd/RndDivisionModule').then((m) => ({ default: m.RndDivisionModule }))
+);
+const HrdModule = lazy(() =>
+  import('./features/core1_hrd/HrdModule').then((m) => ({ default: m.HrdModule }))
+);
 
 type AuthPage = 'login' | 'activation' | 'forgot-password' | 'reset-password' | 'complete-profile';
 
+const VALID_MODULES: ActiveModule[] = [
+  'home',
+  'sales',
+  'delivery',
+  'warehouse_ppic',
+  'master_data',
+  'produksi_qc',
+  'qc',
+  'purchasing',
+  'procurement',
+  'finance',
+  'rnd',
+  'hrd',
+  'users',
+];
+
+const MODULE_TITLES: Record<string, string> = {
+  home: 'Beranda',
+  sales: 'Sales & Marketing',
+  delivery: 'Delivery & Logistik',
+  warehouse_ppic: 'Warehouse & PPIC',
+  master_data: 'Master Data',
+  produksi_qc: 'Produksi & QC',
+  qc: 'Produksi & QC',
+  purchasing: 'Purchasing & Exim',
+  procurement: 'Purchasing & Exim',
+  finance: 'Finance & Accounting',
+  rnd: 'R&D',
+  hrd: 'HRD & User Management',
+  users: 'HRD & User Management',
+};
+
+function parsePathToModule(pathname: string): { module: ActiveModule; subFeature: string | null } {
+  const segments = pathname.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
+  if (segments.length === 0) return { module: 'home', subFeature: null };
+  const rawModule = segments[0] as ActiveModule;
+  const subFeature = segments[1] ? decodeURIComponent(segments[1]) : null;
+  if (VALID_MODULES.includes(rawModule)) {
+    return { module: rawModule, subFeature };
+  }
+  return { module: 'home', subFeature: null };
+}
+
+const DepartmentLoadingFallback = () => (
+  <div className="flex flex-col items-center justify-center h-[50vh] gap-3 text-slate-500">
+    <div className="w-7 h-7 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+    <span className="text-xs font-medium">Memuat modul departemen...</span>
+  </div>
+);
+
+const AccessDeniedView = () => (
+  <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400">
+    <Lock className="w-16 h-16 text-slate-300 mb-4" />
+    <h2 className="text-xl font-bold text-slate-600">Akses Ditolak</h2>
+    <p className="mt-2 text-sm text-center max-w-md">
+      Anda tidak memiliki izin (RBAC) untuk mengakses modul ini. Silakan hubungi IT Administrator (Level 0) jika ini adalah sebuah kesalahan.
+    </p>
+  </div>
+);
+
 export default function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const activeModule = useAppStore((state) => state.activeModule);
-  const themeMode = useAppStore((state) => state.themeMode);
 
   // Auth state from Zustand
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isInitialized = useAuthStore((state) => state.isInitialized);
-  const isLoading = useAuthStore((state) => state.isLoading);
   const initialize = useAuthStore((state) => state.initialize);
 
-  // Auth page routing (for unauthenticated screens)
   const [authPage, setAuthPage] = useState<AuthPage>('login');
-  
-  // Session expiry modal state
   const [isSessionExpired, setIsSessionExpired] = useState(false);
+
+  // Register React Router navigate callback for appStore actions
+  useEffect(() => {
+    registerRouterNavigate((path) => navigate(path));
+    return () => registerRouterNavigate(null);
+  }, [navigate]);
+
+  // Sync URL → Zustand Store whenever browser Back/Forward/Refresh/URL changes
+  useEffect(() => {
+    const { module, subFeature } = parsePathToModule(location.pathname);
+    syncRouteFromUrl(module, subFeature);
+    const modTitle = MODULE_TITLES[module] || 'ERP';
+    document.title = subFeature
+      ? `${modTitle} (${subFeature}) — ST. Morita ERP`
+      : `${modTitle} — ST. Morita ERP`;
+  }, [location.pathname]);
 
   // Ensure light mode & elderly font scale are consistently applied across the app
   useEffect(() => {
@@ -55,72 +162,56 @@ export default function App() {
 
   // Listen for global auth:expired event from apiClient
   useEffect(() => {
-    const handleSessionExpired = () => {
-      setIsSessionExpired(true);
-    };
+    const handleSessionExpired = () => setIsSessionExpired(true);
     window.addEventListener('auth:expired', handleSessionExpired);
     return () => window.removeEventListener('auth:expired', handleSessionExpired);
   }, []);
 
-  // Initialize auth on mount — check for persisted token & rehydrate session
+  // Initialize auth on mount
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // Ensure authPage resets to login on logout and clear any stale session expired state
+  // Reset authPage on logout and always dismiss any stale session-expired modal upon fresh login
   useEffect(() => {
+    setIsSessionExpired(false);
     if (!isAuthenticated) {
       setAuthPage('login');
-      setIsSessionExpired(false);
     }
   }, [isAuthenticated]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input/textarea/select
       const target = e.target as HTMLElement;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
-        if (e.key === 'Escape') {
-          target.blur();
-        }
+        if (e.key === 'Escape') target.blur();
         return;
       }
 
-      // Ctrl/Cmd + K: Command Palette
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         appStore.setCommandPaletteOpen(true);
       }
-
-      // Ctrl/Cmd + B: Barcode Scanner
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
         e.preventDefault();
         appStore.setBarcodeModalOpen(true);
       }
-
-      // Ctrl/Cmd + L: Audit Logs
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
         e.preventDefault();
         appStore.setAuditLogsOpen(true);
       }
-
-      // ?: Help / Shortcuts modal
       if (e.key === '?' || (e.shiftKey && e.key === '/')) {
         e.preventDefault();
         appStore.setKeyboardShortcutsOpen(true);
       }
-
-      // Alt + S or Ctrl/Cmd + [: Toggle Sidebar
       if ((e.altKey && e.key.toLowerCase() === 's') || ((e.ctrlKey || e.metaKey) && e.key === '[')) {
         e.preventDefault();
         appStore.toggleSidebar();
       }
-
-      // Alt + 0 through 9 for Fast Module Jump (Alt+0 = Beranda / Home)
       if (e.altKey && ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(e.key)) {
         e.preventDefault();
-        const moduleMap: Record<string, any> = {
+        const moduleMap: Record<string, ActiveModule> = {
           '0': 'home',
           '1': 'sales',
           '2': 'delivery',
@@ -132,12 +223,8 @@ export default function App() {
           '8': 'hrd',
           '9': 'users',
         };
-        if (moduleMap[e.key]) {
-          appStore.setActiveModule(moduleMap[e.key]);
-        }
+        if (moduleMap[e.key]) appStore.setActiveModule(moduleMap[e.key]);
       }
-
-      // Alt + H: Beranda
       if (e.altKey && e.key.toLowerCase() === 'h') {
         e.preventDefault();
         appStore.setActiveModule('home');
@@ -148,41 +235,22 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const { canAccessModule, isSuperAdmin, isExecutive } = useRBAC();
+  const { canAccessModule } = useRBAC();
 
-  // Auto-redirect to first available module if current one is not allowed
-  useEffect(() => {
-    if (isAuthenticated && !canAccessModule(activeModule)) {
-      const allModules = ['home', 'sales', 'delivery', 'warehouse_ppic', 'produksi_qc', 'purchasing', 'finance', 'rnd', 'hrd', 'users'];
-      const firstAllowed = allModules.find(m => canAccessModule(m));
-      if (firstAllowed) {
-        appStore.setActiveModule(firstAllowed as any);
-      }
-    }
-  }, [activeModule, isAuthenticated, canAccessModule]);
+  const guard = (moduleId: ActiveModule, element: React.ReactNode) =>
+    canAccessModule(moduleId) ? element : <AccessDeniedView />;
 
   // ─── Loading: Auth Initialization ──────────────────────────
   if (!isInitialized) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
-          {/* ST. Morita Logo */}
           <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-sky-500 p-0.5 shadow-xl shadow-blue-600/20 flex items-center justify-center">
             <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
               <circle cx="24" cy="24" r="19" stroke="white" strokeWidth="2.5" strokeOpacity="0.4" strokeDasharray="3 3" />
-              <path
-                d="M12 28C12 21.3726 17.3726 16 24 16C28.5 16 32.5 18.5 34.5 22C36.5 25.5 35 30 31.5 32C28 34 23 33 20 30"
-                stroke="white"
-                strokeWidth="3.2"
-                strokeLinecap="round"
-              />
+              <path d="M12 28C12 21.3726 17.3726 16 24 16C28.5 16 32.5 18.5 34.5 22C36.5 25.5 35 30 31.5 32C28 34 23 33 20 30" stroke="white" strokeWidth="3.2" strokeLinecap="round" />
               <circle cx="24" cy="24" r="4.5" fill="white" />
-              <path
-                d="M27 24C27 27 24 30 20 30C16 30 14 26 14 22"
-                stroke="#BAE6FD"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
+              <path d="M27 24C27 27 24 30 20 30C16 30 14 26 14 22" stroke="#BAE6FD" strokeWidth="2.2" strokeLinecap="round" />
             </svg>
           </div>
           <div className="w-6 h-6 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
@@ -217,44 +285,59 @@ export default function App() {
     );
   }
 
-  // ─── Authenticated: Main Application Layout ────────────────
+  // ─── Authenticated: Multi-Route Per-Department Layout ──────
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-50 text-slate-900 font-sans overflow-hidden select-none">
-      {/* Top Navigation - Fixed height */}
       <Navbar />
 
-      {/* Body Area with Independent Sidebar + Content Viewport */}
       <div className="flex-1 flex min-h-0 overflow-hidden relative">
-        {/* Responsive Independent Left Sidebar (Statis & Collapsible) */}
         <Sidebar />
 
-        {/* Main Content Area - Completely Independent Scroll */}
         <main
           id="main-content-viewport"
           className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-3 sm:p-4 lg:p-5 select-text focus:outline-hidden"
         >
           <div className="w-full pb-10">
-            {!canAccessModule(activeModule) ? (
-              <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400">
-                <Lock className="w-16 h-16 text-slate-300 mb-4" />
-                <h2 className="text-xl font-bold text-slate-600">Akses Ditolak</h2>
-                <p className="mt-2 text-sm text-center max-w-md">
-                  Anda tidak memiliki izin (RBAC) untuk mengakses modul ini. Silakan hubungi IT Administrator (Level 0) jika ini adalah sebuah kesalahan.
-                </p>
-              </div>
-            ) : (
-              <>
-                {activeModule === 'home' && <MainHomeLauncher />}
-                {activeModule === 'sales' && <SalesTrackingModule />}
-                {activeModule === 'delivery' && <DeliveryDivisionModule />}
-                {(activeModule === 'warehouse_ppic' || activeModule === 'master_data') && <WarehousePpicDivisionModule />}
-                {(activeModule === 'produksi_qc' || activeModule === 'qc') && <ProductionQcModule />}
-                {(activeModule === 'purchasing' || activeModule === 'procurement') && <ProcurementEximModule />}
-                {activeModule === 'finance' && <FinanceAnalyticsModule />}
-                {activeModule === 'rnd' && <RndDivisionModule />}
-                {(activeModule === 'hrd' || activeModule === 'users') && <HrdModule />}
-              </>
-            )}
+            <Suspense fallback={<DepartmentLoadingFallback />}>
+              <Routes>
+                <Route path="/" element={<MainHomeLauncher />} />
+                <Route path="/home" element={<Navigate to="/" replace />} />
+
+                <Route path="/sales" element={guard('sales', <SalesTrackingModule />)} />
+                <Route path="/sales/:subFeature" element={guard('sales', <SalesTrackingModule />)} />
+
+                <Route path="/delivery" element={guard('delivery', <DeliveryDivisionModule />)} />
+                <Route path="/delivery/:subFeature" element={guard('delivery', <DeliveryDivisionModule />)} />
+
+                <Route path="/warehouse_ppic" element={guard('warehouse_ppic', <WarehousePpicDivisionModule />)} />
+                <Route path="/warehouse_ppic/:subFeature" element={guard('warehouse_ppic', <WarehousePpicDivisionModule />)} />
+                <Route path="/master_data" element={guard('master_data', <WarehousePpicDivisionModule />)} />
+                <Route path="/master_data/:subFeature" element={guard('master_data', <WarehousePpicDivisionModule />)} />
+
+                <Route path="/produksi_qc" element={guard('produksi_qc', <ProductionQcModule />)} />
+                <Route path="/produksi_qc/:subFeature" element={guard('produksi_qc', <ProductionQcModule />)} />
+                <Route path="/qc" element={guard('qc', <ProductionQcModule />)} />
+                <Route path="/qc/:subFeature" element={guard('qc', <ProductionQcModule />)} />
+
+                <Route path="/purchasing" element={guard('purchasing', <ProcurementEximModule />)} />
+                <Route path="/purchasing/:subFeature" element={guard('purchasing', <ProcurementEximModule />)} />
+                <Route path="/procurement" element={guard('procurement', <ProcurementEximModule />)} />
+                <Route path="/procurement/:subFeature" element={guard('procurement', <ProcurementEximModule />)} />
+
+                <Route path="/finance" element={guard('finance', <FinanceAnalyticsModule />)} />
+                <Route path="/finance/:subFeature" element={guard('finance', <FinanceAnalyticsModule />)} />
+
+                <Route path="/rnd" element={guard('rnd', <RndDivisionModule />)} />
+                <Route path="/rnd/:subFeature" element={guard('rnd', <RndDivisionModule />)} />
+
+                <Route path="/hrd" element={guard('hrd', <HrdModule />)} />
+                <Route path="/hrd/:subFeature" element={guard('hrd', <HrdModule />)} />
+                <Route path="/users" element={guard('users', <HrdModule />)} />
+                <Route path="/users/:subFeature" element={guard('users', <HrdModule />)} />
+
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
           </div>
         </main>
       </div>
@@ -276,7 +359,9 @@ export default function App() {
               </div>
               <div>
                 <h3 className="text-lg font-extrabold text-slate-900">Sesi Berakhir</h3>
-                <p className="text-sm text-slate-500 mt-1">Sesi login Anda telah kedaluwarsa atau tidak valid. Silakan masuk kembali untuk melanjutkan aktivitas Anda.</p>
+                <p className="text-sm text-slate-500 mt-1">
+                  Sesi login Anda telah kedaluwarsa atau tidak valid. Silakan masuk kembali untuk melanjutkan aktivitas Anda.
+                </p>
               </div>
             </div>
             <button

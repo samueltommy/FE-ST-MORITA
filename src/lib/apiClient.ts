@@ -4,11 +4,46 @@ import camelcaseKeys from 'camelcase-keys';
 import snakecaseKeys from 'snakecase-keys';
 import { toast } from 'sonner';
 
+const TOKEN_KEY = 'samhance_access_token';
+let lastLoginTimestamp = 0;
+
+/**
+ * Call immediately when a fresh login token is stored so no stale/race-condition 401
+ * can falsely trigger the "Sesi Berakhir" popup right after login.
+ */
+export function markFreshLoginSession() {
+  lastLoginTimestamp = Date.now();
+}
+
+export function isJwtExpired(token: string | null | undefined, skewSeconds: number = 10): boolean {
+  if (!token) return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return false;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64));
+    if (typeof payload.exp !== 'number') return false;
+    return payload.exp * 1000 <= Date.now() + skewSeconds * 1000;
+  } catch {
+    return false;
+  }
+}
+
+function extractRequestBearerToken(config: any): string | null {
+  if (!config?.headers) return null;
+  const raw =
+    (typeof config.headers.get === 'function' ? config.headers.get('Authorization') : null) ||
+    config.headers.Authorization ||
+    config.headers.authorization;
+  if (typeof raw !== 'string') return null;
+  return raw.replace(/^Bearer\s+/i, '').trim() || null;
+}
+
 /**
  * Axios API Client for SAMHANCE ERP Backend
  * - Auto-injects Bearer token from localStorage
  * - Auto-converts camelCase (React) ↔ snake_case (FastAPI/Python)
- * - Auto-logout on 401 Unauthorized
+ * - Safe 401 session expiry handling (immune to stale-token race conditions on fresh login)
  */
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1',
@@ -20,8 +55,7 @@ export const apiClient = axios.create({
 
 // ─── Request Interceptor ─────────────────────────────────────
 apiClient.interceptors.request.use((config) => {
-  // Inject Bearer token
-  const token = localStorage.getItem('samhance_access_token');
+  const token = localStorage.getItem(TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -44,35 +78,49 @@ apiClient.interceptors.request.use((config) => {
 // ─── Response Interceptor ────────────────────────────────────
 apiClient.interceptors.response.use(
   (response) => {
-    // Convert snake_case (FastAPI) → camelCase (React) automatically
     if (response.data && typeof response.data === 'object') {
       response.data = camelcaseKeys(response.data, { deep: true });
     }
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      // Do not trigger session expiry for login attempts
-      if (error.config && error.config.url && error.config.url.includes('/auth/login')) {
+    const status = error.response?.status;
+    const url = String(error.config?.url || '');
+
+    if (status === 401) {
+      // Never trigger "Sesi Berakhir" popup for auth lifecycle endpoints
+      const isAuthEndpoint =
+        url.includes('/auth/login') ||
+        url.includes('/auth/me') ||
+        url.includes('/auth/activate') ||
+        url.includes('/auth/forgot-password') ||
+        url.includes('/auth/reset-password') ||
+        url.includes('/auth/complete-profile');
+
+      if (isAuthEndpoint) {
         return Promise.reject(error);
       }
 
-      // Token expired or invalid → clear and dispatch event for popup
-      const currentToken = localStorage.getItem('samhance_access_token');
-      const requestAuthHeader = error.config?.headers?.Authorization || error.config?.headers?.authorization;
-      const requestToken = typeof requestAuthHeader === 'string' ? requestAuthHeader.replace('Bearer ', '') : null;
+      const currentToken = localStorage.getItem(TOKEN_KEY);
+      const requestToken = extractRequestBearerToken(error.config);
 
-      if (currentToken) {
-        // Prevent race condition: only trigger expiry if the failing token is still active
-        if (!requestToken || currentToken === requestToken) {
-          localStorage.removeItem('samhance_access_token');
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('auth:expired'));
-          }
-        }
+      // Ignore stale requests (no token sent, or sent with an old token different from currentToken)
+      if (!currentToken || !requestToken || requestToken !== currentToken) {
+        return Promise.reject(error);
       }
-    } else if (error.response && error.response.status >= 400) {
-      // Global error handler for Bad Request (400) / Server Error (500)
+
+      // Grace window: if the user JUST logged in (< 10s ago) and the JWT is not expired,
+      // do not kick them out due to a race-condition or transient 401.
+      const withinFreshLoginGrace = Date.now() - lastLoginTimestamp < 10_000;
+      if (withinFreshLoginGrace && !isJwtExpired(currentToken, 0)) {
+        return Promise.reject(error);
+      }
+
+      localStorage.removeItem(TOKEN_KEY);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth:expired'));
+      }
+    } else if (error.response && status >= 400) {
       let msg = error.message || 'Terjadi kesalahan sistem';
       if (error.response.data) {
         if (typeof error.response.data.message === 'string') {
@@ -83,7 +131,7 @@ apiClient.interceptors.response.use(
           msg = error.response.data.detail.message;
         }
       }
-      if (typeof window !== 'undefined' && error.response.status !== 403) {
+      if (typeof window !== 'undefined' && status !== 403) {
         toast.error(msg, { id: String(msg) });
       }
     }

@@ -964,6 +964,29 @@ export function useAppStore<T>(selector: (state: AppState) => T): T {
 }
 
 // Exportable store action dispatchers
+let routerNavigateFn: ((path: string) => void) | null = null;
+
+export function registerRouterNavigate(fn: ((path: string) => void) | null) {
+  routerNavigateFn = fn;
+}
+
+function buildModulePath(module: string, subFeature?: string | null): string {
+  if (!module || module === 'home') return '/';
+  if (subFeature) return `/${module}/${subFeature}`;
+  return `/${module}`;
+}
+
+export const syncRouteFromUrl = (module: AppState['activeModule'], subFeature: string | null) => {
+  updateGlobalState((prev) => ({
+    ...prev,
+    activeModule: module,
+    activeSubFeature: {
+      ...prev.activeSubFeature,
+      [module]: subFeature,
+    },
+  }));
+};
+
 export const appStore = {
   getState: () => globalState,
 
@@ -1044,6 +1067,10 @@ export const appStore = {
         [module]: null, // Always reset subfeature so module shows simple selection menu on entry
       },
     }));
+    const targetPath = buildModulePath(module, null);
+    if (routerNavigateFn && window.location.pathname !== targetPath) {
+      routerNavigateFn(targetPath);
+    }
   },
 
   setActiveSubFeature: (module: string, subFeature: string | null) => {
@@ -1054,6 +1081,10 @@ export const appStore = {
         [module]: subFeature,
       },
     }));
+    const targetPath = buildModulePath(module, subFeature);
+    if (routerNavigateFn && window.location.pathname !== targetPath) {
+      routerNavigateFn(targetPath);
+    }
   },
 
   navigateToFeature: (module: AppState['activeModule'], subFeature: string | null = null) => {
@@ -1065,6 +1096,10 @@ export const appStore = {
         [module]: subFeature,
       },
     }));
+    const targetPath = buildModulePath(module, subFeature);
+    if (routerNavigateFn && window.location.pathname !== targetPath) {
+      routerNavigateFn(targetPath);
+    }
   },
 
   setCurrentUserRole: (role: UserRole) => {

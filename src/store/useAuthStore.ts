@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { loginApi, activateApi, getMeApi, completeProfileApi } from '../services/authService';
+import { isJwtExpired, markFreshLoginSession } from '../lib/apiClient';
 import type { DivisionCode, PermissionClaim, RoleTier, UserRole } from '../types';
 import { OFFICIAL_DIVISIONS } from '../types';
 import { ROLE_DEFINITIONS } from '../utils/rbac';
@@ -269,7 +270,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isInitialized: false,
 
   login: async (username: string, password: string): Promise<LoginResult> => {
-    set({ isLoading: true });
+    // Clear any stale/expired token before attempting a fresh login
+    localStorage.removeItem(TOKEN_KEY);
+    set({ token: null, isLoading: true });
     try {
       const data = await loginApi(username, password);
       const token = data.accessToken || (data as any).access_token;
@@ -278,8 +281,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return { success: false, requiresActivation: false, requiresProfileVerification: false, errorMessage: 'Server tidak mengembalikan token akses.' };
       }
 
-      // Persist token
+      // Persist fresh token & start post-login grace window
       localStorage.setItem(TOKEN_KEY, token);
+      markFreshLoginSession();
       set({ token });
 
       // Pass user object returned from POST /auth/login (if any) into fetchMe
@@ -444,6 +448,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialize: async () => {
     const storedToken = localStorage.getItem(TOKEN_KEY);
     if (storedToken) {
+      // Silently discard already-expired tokens on startup without triggering 401 popups
+      if (isJwtExpired(storedToken, 5)) {
+        localStorage.removeItem(TOKEN_KEY);
+        set({ token: null, user: null, isAuthenticated: false, isLoading: false, isInitialized: true });
+        return;
+      }
       set({ token: storedToken, isLoading: true });
       await get().fetchMe();
       set({ isLoading: false, isInitialized: true });
