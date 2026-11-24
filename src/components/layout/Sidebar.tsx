@@ -62,13 +62,16 @@ interface ModuleChildItem {
  */
 const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
   sales: [
-    { id: 'quotations', label: 'Quotation (/sales/quotations)', icon: FileSpreadsheet },
-    { id: 'incoming_orders', label: 'Incoming Order / IO (/sales/incoming-orders)', icon: FileText },
-    { id: 'customer_pos', label: '5.2 PO Customer & IO', icon: FileCheck2, endpoint: '/finance/customer-pos' },
-    { id: 'commissions', label: '6.3 Komisi Sales', icon: Award, endpoint: '/finance/commissions' },
-    { id: 'entertainments', label: '6.4 Entertain Sales', icon: FileText, endpoint: '/finance/entertainments' },
-    { id: 'sales_activities', label: 'Aktivitas & Kunjungan Sales / SDA', icon: Navigation },
-    { id: 'customers', label: 'Master Customer (/mdm/customers)', icon: Users },
+    { id: 'customers', label: '2.1 Master Customer', icon: Users, endpoint: '/sales/customers' },
+    { id: 'quotations', label: '5.1 Quotation & Approval', icon: FileSpreadsheet, endpoint: '/sales/quotations' },
+    { id: 'customer_pos', label: '5.2 PO Customer & IO', icon: FileCheck2, endpoint: '/sales/customer-pos' },
+    { id: 'e_catalog', label: '5.5 E-Katalog Digital', icon: BookOpen, endpoint: '/sales/e-catalog' },
+    { id: 'market_analysis', label: '5.6 Analisa Market', icon: Calculator, endpoint: '/sales/market-analysis' },
+    { id: 'daily_activities', label: '6.2 SDA & Sampel (Win/Lose)', icon: Navigation, endpoint: '/sales/daily-activities' },
+    { id: 'commissions', label: '6.3 Komisi Sales (Auto-Sync)', icon: Award, endpoint: '/sales/commissions' },
+    { id: 'entertainments', label: '6.4 Entertain Sales', icon: FileText, endpoint: '/sales/entertainments' },
+    { id: 'forecasts', label: '6.5 Forecasting Customer', icon: Calendar, endpoint: '/sales/forecasts' },
+    { id: 'complaints', label: '6.6 E-Complaint & CA', icon: AlertCircle, endpoint: '/sales/complaints' },
   ],
   delivery: [
     { id: 'delivery_orders', label: 'Delivery Order / Surat Jalan', icon: Truck, endpoint: '/logistics/delivery-orders' },
