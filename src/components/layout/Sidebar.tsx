@@ -74,9 +74,11 @@ const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
     { id: 'complaints', label: '6.6 E-Complaint & CA', icon: AlertCircle, endpoint: '/sales/complaints' },
   ],
   delivery: [
-    { id: 'delivery_orders', label: 'Delivery Order / Surat Jalan', icon: Truck, endpoint: '/logistics/delivery-orders' },
-    { id: 'e_tracking', label: 'E-Tracking Barcode/GPS', icon: Barcode, endpoint: '/tracking/barcode/{id}' },
-    { id: 'vehicle_bookings', label: 'Peminjaman Kendaraan Dinas', icon: Building2, endpoint: '/hrd/vehicle-bookings' },
+    { id: 'delivery_plans', label: '5.3.1 Delivery Plan', icon: Calendar, endpoint: '/logistics/delivery-plans' },
+    { id: 'delivery_requests', label: '5.3.2 Request DO (RDO)', icon: FileText, endpoint: '/logistics/delivery-requests' },
+    { id: 'delivery_orders', label: '5.3.3 Delivery Order / Surat Jalan', icon: Truck, endpoint: '/logistics/delivery-orders' },
+    { id: 'e_tracking', label: '5.4 E-Tracking Terpadu', icon: Barcode, endpoint: '/logistics/tracking-events' },
+    { id: 'rm_stocks', label: '3.2.1 RM Stock & Transfer', icon: Boxes, endpoint: '/warehouse/rm-stocks/monitoring' },
   ],
   warehouse_ppic: [
     { id: 'goods_receipts', label: 'Penerimaan Barang / Receiving LOG', icon: Truck, endpoint: '/warehouse/goods-receipts' },

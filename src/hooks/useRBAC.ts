@@ -109,6 +109,8 @@ export const useRBAC = () => {
     if (moduleId === 'hrd') return true;
     // Production & QA/QC allows cross-division view & specific write access (PPIC: Plans/Stocks/Rework, RND: QC/Dev, SALES: Dev)
     if (moduleId === 'produksi_qc' || moduleId === 'qc') return true;
+    // Delivery / Logistics & RM Stock allows cross-division view (E-Tracking 5.4.2, RDO by Sales, RM Stock by Warehouse/PPIC)
+    if (moduleId === 'delivery') return true;
     if (moduleId === 'users') return canAccessAdminUsers();
 
     const mappedDivision = MODULE_TO_DIVISION_MAP[moduleId] || normalizeDivisionCode(moduleId);
