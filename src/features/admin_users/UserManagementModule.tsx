@@ -28,12 +28,14 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
-import { PermissionClaim, RoleTier, UserProfile, UserRole } from '../../types';
+import { PermissionClaim, RoleTier, UserProfile, UserRole, OFFICIAL_DIVISIONS } from '../../types';
 import { ROLE_DEFINITIONS, getTierBadge, canManageUsers } from '../../utils/rbac';
 import { useAuthStore } from '../../store/useAuthStore';
-import { createEmployeeApi, getEmployeesApi, updateEmployeeApi, deleteEmployeeApi, suspendEmployeeApi, resetPasswordApi } from '../../services/hrdService';
+import { createEmployeeApi, getEmployeesApi, updateEmployeeApi, deleteEmployeeApi, suspendEmployeeApi, resetPasswordApi, updateEmployeeAccessApi } from '../../services/hrdService';
+import { getUserManagementRolesApi } from '../../services/userManagementService';
+import { toast } from 'sonner';
 import type { CreateEmployeePayload } from '../../services/hrdService';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useSystemChoices,
   SelectOption,
@@ -337,11 +339,87 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ACTIVE');
   const [sortOption, setSortOption] = useState<string>('name_asc');
 
+  const queryClient = useQueryClient();
+
   // Fetch employees from backend (paginated for table)
   const { data: employeeData, isLoading: isLoadingEmployees, refetch } = useQuery({
     queryKey: ['hrd', 'employees', currentPage, pageSize, searchQuery],
     queryFn: () => getEmployeesApi(currentPage, pageSize, searchQuery),
   });
+
+  const refreshAll = () => {
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ['userManagementUsers'] });
+  };
+
+  // Inline "Atur Akses & Role" expandable sub-row state (PATCH /hrd/employees/{id}/access)
+  const [inlineAccessUserId, setInlineAccessUserId] = useState<string | null>(null);
+  const [inlineAccessSaving, setInlineAccessSaving] = useState(false);
+  const [inlineAccessForm, setInlineAccessForm] = useState<{
+    userLevel: string;
+    department: string;
+    departmentAccess: string[];
+    roleName: string;
+    isActive: boolean;
+  }>({
+    userLevel: 'L3_STAFF',
+    department: 'HRD',
+    departmentAccess: ['HRD'],
+    roleName: '',
+    isActive: true,
+  });
+
+  const { data: availableRoles = [] } = useQuery({
+    queryKey: ['userManagementRoles'],
+    queryFn: getUserManagementRolesApi,
+  });
+
+  const openInlineAccess = (u: any) => {
+    if (inlineAccessUserId === String(u.id)) {
+      setInlineAccessUserId(null);
+      return;
+    }
+    const raw = apiUsers.find((x) => String(x.id) === String(u.id)) || u;
+    const dept = raw.department || u.department || 'HRD';
+    const existingAccess =
+      Array.isArray(raw.departmentAccess) && raw.departmentAccess.length > 0
+        ? raw.departmentAccess
+        : Array.isArray(raw.allowedDivisions) && raw.allowedDivisions.length > 0
+        ? raw.allowedDivisions
+        : [dept];
+    setInlineAccessUserId(String(u.id));
+    setInlineAccessForm({
+      userLevel: raw.userLevel || u.userLevel || 'L3_STAFF',
+      department: dept,
+      departmentAccess: existingAccess,
+      roleName: raw.roleName || raw.roleId || '',
+      isActive: u.status === 'ACTIVE',
+    });
+  };
+
+  const handleSaveInlineAccess = async (employeeId: string, userName: string) => {
+    setInlineAccessSaving(true);
+    try {
+      const res = await updateEmployeeAccessApi(employeeId, {
+        userLevel: inlineAccessForm.userLevel,
+        department: inlineAccessForm.department,
+        departmentAccess: inlineAccessForm.departmentAccess,
+        roleName: inlineAccessForm.roleName || null,
+        isActive: inlineAccessForm.isActive,
+      });
+      if (res.keycloakSynced === false) {
+        toast.warning(`Akses ${userName} tersimpan di DB, namun sinkronisasi Keycloak sedang offline.`);
+      } else {
+        toast.success(`Akses & Role ${userName} berhasil disimpan & tersinkron ke Keycloak.`);
+      }
+      setInlineAccessUserId(null);
+      refreshAll();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Gagal memperbarui akses karyawan');
+    } finally {
+      setInlineAccessSaving(false);
+    }
+  };
 
   // The global KPI calculations now use the 'summary' object returned by the API
   // No need for a separate 'all-metrics' fetch with limit=1000
@@ -440,11 +518,15 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
     if (!window.confirm(`Yakin ingin ${actionText} akun ${userName}?`)) return;
     
     try {
-      await suspendEmployeeApi(userId, !isCurrentlyActive);
-      alert(`Akun ${userName} berhasil di${actionText}.`);
-      refetch();
+      const res = await suspendEmployeeApi(userId, !isCurrentlyActive);
+      if (res.keycloakSynced === false) {
+        toast.warning(`Akun ${userName} di${actionText} di DB, namun Keycloak sedang offline.`);
+      } else {
+        toast.success(`Akun ${userName} berhasil di${actionText}.`);
+      }
+      refreshAll();
     } catch (err: any) {
-      alert(`Gagal ${actionText} akun: ` + err.message);
+      toast.error(`Gagal ${actionText} akun: ` + err.message);
     }
   };
 
@@ -503,11 +585,15 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
   const handleDelete = async (userId: string, userName: string) => {
     if (!window.confirm(`Yakin ingin menghapus ${userName} secara permanen (Soft Delete di DB, Hard Delete di Keycloak)?`)) return;
     try {
-      await deleteEmployeeApi(userId);
-      alert(`${userName} berhasil dihapus.`);
-      refetch();
+      const res = await deleteEmployeeApi(userId);
+      if (res.keycloakSynced === false) {
+        toast.warning(`${userName} dinonaktifkan di DB, namun sinkronisasi Keycloak sedang offline.`);
+      } else {
+        toast.success(`${userName} berhasil dinonaktifkan (Soft Delete).`);
+      }
+      refreshAll();
     } catch (err: any) {
-      alert('Gagal menghapus: ' + err.message);
+      toast.error('Gagal menghapus: ' + err.message);
     }
   };
 
@@ -645,7 +731,12 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
 
   // Calculate Global Metrics using the new 'summary' field from the backend
   const summary = rawData?.summary || {};
-  const totalCount = summary.total || rawData?.meta?.totalItems || rawData?.meta?.total_items || users.length;
+  const totalCount =
+    summary.total ??
+    rawData?.meta?.total ??
+    rawData?.meta?.totalItems ??
+    rawData?.meta?.total_items ??
+    users.length;
   
   // Active accounts = Total minus resigned/suspended
   const resignedCount = summary.by_employment_status?.['RESIGNED'] || 0;
@@ -890,7 +981,7 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
           onClose={() => { setIsFormOpen(false); setActiveOption('list'); }}
           onSaved={(msg) => {
             setIsFormOpen(false); setActiveOption('list');
-            setFormSuccessMessage(msg); refetch();
+            setFormSuccessMessage(msg); refreshAll();
             setTimeout(() => setFormSuccessMessage(''), 8000);
           }}
         />
@@ -975,8 +1066,8 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
                       const isCurrent = currentUser.id === user.id;
 
                       return (
+                        <React.Fragment key={user.id}>
                         <tr
-                          key={user.id}
                           className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${
                             isCurrent ? 'bg-blue-50/40' : ''
                           }`}
@@ -1097,6 +1188,23 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
                                 </button>
                               )}
 
+                              {/* Atur Akses & Role Inline (PATCH /hrd/employees/{id}/access) */}
+                              {isAuthorized && (
+                                <button
+                                  type="button"
+                                  onClick={() => openInlineAccess(user)}
+                                  className={`px-2 py-1.5 rounded-lg border text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer ${
+                                    inlineAccessUserId === String(user.id)
+                                      ? 'bg-violet-600 text-white border-violet-600'
+                                      : 'border-violet-200 text-violet-700 hover:bg-violet-50'
+                                  }`}
+                                  title="Atur Akses & Role Inline"
+                                >
+                                  <Shield className="w-3.5 h-3.5" />
+                                  <span className="hidden xl:inline">Akses</span>
+                                </button>
+                              )}
+
                               {/* Reset Password */}
                               {isAuthorized && (
                                 <button
@@ -1104,8 +1212,8 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
                                     const tempPass = prompt(`Masukkan password sementara untuk ${user.name}:`);
                                     if (tempPass) {
                                       updateEmployeeApi(user.id, { password: tempPass } as any)
-                                        .then(() => alert(`Password sementara untuk ${user.name} berhasil diatur menjadi: ${tempPass}`))
-                                        .catch((err) => alert(`Gagal mengatur password: ${err.message}`));
+                                        .then(() => toast.success(`Password sementara untuk ${user.name} berhasil diatur.`))
+                                        .catch((err) => toast.error(`Gagal mengatur password: ${err.message}`));
                                     }
                                   }}
                                   className="p-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -1117,6 +1225,152 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
                             </div>
                           </td>
                         </tr>
+
+                        {/* Expandable Sub-Row: Atur Akses & Role Inline (Tanpa Popup) */}
+                        {isAuthorized && inlineAccessUserId === String(user.id) && (
+                          <tr className="bg-violet-50/70 border-b border-violet-200">
+                            <td colSpan={4} className="p-3.5">
+                              <div className="bg-white rounded-xl border border-violet-200 p-3.5 space-y-3 text-xs">
+                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                                  <div className="font-bold text-violet-800 flex items-center gap-1.5">
+                                    <Shield className="w-4 h-4" />
+                                    <span>Atur Akses &amp; Role — {user.name}</span>
+                                  </div>
+                                  <label className="inline-flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={inlineAccessForm.isActive}
+                                      onChange={(e) =>
+                                        setInlineAccessForm({ ...inlineAccessForm, isActive: e.target.checked })
+                                      }
+                                      className="accent-emerald-600"
+                                    />
+                                    <span>Akun Login Aktif</span>
+                                  </label>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                  <label className="space-y-1">
+                                    <span className="font-semibold text-slate-600">Level RBAC</span>
+                                    <select
+                                      value={inlineAccessForm.userLevel}
+                                      onChange={(e) =>
+                                        setInlineAccessForm({ ...inlineAccessForm, userLevel: e.target.value })
+                                      }
+                                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                                    >
+                                      {userLevels.map((lvl) => (
+                                        <option key={lvl.value} value={lvl.value}>
+                                          {lvl.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+
+                                  <label className="space-y-1">
+                                    <span className="font-semibold text-slate-600">Departemen Utama</span>
+                                    <select
+                                      value={inlineAccessForm.department}
+                                      onChange={(e) => {
+                                        const nextDept = e.target.value;
+                                        const oldDept = inlineAccessForm.department;
+                                        const nextAccess = Array.from(
+                                          new Set([
+                                            ...inlineAccessForm.departmentAccess.filter((d) => d !== oldDept),
+                                            nextDept,
+                                          ])
+                                        );
+                                        setInlineAccessForm({
+                                          ...inlineAccessForm,
+                                          department: nextDept,
+                                          departmentAccess: nextAccess,
+                                        });
+                                      }}
+                                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                                    >
+                                      {departments.map((d) => (
+                                        <option key={d.value} value={d.value}>
+                                          {d.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+
+                                  <label className="space-y-1">
+                                    <span className="font-semibold text-slate-600">Role</span>
+                                    <select
+                                      value={inlineAccessForm.roleName}
+                                      onChange={(e) =>
+                                        setInlineAccessForm({ ...inlineAccessForm, roleName: e.target.value })
+                                      }
+                                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                                    >
+                                      <option value="">-- Default Role --</option>
+                                      {availableRoles.map((r) => (
+                                        <option key={r.id} value={r.name}>
+                                          {r.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  <span className="font-semibold text-slate-600 block">
+                                    Akses Lintas Departemen (department_access):
+                                  </span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {OFFICIAL_DIVISIONS.map((divCode) => {
+                                      const checked = inlineAccessForm.departmentAccess.includes(divCode);
+                                      return (
+                                        <label
+                                          key={divCode}
+                                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold cursor-pointer ${
+                                            checked
+                                              ? 'bg-violet-50 border-violet-300 text-violet-800'
+                                              : 'bg-white border-slate-200 text-slate-600'
+                                          }`}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => {
+                                              const next = checked
+                                                ? inlineAccessForm.departmentAccess.filter((d) => d !== divCode)
+                                                : [...inlineAccessForm.departmentAccess, divCode];
+                                              setInlineAccessForm({ ...inlineAccessForm, departmentAccess: next });
+                                            }}
+                                            className="accent-violet-600"
+                                          />
+                                          <span>{divCode}</span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                                  <button
+                                    type="button"
+                                    onClick={() => setInlineAccessUserId(null)}
+                                    className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold cursor-pointer"
+                                  >
+                                    Batal
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={inlineAccessSaving}
+                                    onClick={() => handleSaveInlineAccess(user.id, user.name)}
+                                    className="px-3.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-bold cursor-pointer disabled:opacity-50"
+                                  >
+                                    {inlineAccessSaving ? 'Menyimpan...' : 'Simpan Akses & Role'}
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       );
                     })
                   )}
@@ -1185,7 +1439,7 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
           onClose={() => { setIsEditModalOpen(false); setEditingUserId(null); setEditingEmployee(null); }}
           onSaved={(msg) => {
             setIsEditModalOpen(false); setEditingUserId(null); setEditingEmployee(null);
-            setFormSuccessMessage(msg); refetch();
+            setFormSuccessMessage(msg); refreshAll();
             setTimeout(() => setFormSuccessMessage(''), 8000);
           }}
         />

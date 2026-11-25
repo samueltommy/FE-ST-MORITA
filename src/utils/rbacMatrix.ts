@@ -258,7 +258,8 @@ export function matrixToPermissions(matrix: AccessMatrix): PermissionClaim[] {
  * Merekonstruksi AccessMatrix dari daftar permissions user yang ada
  */
 export function permissionsToMatrix(permissions: string[] = [], role?: string, department?: string): AccessMatrix {
-  if (permissions.includes('*') || role === 'SUPER_ADMIN') {
+  const safePerms = Array.isArray(permissions) ? permissions : [];
+  if (safePerms.includes('*') || role === 'SUPER_ADMIN') {
     return {
       sales: 'WRITE',
       delivery: 'WRITE',
@@ -272,7 +273,7 @@ export function permissionsToMatrix(permissions: string[] = [], role?: string, d
     };
   }
 
-  if (!permissions || permissions.length === 0) {
+  if (safePerms.length === 0) {
     return getDefaultAccessMatrix(role || 'L3_STAFF', department || '');
   }
 
@@ -289,8 +290,8 @@ export function permissionsToMatrix(permissions: string[] = [], role?: string, d
   };
 
   for (const mod of ERP_MODULES_LIST) {
-    const hasWrite = mod.writePermissions.some((p) => permissions.includes(p));
-    const hasRead = mod.readPermissions.some((p) => permissions.includes(p));
+    const hasWrite = mod.writePermissions.some((p) => safePerms.includes(p));
+    const hasRead = mod.readPermissions.some((p) => safePerms.includes(p));
 
     if (hasWrite) {
       matrix[mod.key] = 'WRITE';

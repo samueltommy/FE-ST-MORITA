@@ -118,14 +118,82 @@ export async function deleteUserManagementUserApi(userId: string): Promise<void>
   await apiClient.delete(`/user-management/users/${userId}`);
 }
 
+function normalizePermissions(raw: any): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object') {
+          return String(item.code ?? item.name ?? item.permission ?? item.id ?? '');
+        }
+        return String(item ?? '');
+      })
+      .filter(Boolean);
+  }
+  if (typeof raw === 'string') {
+    return raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  if (typeof raw === 'object') {
+    const out: string[] = [];
+    for (const [k, v] of Object.entries(raw)) {
+      if (v === true) {
+        out.push(k);
+      } else if (Array.isArray(v)) {
+        v.forEach((act) => out.push(`${k}:${String(act)}`));
+      } else if (v && typeof v === 'object') {
+        for (const [subK, subV] of Object.entries(v)) {
+          if (subV) out.push(`${k}:${subK}`);
+        }
+      } else if (typeof v === 'string' && v) {
+        out.push(`${k}:${v}`);
+      }
+    }
+    return out;
+  }
+  return [];
+}
+
+function normalizeRoleRecord(raw: any, idx: number): RoleRecord {
+  if (typeof raw === 'string') {
+    return {
+      id: raw,
+      name: raw,
+      description: '',
+      permissions: [],
+      isSystem: true,
+    };
+  }
+  const id = String(raw?.id ?? raw?.roleId ?? raw?.name ?? `role-${idx}`);
+  const name = String(raw?.name ?? raw?.roleName ?? raw?.code ?? id);
+  const description = typeof raw?.description === 'string' ? raw.description : '';
+  const permissions = normalizePermissions(raw?.permissions ?? raw?.permissionList ?? raw?.claims);
+  const isSystem = Boolean(raw?.isSystem ?? raw?.is_system);
+  const rawCount = raw?.userCount ?? raw?.usersCount ?? raw?.user_count;
+  const userCount = typeof rawCount === 'number' ? rawCount : undefined;
+  return { id, name, description, permissions, isSystem, userCount };
+}
+
 export async function getUserManagementRolesApi(): Promise<RoleRecord[]> {
   const res = await apiClient.get('/user-management/roles');
   const payload = res.data;
-  return Array.isArray(payload)
+  const rawList = Array.isArray(payload)
     ? payload
     : Array.isArray(payload?.data)
     ? payload.data
+    : Array.isArray(payload?.items)
+    ? payload.items
+    : Array.isArray(payload?.roles)
+    ? payload.roles
+    : Array.isArray(payload?.data?.roles)
+    ? payload.data.roles
+    : Array.isArray(payload?.data?.items)
+    ? payload.data.items
     : [];
+  return rawList.map((r: any, idx: number) => normalizeRoleRecord(r, idx));
 }
 
 export interface RoleMutationPayload {

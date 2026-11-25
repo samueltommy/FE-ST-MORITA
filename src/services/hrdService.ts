@@ -64,6 +64,7 @@ export async function getEmployeesApi(
   return {
     data: response.data?.data || response.data?.employees || (Array.isArray(response.data) ? response.data : []),
     meta: response.data?.meta || { total_pages: 1, page: 1, total: response.data?.total || 0 },
+    summary: response.data?.summary || {},
   };
 }
 
@@ -157,17 +158,62 @@ export async function updateEmployeeApi(
   return (response.data?.data || response.data) as Employee;
 }
 
+export interface EmployeeAccessPayload {
+  userLevel?: string;
+  department?: string;
+  departmentAccess?: string[];
+  roleName?: string | null;
+  isActive?: boolean;
+}
+
+export interface KeycloakSyncResult {
+  keycloakSynced: boolean;
+  data?: any;
+}
+
+export async function updateEmployeeAccessApi(
+  employeeId: string,
+  payload: EmployeeAccessPayload
+): Promise<KeycloakSyncResult> {
+  const res = await apiClient.patch(`/hrd/employees/${employeeId}/access`, payload);
+  const body = res.data || {};
+  const data = body.data || body;
+  const synced =
+    typeof body.keycloakSynced === 'boolean'
+      ? body.keycloakSynced
+      : typeof data?.keycloakSynced === 'boolean'
+      ? data.keycloakSynced
+      : true;
+  return { keycloakSynced: synced, data };
+}
+
 export async function deleteEmployeeApi(
   employeeId: string
-): Promise<void> {
-  await apiClient.delete(`/hrd/employees/${employeeId}`);
+): Promise<KeycloakSyncResult> {
+  const res = await apiClient.delete(`/hrd/employees/${employeeId}`);
+  const body = res.data || {};
+  const synced =
+    typeof body.keycloakSynced === 'boolean'
+      ? body.keycloakSynced
+      : typeof body?.data?.keycloakSynced === 'boolean'
+      ? body.data.keycloakSynced
+      : true;
+  return { keycloakSynced: synced, data: body.data || body };
 }
 
 export async function suspendEmployeeApi(
   employeeId: string,
   isActive: boolean
-): Promise<void> {
-  await apiClient.patch(`/hrd/employees/${employeeId}/status`, { is_active: isActive });
+): Promise<KeycloakSyncResult> {
+  const res = await apiClient.patch(`/hrd/employees/${employeeId}/status`, { is_active: isActive });
+  const body = res.data || {};
+  const synced =
+    typeof body.keycloakSynced === 'boolean'
+      ? body.keycloakSynced
+      : typeof body?.data?.keycloakSynced === 'boolean'
+      ? body.data.keycloakSynced
+      : true;
+  return { keycloakSynced: synced, data: body.data || body };
 }
 
 export async function resetPasswordApi(

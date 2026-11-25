@@ -24,12 +24,13 @@ interface CustomAccessMatrixProps {
 }
 
 export const CustomAccessMatrix: React.FC<CustomAccessMatrixProps> = ({
-  value,
+  value: rawValue,
   onChange,
   userLevel = 'L3_STAFF',
   department = 'SALES',
   readOnly = false,
 }) => {
+  const value = rawValue || getDefaultAccessMatrix(userLevel, department);
   const handleLevelChange = (key: keyof AccessMatrix, level: AccessLevel) => {
     if (readOnly || !onChange) return;
     onChange({

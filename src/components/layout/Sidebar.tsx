@@ -120,7 +120,7 @@ const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
     { id: 'sample_requests', label: 'Permintaan Sampel (/public/request-sample)', icon: Send, endpoint: '/public/request-sample' },
   ],
   hrd: [
-    { id: 'user_management', label: 'User Management', icon: Users, endpoint: '/user-management' },
+    { id: 'user_management', label: 'User Management (RBAC & Role)', icon: ShieldCheck, endpoint: '/user-management' },
     { id: 'employees', label: 'Database Karyawan / Profil', icon: Users, endpoint: '/hrd/employees' },
     { id: 'cuti', label: 'Pengajuan Cuti (RM-HRD-303)', icon: Calendar, endpoint: '/hrd/leave-requests' },
     { id: 'sakit_izin', label: 'Sakit / Izin Lainnya', icon: FileText, endpoint: '/hrd/leave-requests' },
@@ -545,64 +545,6 @@ export const Sidebar: React.FC = () => {
                   );
                 })}
               </nav>
-            </div>
-          )}
-
-          {/* Operational Tools Section */}
-          {(canAccessTool('barcode') || canAccessTool('audit')) && (
-            <div className="pt-2 border-t border-slate-100">
-              {!isSidebarCollapsed && (
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">
-                  {t.tools}
-                </div>
-              )}
-              <div className="space-y-1">
-                {canAccessTool('barcode') && (
-                  <button
-                    id="sidebar-pwa-scanner-btn"
-                    onClick={() => appStore.setBarcodeModalOpen(true)}
-                    title="Scanner Barcode PWA"
-                    className={`text-left rounded-xl flex items-center text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${
-                      isSidebarCollapsed ? 'w-10 h-10 mx-auto justify-center p-0' : 'w-full px-2.5 py-1.5 justify-between'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                        <ScanLine className="w-4 h-4" />
-                      </div>
-                      {!isSidebarCollapsed && (
-                        <div className="min-w-0">
-                          <div className="font-semibold truncate leading-tight text-xs">{t.scanner}</div>
-                          <div className="text-xs text-slate-400 truncate leading-tight">{t.scannerSub}</div>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                )}
-
-                {canAccessTool('audit') && (
-                  <button
-                    id="sidebar-audit-trail-btn"
-                    onClick={() => appStore.setAuditLogsOpen(true)}
-                    title="Audit Trail Kepatuhan SHA-256"
-                    className={`text-left rounded-xl flex items-center text-xs text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${
-                      isSidebarCollapsed ? 'w-10 h-10 mx-auto justify-center p-0' : 'w-full px-2.5 py-1.5 justify-between'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                        <History className="w-4 h-4" />
-                      </div>
-                      {!isSidebarCollapsed && (
-                        <div className="min-w-0">
-                          <div className="font-semibold truncate leading-tight text-xs">{t.audit}</div>
-                          <div className="text-xs text-slate-400 truncate leading-tight">{t.auditSub}</div>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                )}
-              </div>
             </div>
           )}
         </div>

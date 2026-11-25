@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Users,
-  UserPlus,
   Shield,
   Search,
   CheckCircle2,
@@ -15,11 +14,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  getUserManagementUsersApi,
-  createUserManagementUserApi,
-  updateUserAccessApi,
-  updateUserStatusApi,
-  deleteUserManagementUserApi,
   getUserManagementRolesApi,
   createUserManagementRoleApi,
   updateUserManagementRoleApi,
@@ -27,6 +21,12 @@ import {
   UserAccountRecord,
   RoleRecord,
 } from '../../services/userManagementService';
+import {
+  getEmployeesApi,
+  updateEmployeeAccessApi,
+  suspendEmployeeApi,
+  deleteEmployeeApi,
+} from '../../services/hrdService';
 import {
   useSystemChoices,
   DEFAULT_DIVISIONS,
@@ -59,56 +59,83 @@ export const UserManagementTab: React.FC = () => {
   const [filterDept, setFilterDept] = useState('ALL');
   const [filterLevel, setFilterLevel] = useState('ALL');
   const [filterActive, setFilterActive] = useState<'ALL' | 'true' | 'false'>('ALL');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [rolePage, setRolePage] = useState(1);
+  const [rolePageSize, setRolePageSize] = useState(9);
 
   const { data: deptChoices } = useSystemChoices('departments');
   const { data: levelChoices } = useSystemChoices('user-levels');
   const divisions = asOptions(deptChoices, DEFAULT_DIVISIONS);
   const userLevels = asOptions(levelChoices, DEFAULT_USER_LEVELS);
 
+  // Single Source of Truth: gunakan /hrd/employees dengan server-side pagination agar 100% sinkron dengan Database Karyawan
   const { data: usersRes, isLoading: loadingUsers } = useQuery({
-    queryKey: ['userManagementUsers', search, filterDept, filterLevel, filterActive],
-    queryFn: () =>
-      getUserManagementUsersApi({
-        search: search || undefined,
-        department: filterDept,
-        userLevel: filterLevel,
-        isActive: filterActive === 'ALL' ? undefined : filterActive === 'true',
-      }),
+    queryKey: ['userManagementUsers', page, pageSize, search, filterDept],
+    queryFn: () => getEmployeesApi(page, pageSize, search || undefined, filterDept),
     enabled: canManage,
   });
-  const usersList = usersRes?.data || [];
 
-  const { data: rolesList = [], isLoading: loadingRoles } = useQuery({
+  const rawEmployees: any[] = Array.isArray(usersRes?.data) ? usersRes.data : [];
+  const allEmployees: UserAccountRecord[] = rawEmployees.map((emp: any) => ({
+    id: String(emp?.id ?? ''),
+    username: String(emp?.username || emp?.nik || '-'),
+    email: String(emp?.email || '-'),
+    fullName: String(emp?.fullName || emp?.username || '-'),
+    department: emp?.department || '',
+    userLevel: emp?.userLevel || 'L3_STAFF',
+    roleId: emp?.roleId || emp?.roleName || '',
+    roleName: emp?.roleName || emp?.roleId || '',
+    departmentAccess: Array.isArray(emp?.departmentAccess)
+      ? emp.departmentAccess
+      : Array.isArray(emp?.allowedDivisions)
+      ? emp.allowedDivisions
+      : emp?.department
+      ? [emp.department]
+      : [],
+    allowedDivisions: Array.isArray(emp?.allowedDivisions) ? emp.allowedDivisions : undefined,
+    customPermissions: Array.isArray(emp?.permissions)
+      ? emp.permissions
+      : Array.isArray(emp?.customPermissions)
+      ? emp.customPermissions
+      : [],
+    isActive: emp?.isActive !== false && emp?.employmentStatus !== 'RESIGNED',
+    employeeId: String(emp?.id ?? ''),
+    employeeNik: emp?.nik || '',
+  }));
+
+  const usersList = allEmployees.filter((u) => {
+    const matchLevel = filterLevel === 'ALL' || u.userLevel === filterLevel;
+    const active = u.isActive !== false;
+    const matchActive =
+      filterActive === 'ALL' || (filterActive === 'true' ? active : !active);
+    return matchLevel && matchActive;
+  });
+
+  const hasClientFilter = filterLevel !== 'ALL' || filterActive !== 'ALL';
+  const serverTotalUsers =
+    (usersRes as any)?.summary?.total ??
+    usersRes?.meta?.total ??
+    usersRes?.meta?.totalItems ??
+    usersRes?.meta?.total_items ??
+    allEmployees.length;
+  const totalUsersCount = hasClientFilter ? usersList.length : serverTotalUsers;
+  const totalUserPages = Math.max(
+    1,
+    usersRes?.meta?.totalPages ||
+      usersRes?.meta?.total_pages ||
+      Math.ceil(serverTotalUsers / pageSize) ||
+      1
+  );
+
+  const { data: rolesData, isLoading: loadingRoles } = useQuery({
     queryKey: ['userManagementRoles'],
     queryFn: getUserManagementRolesApi,
     enabled: canManage,
   });
-
-  // ── Create User Modal ───────────────────────────────────────────────────
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newUser, setNewUser] = useState({
-    username: '',
-    email: '',
-    fullName: '',
-    password: 'StMorita123!',
-    department: 'HRD',
-    userLevel: 'L3_STAFF',
-    roleId: '',
-    departmentAccess: ['HRD'] as string[],
-    createEmployeeProfile: true,
-  });
-  const [newUserMatrix, setNewUserMatrix] = useState<AccessMatrix>(() =>
-    getDefaultAccessMatrix('L3_STAFF', 'HRD')
-  );
-
-  const createUserMutation = useMutation({
-    mutationFn: createUserManagementUserApi,
-    onSuccess: () => {
-      toast.success('Akun pengguna berhasil dibuat');
-      queryClient.invalidateQueries({ queryKey: ['userManagementUsers'] });
-      setCreateOpen(false);
-    },
-  });
+  const rolesList: RoleRecord[] = Array.isArray(rolesData) ? rolesData : [];
+  const totalRolePages = Math.max(1, Math.ceil(rolesList.length / rolePageSize));
+  const pagedRoles = rolesList.slice((rolePage - 1) * rolePageSize, rolePage * rolePageSize);
 
   // ── Edit Access Modal ───────────────────────────────────────────────────
   const [editingUser, setEditingUser] = useState<UserAccountRecord | null>(null);
@@ -147,20 +174,42 @@ export const UserManagementTab: React.FC = () => {
 
   const updateAccessMutation = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: any }) =>
-      updateUserAccessApi(id, payload),
-    onSuccess: () => {
-      toast.success('Hak akses pengguna diperbarui');
+      updateEmployeeAccessApi(id, {
+        userLevel: payload.userLevel,
+        department: payload.department,
+        departmentAccess: payload.departmentAccess,
+        roleName: payload.roleId || null,
+        isActive: editingUser?.isActive !== false,
+      }),
+    onSuccess: (res) => {
+      if (res?.keycloakSynced === false) {
+        toast.warning('Hak akses tersimpan di DB, namun sinkronisasi Keycloak sedang offline.');
+      } else {
+        toast.success('Hak akses pengguna diperbarui & disinkronkan ke Keycloak');
+      }
       queryClient.invalidateQueries({ queryKey: ['userManagementUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['hrd', 'employees'] });
       setEditingUser(null);
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || err?.message || 'Gagal memperbarui hak akses');
     },
   });
 
   const toggleStatusMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
-      updateUserStatusApi(id, isActive),
-    onSuccess: () => {
-      toast.success('Status akun pengguna diperbarui');
+      suspendEmployeeApi(id, isActive),
+    onSuccess: (res) => {
+      if (res?.keycloakSynced === false) {
+        toast.warning('Status akun diperbarui di DB, namun Keycloak sedang offline.');
+      } else {
+        toast.success('Status akun pengguna diperbarui');
+      }
       queryClient.invalidateQueries({ queryKey: ['userManagementUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['hrd', 'employees'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || err?.message || 'Gagal mengubah status akun');
     },
   });
 
@@ -172,11 +221,19 @@ export const UserManagementTab: React.FC = () => {
   } | null>(null);
 
   const deleteUserMutation = useMutation({
-    mutationFn: deleteUserManagementUserApi,
-    onSuccess: () => {
-      toast.success('Akun pengguna dinonaktifkan (Soft Delete)');
+    mutationFn: deleteEmployeeApi,
+    onSuccess: (res) => {
+      if (res?.keycloakSynced === false) {
+        toast.warning('Akun dinonaktifkan di DB, namun sinkronisasi Keycloak sedang offline.');
+      } else {
+        toast.success('Akun pengguna dinonaktifkan (Soft Delete)');
+      }
       queryClient.invalidateQueries({ queryKey: ['userManagementUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['hrd', 'employees'] });
       setConfirmTarget(null);
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || err?.message || 'Gagal menonaktifkan akun');
     },
   });
 
@@ -263,7 +320,7 @@ export const UserManagementTab: React.FC = () => {
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Daftar Pengguna ({usersList.length})</span>
+            <span>Daftar Pengguna ({totalUsersCount})</span>
           </button>
           <button
             onClick={() => setSubTab('roles')}
@@ -278,15 +335,7 @@ export const UserManagementTab: React.FC = () => {
           </button>
         </div>
 
-        {subTab === 'users' ? (
-          <button
-            onClick={() => setCreateOpen(true)}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold flex items-center gap-2 cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Tambah Pengguna</span>
-          </button>
-        ) : (
+        {subTab === 'roles' && (
           <button
             onClick={openCreateRole}
             className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold flex items-center gap-2 cursor-pointer"
@@ -305,7 +354,10 @@ export const UserManagementTab: React.FC = () => {
               <input
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="Cari nama, username, email..."
                 className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
@@ -313,7 +365,10 @@ export const UserManagementTab: React.FC = () => {
 
             <select
               value={filterDept}
-              onChange={(e) => setFilterDept(e.target.value)}
+              onChange={(e) => {
+                setFilterDept(e.target.value);
+                setPage(1);
+              }}
               className="px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
             >
               <option value="ALL">Semua Divisi</option>
@@ -326,7 +381,10 @@ export const UserManagementTab: React.FC = () => {
 
             <select
               value={filterLevel}
-              onChange={(e) => setFilterLevel(e.target.value)}
+              onChange={(e) => {
+                setFilterLevel(e.target.value);
+                setPage(1);
+              }}
               className="px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
             >
               <option value="ALL">Semua Level RBAC</option>
@@ -339,7 +397,10 @@ export const UserManagementTab: React.FC = () => {
 
             <select
               value={filterActive}
-              onChange={(e) => setFilterActive(e.target.value as any)}
+              onChange={(e) => {
+                setFilterActive(e.target.value as any);
+                setPage(1);
+              }}
               className="px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
             >
               <option value="ALL">Semua Status</option>
@@ -461,29 +522,79 @@ export const UserManagementTab: React.FC = () => {
                 )}
               </tbody>
             </table>
+
+            {/* Pagination Bar — Daftar Pengguna */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-slate-200 bg-slate-50/70 text-xs text-slate-600">
+              <div className="flex items-center gap-2">
+                <span>
+                  Halaman <span className="font-bold text-slate-900">{page}</span> dari{' '}
+                  <span className="font-bold text-slate-900">{totalUserPages}</span> • Total{' '}
+                  <span className="font-bold text-slate-900">{totalUsersCount}</span> pengguna
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5">
+                  <span>Per halaman:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setPage(1);
+                    }}
+                    className="px-2 py-1 rounded-lg border border-slate-300 bg-white text-xs font-semibold"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  disabled={page <= 1 || loadingUsers}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 font-semibold disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Sebelumnya
+                </button>
+                <button
+                  type="button"
+                  disabled={page >= totalUserPages || loadingUsers}
+                  onClick={() => setPage((p) => Math.min(totalUserPages, p + 1))}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 font-semibold disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Berikutnya
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}
 
       {subTab === 'roles' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {loadingRoles ? (
-            <div className="col-span-full py-8 text-center text-slate-400">
-              <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Memuat daftar role...
-            </div>
-          ) : rolesList.length === 0 ? (
-            <div className="col-span-full py-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
-              Belum ada role kustom. Klik "Tambah Role" untuk membuat role baru.
-            </div>
-          ) : (
-            rolesList.map((role) => (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {loadingRoles ? (
+              <div className="col-span-full py-8 text-center text-slate-400">
+                <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Memuat daftar role...
+              </div>
+            ) : rolesList.length === 0 ? (
+              <div className="col-span-full py-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
+                Belum ada role kustom. Klik "Tambah Role" untuk membuat role baru.
+              </div>
+            ) : (
+              pagedRoles.map((role, roleIdx) => {
+              const rolePerms = Array.isArray(role?.permissions)
+                ? role.permissions.map((p) => (typeof p === 'string' ? p : String(p)))
+                : [];
+              return (
               <div
-                key={role.id}
+                key={role?.id || `role-${roleIdx}`}
                 className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col justify-between gap-3"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <h4 className="font-bold text-slate-900 text-base">{role.name}</h4>
+                    <h4 className="font-bold text-slate-900 text-base">{role?.name || 'Unnamed Role'}</h4>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => openEditRole(role)}
@@ -492,7 +603,7 @@ export const UserManagementTab: React.FC = () => {
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
-                      {!role.isSystem && (
+                      {!role?.isSystem && (
                         <button
                           onClick={() =>
                             setConfirmTarget({
@@ -510,190 +621,73 @@ export const UserManagementTab: React.FC = () => {
                     </div>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    {role.description || 'Tidak ada deskripsi'}
+                    {role?.description || 'Tidak ada deskripsi'}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-1">
-                    {(role.permissions || []).slice(0, 6).map((p) => (
+                    {rolePerms.slice(0, 6).map((p, idx) => (
                       <span
-                        key={p}
+                        key={`${role?.id || roleIdx}-${idx}-${p}`}
                         className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-mono"
                       >
                         {p}
                       </span>
                     ))}
-                    {(role.permissions || []).length > 6 && (
+                    {rolePerms.length > 6 && (
                       <span className="px-2 py-0.5 rounded bg-violet-50 text-violet-700 text-[11px] font-bold">
-                        +{role.permissions.length - 6} lainnya
+                        +{rolePerms.length - 6} lainnya
                       </span>
                     )}
                   </div>
                 </div>
-                {role.userCount !== undefined && (
+                {role?.userCount !== undefined && (
                   <div className="text-xs text-slate-500 border-t border-slate-100 pt-2">
                     Digunakan oleh <span className="font-bold">{role.userCount}</span> pengguna
                   </div>
                 )}
               </div>
-            ))
+              );
+            })
           )}
-        </div>
-      )}
+          </div>
 
-      {/* Create User Modal */}
-      {createOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="text-lg font-bold text-slate-900">Tambah Akun Pengguna Baru</h3>
-              <button onClick={() => setCreateOpen(false)} className="p-1 rounded-lg hover:bg-slate-100">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Username *</label>
-                <input
-                  type="text"
-                  value={newUser.username}
-                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Email *</label>
-                <input
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Nama Lengkap *</label>
-                <input
-                  type="text"
-                  value={newUser.fullName}
-                  onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Password Awal *</label>
-                <input
-                  type="text"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Divisi Utama</label>
-                <select
-                  value={newUser.department}
-                  onChange={(e) => {
-                    const dept = e.target.value;
-                    setNewUser({
-                      ...newUser,
-                      department: dept,
-                      departmentAccess: [dept],
-                    });
-                    setNewUserMatrix(getDefaultAccessMatrix(newUser.userLevel, dept));
-                  }}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
-                >
-                  {divisions.map((d) => (
-                    <option key={d.value} value={d.value}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Level RBAC</label>
-                <select
-                  value={newUser.userLevel}
-                  onChange={(e) => {
-                    const lvl = e.target.value;
-                    setNewUser({ ...newUser, userLevel: lvl });
-                    setNewUserMatrix(getDefaultAccessMatrix(lvl, newUser.department));
-                  }}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
-                >
-                  {userLevels.map((lvl) => (
-                    <option key={lvl.value} value={lvl.value}>
-                      {lvl.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="sm:col-span-2 flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <div>
-                  <div className="font-semibold text-slate-800">Buat Profil Karyawan Otomatis</div>
-                  <div className="text-xs text-slate-500">
-                    Sekaligus membuat data induk karyawan (`create_employee_profile`)
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={newUser.createEmployeeProfile}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, createEmployeeProfile: e.target.checked })
-                  }
-                  className="w-4 h-4 accent-violet-600"
-                />
-              </div>
-            </div>
-
+          {/* Pagination Bar — Manajemen Role */}
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-slate-200 bg-white text-xs text-slate-600">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Akses Lintas Departemen (`department_access`)
+              Halaman <span className="font-bold text-slate-900">{rolePage}</span> dari{' '}
+              <span className="font-bold text-slate-900">{totalRolePages}</span> • Total{' '}
+              <span className="font-bold text-slate-900">{rolesList.length}</span> role
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1.5">
+                <span>Per halaman:</span>
+                <select
+                  value={rolePageSize}
+                  onChange={(e) => {
+                    setRolePageSize(Number(e.target.value));
+                    setRolePage(1);
+                  }}
+                  className="px-2 py-1 rounded-lg border border-slate-300 bg-white text-xs font-semibold"
+                >
+                  <option value={9}>9</option>
+                  <option value={18}>18</option>
+                  <option value={30}>30</option>
+                </select>
               </label>
-              <div className="flex flex-wrap gap-2">
-                {OFFICIAL_DIVISIONS.map((divCode) => (
-                  <label
-                    key={divCode}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-semibold cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={newUser.departmentAccess.includes(divCode)}
-                      onChange={() =>
-                        toggleDivision(newUser.departmentAccess, divCode, (v) =>
-                          setNewUser({ ...newUser, departmentAccess: v })
-                        )
-                      }
-                    />
-                    <span>{divCode}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="border-t pt-3">
-              <CustomAccessMatrix matrix={newUserMatrix} onChange={setNewUserMatrix} />
-            </div>
-
-            <div className="flex justify-end gap-2 border-t pt-3">
               <button
-                onClick={() => setCreateOpen(false)}
-                className="px-4 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-700"
+                type="button"
+                disabled={rolePage <= 1 || loadingRoles}
+                onClick={() => setRolePage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 font-semibold disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
               >
-                Batal
+                Sebelumnya
               </button>
               <button
-                disabled={createUserMutation.isPending || !newUser.username || !newUser.email || !newUser.password}
-                onClick={() =>
-                  createUserMutation.mutate({
-                    ...newUser,
-                    roleId: newUser.roleId || undefined,
-                    allowedDivisions: newUser.departmentAccess,
-                    customPermissions: matrixToPermissions(newUserMatrix),
-                  })
-                }
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-50"
+                type="button"
+                disabled={rolePage >= totalRolePages || loadingRoles}
+                onClick={() => setRolePage((p) => Math.min(totalRolePages, p + 1))}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 font-semibold disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
               >
-                {createUserMutation.isPending ? 'Menyimpan...' : 'Simpan Pengguna'}
+                Berikutnya
               </button>
             </div>
           </div>
@@ -721,7 +715,21 @@ export const UserManagementTab: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">Divisi Utama</label>
                 <select
                   value={accessForm.department}
-                  onChange={(e) => setAccessForm({ ...accessForm, department: e.target.value })}
+                  onChange={(e) => {
+                    const nextDept = e.target.value;
+                    const oldDept = accessForm.department;
+                    const nextAccess = Array.from(
+                      new Set([
+                        ...accessForm.departmentAccess.filter((d) => d !== oldDept),
+                        nextDept,
+                      ])
+                    );
+                    setAccessForm({
+                      ...accessForm,
+                      department: nextDept,
+                      departmentAccess: nextAccess,
+                    });
+                  }}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
                 >
                   {divisions.map((d) => (
@@ -754,7 +762,7 @@ export const UserManagementTab: React.FC = () => {
                 >
                   <option value="">-- Default --</option>
                   {rolesList.map((r) => (
-                    <option key={r.id} value={r.id}>
+                    <option key={r.id} value={r.name}>
                       {r.name}
                     </option>
                   ))}
@@ -788,7 +796,12 @@ export const UserManagementTab: React.FC = () => {
             </div>
 
             <div className="border-t pt-3">
-              <CustomAccessMatrix matrix={accessMatrix} onChange={setAccessMatrix} />
+              <CustomAccessMatrix
+                value={accessMatrix}
+                onChange={setAccessMatrix}
+                userLevel={accessForm.userLevel}
+                department={accessForm.department}
+              />
             </div>
 
             <div className="flex justify-end gap-2 border-t pt-3">
@@ -854,7 +867,7 @@ export const UserManagementTab: React.FC = () => {
               </div>
             </div>
 
-            <CustomAccessMatrix matrix={roleMatrix} onChange={setRoleMatrix} />
+            <CustomAccessMatrix value={roleMatrix} onChange={setRoleMatrix} />
 
             <div className="flex justify-end gap-2 border-t pt-3">
               <button
