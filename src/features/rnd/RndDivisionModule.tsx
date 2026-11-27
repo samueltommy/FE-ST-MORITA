@@ -67,28 +67,28 @@ export const RndDivisionModule: React.FC = () => {
   const options: PageOptionItem[] = [
     {
       id: 'rnd_trials',
-      label: '1. R&D Trial Formula',
-      subtitle: '/rnd/trials • Formulasi formula uji lab',
+      label: 'R&D Trial Formula',
+      subtitle: 'Formulasi formula uji lab',
       icon: FlaskConical,
       badge: `${trials.length} Formula`,
     },
     {
       id: 'convert_bom',
-      label: '2. Konversi Formula ke Master BOM',
-      subtitle: '/rnd/trials/{id}/convert-to-bom • Rilis ke PPIC',
+      label: 'Konversi Formula ke Master BOM',
+      subtitle: 'Rilis resep produksi ke PPIC',
       icon: FileCheck2,
     },
     {
       id: 'e_catalog',
-      label: '3. Publikasi E-Katalog',
-      subtitle: '/marketing/catalog • Katalog digital resmi',
+      label: 'Publikasi E-Katalog',
+      subtitle: 'Katalog digital resmi',
       icon: BookOpen,
       badge: `${items.length} Produk`,
     },
     {
       id: 'sample_requests',
-      label: '4. Permintaan Sampel',
-      subtitle: '/public/request-sample • Sampel prospek',
+      label: 'Permintaan Sampel',
+      subtitle: 'Permohonan sampel prospek',
       icon: Send,
       badge: `${sampleRequests.length} Permintaan`,
     },
@@ -98,7 +98,7 @@ export const RndDivisionModule: React.FC = () => {
     const hubItems: ModuleFeatureHubItem[] = [
       {
         id: 'rnd_trials',
-        label: 'R&D Trial Formula (/rnd/trials)',
+        label: 'R&D Trial Formula',
         subtitle: `Pengujian komposisi formula baru, uji adhesi & viskositas (${trials.length} Formula)`,
         icon: FlaskConical,
         iconColor: 'text-teal-600',
@@ -108,7 +108,7 @@ export const RndDivisionModule: React.FC = () => {
       },
       {
         id: 'convert_bom',
-        label: 'Konversi Formula ke Master BOM (/rnd/trials/{id}/convert-to-bom)',
+        label: 'Konversi Formula ke Master BOM',
         subtitle: 'Validasi kelayakan formula trial dan rilis Bill of Materials ke lini produksi PPIC',
         icon: FileCheck2,
         iconColor: 'text-emerald-600',
@@ -118,7 +118,7 @@ export const RndDivisionModule: React.FC = () => {
       },
       {
         id: 'e_catalog',
-        label: 'Publikasi E-Katalog (/marketing/catalog)',
+        label: 'Publikasi E-Katalog',
         subtitle: `Spesifikasi teknis produk jadi & publikasi e-katalog pita perekat industri (${items.length} Item)`,
         icon: BookOpen,
         iconColor: 'text-blue-600',
@@ -128,7 +128,7 @@ export const RndDivisionModule: React.FC = () => {
       },
       {
         id: 'sample_requests',
-        label: 'Permintaan Sampel (/public/request-sample)',
+        label: 'Permintaan Sampel',
         subtitle: `Pelacakan permohonan sampel uji pelanggan baru & status dispatch lab (${sampleRequests.length} Permintaan)`,
         icon: Send,
         iconColor: 'text-amber-600',
@@ -142,7 +142,7 @@ export const RndDivisionModule: React.FC = () => {
       <ModuleFeatureHub
         moduleCode="RND"
         moduleName="DIVISI RESEARCH & DEVELOPMENT (RND)"
-        moduleDescription="R&D Trial Formula (/rnd/trials), Konversi Formula ke Master BOM (/rnd/trials/{id}/convert-to-bom), Publikasi E-Katalog (/marketing/catalog), dan Permintaan Sampel (/public/request-sample)."
+        moduleDescription="R&D Trial Formula, Konversi Formula ke Master BOM, Publikasi E-Katalog, dan Permintaan Sampel."
         headerBgColor="bg-teal-700"
         items={hubItems}
         onBackToHome={() => appStore.setActiveModule('home')}
@@ -172,10 +172,10 @@ export const RndDivisionModule: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-lg font-black text-slate-900">R&D Trial Formula</h3>
-              <p className="text-xs text-slate-500 font-mono">Endpoint: GET /api/v1/rnd/trials</p>
+              <p className="text-xs text-slate-500">Daftar formulasi uji laboratorium, substrat, viskositas & peel adhesion</p>
             </div>
             <button
-              onClick={() => alert('Fitur Tambah Trial Formula: POST /api/v1/rnd/trials')}
+              onClick={() => alert('Fitur Tambah Trial Formula')}
               className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" /> Form Trial Baru
@@ -187,9 +187,8 @@ export const RndDivisionModule: React.FC = () => {
               <div key={tr.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-mono font-black text-teal-700 text-xs">{tr.id} • {tr.formulaCode}</span>
-                  <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${
-                    tr.status === 'APPROVED_FOR_BOM' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${tr.status === 'APPROVED_FOR_BOM' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                    }`}>
                     {tr.status}
                   </span>
                 </div>
@@ -210,7 +209,7 @@ export const RndDivisionModule: React.FC = () => {
         <div className="p-6 rounded-3xl bg-white border-2 border-slate-200 shadow-sm space-y-4">
           <div className="pb-3 border-b border-slate-100">
             <h3 className="text-lg font-black text-slate-900">Konversi Formula ke Master BOM</h3>
-            <p className="text-xs text-slate-500 font-mono">Endpoint: POST /api/v1/rnd/trials/{'{id}'}/convert-to-bom</p>
+            <p className="text-xs text-slate-500">Konversi formula uji yang lolos evaluasi menjadi resep produksi PPIC</p>
           </div>
 
           <div className="p-4 rounded-2xl bg-teal-50/60 border border-teal-200 text-xs text-teal-900 space-y-2">
@@ -228,11 +227,10 @@ export const RndDivisionModule: React.FC = () => {
                 <button
                   disabled={tr.status !== 'APPROVED_FOR_BOM'}
                   onClick={() => alert(`Berhasil mengonversi ${tr.formulaCode} ke Master BOM Produksi PPIC!`)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 ${
-                    tr.status === 'APPROVED_FOR_BOM'
+                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 ${tr.status === 'APPROVED_FOR_BOM'
                       ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
                       : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   <FileCheck2 className="w-4 h-4" /> Konversi ke BOM
                 </button>
@@ -248,7 +246,7 @@ export const RndDivisionModule: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-lg font-black text-slate-900">Publikasi E-Katalog Produk</h3>
-              <p className="text-xs text-slate-500 font-mono">Endpoint: GET /api/v1/marketing/catalog</p>
+              <p className="text-xs text-slate-500">Daftar produk jadi & spesifikasi teknis yang tampil di e-katalog</p>
             </div>
             <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold">
               {items.length} Item Tayang
@@ -277,7 +275,7 @@ export const RndDivisionModule: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-lg font-black text-slate-900">Permintaan Sampel (Sample Requests)</h3>
-              <p className="text-xs text-slate-500 font-mono">Endpoint: GET /api/v1/public/request-sample</p>
+              <p className="text-xs text-slate-500">Daftar permohonan sampel pelanggan baru & status pengiriman laboratorium</p>
             </div>
             <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
               {sampleRequests.length} Permintaan

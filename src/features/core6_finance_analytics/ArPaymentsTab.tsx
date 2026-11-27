@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Plus,
   CheckCircle2,
@@ -27,6 +27,15 @@ import {
 } from '../../services/financeService';
 import { formatIDR } from '../../utils/invoiceCalculator';
 import { ConfirmActionModal } from '../core1_hrd/ConfirmActionModal';
+import {
+  EXCEL_CELL,
+  ExcelColumn,
+  ExcelSpreadsheetTable,
+  ExcelViewToggle,
+  ExcelWorksheetShell,
+  TableViewStyle,
+  exportExcelCsv,
+} from '../../components/shared/ExcelDataKit';
 
 interface Props {
   canMutate: boolean;
@@ -59,16 +68,19 @@ const emptyDraft = (): PaymentDraft => ({
 export const ArPaymentsTab: React.FC<Props> = ({ canMutate }) => {
   const queryClient = useQueryClient();
 
+  const [tableStyle, setTableStyle] = useState<TableViewStyle>('preview');
   const [page, setPage] = useState(1);
   const [reconFilter, setReconFilter] = useState('ALL');
   const [methodFilter, setMethodFilter] = useState('ALL');
   const [invoiceFilter, setInvoiceFilter] = useState('ALL');
 
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingRecord, setEditingRecord] = useState<ArPaymentRecord | null>(null);
   const [draft, setDraft] = useState<PaymentDraft>(emptyDraft);
   const [uploading, setUploading] = useState(false);
   const [voidTarget, setVoidTarget] = useState<ArPaymentRecord | null>(null);
+
+  const editingId = editingRecord?.id ?? null;
 
   const { data: paymentsRes, isLoading } = useQuery({
     queryKey: ['financePayments', page, reconFilter, methodFilter, invoiceFilter],
@@ -83,6 +95,7 @@ export const ArPaymentsTab: React.FC<Props> = ({ canMutate }) => {
   });
   const payments = paymentsRes?.data || [];
   const totalPages = paymentsRes?.meta?.totalPages || paymentsRes?.meta?.total_pages || 1;
+  const totalItems = paymentsRes?.meta?.total ?? paymentsRes?.meta?.totalItems;
 
   const { data: allInvoicesRes } = useQuery({
     queryKey: ['financeInvoicesDropdown'],
@@ -118,7 +131,7 @@ export const ArPaymentsTab: React.FC<Props> = ({ canMutate }) => {
       updateFinancePaymentApi(id, payload),
     onSuccess: () => {
       toast.success('Mutasi pelunasan berhasil diperbarui');
-      setEditingId(null);
+      setEditingRecord(null);
       setDraft(emptyDraft());
       invalidateAll();
     },
@@ -158,14 +171,14 @@ export const ArPaymentsTab: React.FC<Props> = ({ canMutate }) => {
   };
 
   const startAdd = () => {
-    setEditingId(null);
+    setEditingRecord(null);
     setDraft(emptyDraft());
     setIsAdding(true);
   };
 
   const startEdit = (p: ArPaymentRecord) => {
     setIsAdding(false);
-    setEditingId(p.id);
+    setEditingRecord(p);
     setDraft({
       salesInvoiceId: p.salesInvoiceId,
       paymentDate: p.paymentDate || todayStr(),
@@ -180,7 +193,7 @@ export const ArPaymentsTab: React.FC<Props> = ({ canMutate }) => {
 
   const cancelEditor = () => {
     setIsAdding(false);
-    setEditingId(null);
+    setEditingRecord(null);
     setDraft(emptyDraft());
   };
 
@@ -210,133 +223,335 @@ export const ArPaymentsTab: React.FC<Props> = ({ canMutate }) => {
     }
   };
 
-  const renderInlineEditorRow = (isNew: boolean, payment?: ArPaymentRecord) => (
-    <tr className="bg-blue-50 border-b border-blue-200 align-top">
-      <td className="px-3 py-2.5 font-mono text-xs font-bold text-blue-800 whitespace-nowrap">
-        {isNew ? 'AUTO-PAY' : payment?.paymentNumber}
-      </td>
-      <td className="px-3 py-2.5">
-        <input
-          type="date"
-          value={draft.paymentDate}
-          onChange={(e) => setDraft({ ...draft, paymentDate: e.target.value })}
-          className="px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-        />
-      </td>
-      <td className="px-3 py-2.5 min-w-[210px]">
-        {isNew ? (
-          <select
-            value={draft.salesInvoiceId}
-            onChange={(e) => {
-              const inv = payableInvoices.find((i) => i.id === e.target.value);
-              setDraft({
-                ...draft,
-                salesInvoiceId: e.target.value,
-                paymentAmount: inv ? inv.outstandingAmount : draft.paymentAmount,
-              });
-            }}
-            className="w-full px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-          >
-            <option value="">-- Pilih Invoice Unpaid/Partial --</option>
-            {payableInvoices.map((inv) => (
-              <option key={inv.id} value={inv.id}>
-                {inv.invoiceNumber} — {inv.customerName} (Sisa: {formatIDR(inv.outstandingAmount)})
-              </option>
-            ))}
-          </select>
-        ) : (
-          <div>
-            <div className="font-mono font-semibold text-slate-800">{payment?.invoiceNumber}</div>
-            <div className="text-[11px] text-slate-500">{payment?.customerName}</div>
-          </div>
-        )}
-      </td>
-      <td className="px-3 py-2.5">
-        <select
-          value={draft.paymentMethod}
-          onChange={(e) =>
-            setDraft({ ...draft, paymentMethod: e.target.value as ArPaymentPayload['paymentMethod'] })
-          }
-          className="px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-        >
-          <option value="BANK_TRANSFER">BANK_TRANSFER</option>
-          <option value="CASH">CASH</option>
-          <option value="GIRO">GIRO</option>
-          <option value="CHEQUE">CHEQUE</option>
-          <option value="VIRTUAL_ACCOUNT">VIRTUAL_ACCOUNT</option>
-        </select>
-      </td>
-      <td className="px-3 py-2.5 space-y-1">
-        <input
-          type="text"
-          placeholder="Rekening Kas/Bank..."
-          value={draft.bankAccount}
-          onChange={(e) => setDraft({ ...draft, bankAccount: e.target.value })}
-          className="w-full px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-        />
-        <input
-          type="text"
-          placeholder="Catatan (opsional)"
-          value={draft.notes}
-          onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-          className="w-full px-2 py-1 rounded-md border border-slate-300 text-[11px] bg-white"
-        />
-      </td>
-      <td className="px-3 py-2.5 space-y-1">
-        <input
-          type="text"
-          placeholder="No. Referensi..."
-          value={draft.referenceNumber}
-          onChange={(e) => setDraft({ ...draft, referenceNumber: e.target.value })}
-          className="w-full px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-        />
-        <label className="inline-flex items-center gap-1 px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 text-[11px] font-semibold cursor-pointer">
-          {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-          <span>{draft.proofFileUrl ? 'Ganti Bukti' : 'Upload Bukti'}</span>
-          <input
-            type="file"
-            className="hidden"
-            accept="image/*,.pdf"
-            onChange={(e) => e.target.files?.[0] && handleUploadProof(e.target.files[0])}
-          />
-        </label>
-      </td>
-      <td className="px-3 py-2.5">
-        <input
-          type="number"
-          value={draft.paymentAmount}
-          onChange={(e) => setDraft({ ...draft, paymentAmount: Number(e.target.value) })}
-          className="w-32 px-2 py-1 rounded-md border border-slate-300 text-xs font-mono text-right bg-white"
-        />
-      </td>
-      <td className="px-3 py-2.5 text-center">
-        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
-          {isNew ? 'BARU' : 'EDIT'}
-        </span>
-      </td>
-      <td className="px-3 py-2.5 text-right whitespace-nowrap">
-        <div className="inline-flex items-center gap-1">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={createMutation.isPending || updateMutation.isPending || uploading}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer disabled:opacity-50"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>Simpan</span>
-          </button>
-          <button
-            type="button"
-            onClick={cancelEditor}
-            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer"
-          >
-            <X className="w-3.5 h-3.5" />
-            <span>Batal</span>
-          </button>
-        </div>
-      </td>
-    </tr>
+  const totalPaymentsAmount = useMemo(
+    () => payments.reduce((sum, p) => sum + Number(p.paymentAmount || 0), 0),
+    [payments]
   );
+
+  const excelColumns: ExcelColumn<ArPaymentRecord>[] = [
+    {
+      key: 'paymentNumber',
+      header: 'No. Pembayaran',
+      mono: true,
+      getValue: (p) => p.paymentNumber,
+    },
+    {
+      key: 'paymentDate',
+      header: 'Tanggal Bayar',
+      getValue: (p) => p.paymentDate || '-',
+    },
+    {
+      key: 'invoiceNumber',
+      header: 'No. Invoice',
+      mono: true,
+      getValue: (p) => p.invoiceNumber || '-',
+    },
+    {
+      key: 'customerName',
+      header: 'Customer',
+      minWidth: 'min-w-[180px]',
+      getValue: (p) => p.customerName || '-',
+    },
+    {
+      key: 'paymentMethod',
+      header: 'Metode Bayar',
+      getValue: (p) => p.paymentMethod || '-',
+    },
+    {
+      key: 'bankAccount',
+      header: 'Rekening Kas/Bank',
+      minWidth: 'min-w-[140px]',
+      getValue: (p) => p.bankAccount || '-',
+    },
+    {
+      key: 'referenceNumber',
+      header: 'No. Referensi',
+      mono: true,
+      getValue: (p) => p.referenceNumber || '-',
+    },
+    {
+      key: 'paymentAmount',
+      header: 'Nominal Bayar',
+      align: 'right',
+      mono: true,
+      getValue: (p) => Number(p.paymentAmount || 0),
+      render: (p) => <span className="font-bold text-emerald-700">{formatIDR(p.paymentAmount)}</span>,
+      footer: <span className="text-emerald-700">{formatIDR(totalPaymentsAmount)}</span>,
+    },
+    {
+      key: 'reconciliationStatus',
+      header: 'Status Rekonsiliasi',
+      align: 'center',
+      getValue: (p) => p.reconciliationStatus || 'UNRECONCILED',
+      render: (p) =>
+        p.reconciliationStatus === 'RECONCILED' ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
+            <CheckCircle2 className="w-3 h-3" /> RECONCILED
+          </span>
+        ) : (
+          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
+            UNRECONCILED
+          </span>
+        ),
+    },
+    {
+      key: 'proofFileUrl',
+      header: 'Bukti Bayar',
+      align: 'center',
+      getValue: (p) => (p.proofFileUrl ? 'Ada' : '-'),
+      render: (p) => {
+        const fileHref = resolveFinanceFileUrl(p.proofFileUrl);
+        return fileHref ? (
+          <a
+            href={fileHref}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-semibold"
+          >
+            <ExternalLink className="w-3 h-3" /> Lihat
+          </a>
+        ) : (
+          <span className="text-slate-400">-</span>
+        );
+      },
+    },
+    {
+      key: 'notes',
+      header: 'Catatan',
+      minWidth: 'min-w-[160px]',
+      getValue: (p) => p.notes || '-',
+    },
+    {
+      key: 'actions',
+      header: 'Aksi',
+      align: 'right',
+      getValue: () => '',
+      render: (p) => {
+        const isReconciled = p.reconciliationStatus === 'RECONCILED';
+        return (
+          <div className="inline-flex items-center gap-1">
+            {canMutate && !isReconciled && (
+              <button
+                type="button"
+                onClick={() => reconcileMutation.mutate(p.id)}
+                disabled={reconcileMutation.isPending}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer"
+              >
+                <CheckCircle2 className="w-3 h-3" />
+                <span>Rekonsiliasi</span>
+              </button>
+            )}
+            {canMutate && !isReconciled && (
+              <button
+                type="button"
+                onClick={() => startEdit(p)}
+                title="Edit"
+                className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 text-blue-600 cursor-pointer"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {canMutate && (
+              <button
+                type="button"
+                onClick={() => setVoidTarget(p)}
+                title="Void / Batal"
+                className="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
+  const handleExportCsv = () => {
+    exportExcelCsv(
+      'mutasi-pelunasan-ar',
+      excelColumns.filter((c) => c.key !== 'actions'),
+      payments
+    );
+  };
+
+  if (canMutate && (isAdding || editingRecord)) {
+    const isNew = isAdding && !editingRecord;
+    const proofHref = resolveFinanceFileUrl(draft.proofFileUrl);
+    return (
+      <ExcelWorksheetShell
+        onBack={cancelEditor}
+        docTitle={isNew ? 'AUTO-PAY' : editingRecord?.paymentNumber || 'EDIT-PAY'}
+        badge={
+          <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+            {isNew ? 'BARU' : 'EDIT'}
+          </span>
+        }
+        formCode="FORM PELUNASAN PIUTANG (AR PAYMENT)"
+        sheetTitle={isNew ? 'Catat Mutasi Pelunasan AR Baru' : `Edit Mutasi Pelunasan ${editingRecord?.paymentNumber}`}
+        modeHint="Worksheet Input AR Payment"
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={cancelEditor}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-sm font-bold cursor-pointer"
+            >
+              <X className="w-4 h-4" /> Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={createMutation.isPending || updateMutation.isPending || uploading}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold cursor-pointer disabled:opacity-50"
+            >
+              {createMutation.isPending || updateMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span>Simpan Pelunasan</span>
+            </button>
+          </>
+        }
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <tbody>
+              <tr>
+                <td className={`${EXCEL_CELL.label} w-48`}>Sales Invoice *</td>
+                <td className={EXCEL_CELL.value} colSpan={3}>
+                  {isNew ? (
+                    <select
+                      value={draft.salesInvoiceId}
+                      onChange={(e) => {
+                        const inv = payableInvoices.find((i) => i.id === e.target.value);
+                        setDraft({
+                          ...draft,
+                          salesInvoiceId: e.target.value,
+                          paymentAmount: inv ? inv.outstandingAmount : draft.paymentAmount,
+                        });
+                      }}
+                      className={EXCEL_CELL.input}
+                    >
+                      <option value="">-- Pilih Invoice Unpaid / Partial --</option>
+                      {payableInvoices.map((inv) => (
+                        <option key={inv.id} value={inv.id}>
+                          {inv.invoiceNumber} — {inv.customerName} (Sisa: {formatIDR(inv.outstandingAmount)})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className={EXCEL_CELL.readValue}>
+                      <span className="font-mono font-bold text-blue-700">{editingRecord?.invoiceNumber}</span>
+                      <span className="ml-2 text-slate-600">— {editingRecord?.customerName}</span>
+                    </div>
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <td className={`${EXCEL_CELL.label} w-48`}>Tanggal Bayar *</td>
+                <td className={EXCEL_CELL.value}>
+                  <input
+                    type="date"
+                    value={draft.paymentDate}
+                    onChange={(e) => setDraft({ ...draft, paymentDate: e.target.value })}
+                    className={EXCEL_CELL.input}
+                  />
+                </td>
+                <td className={`${EXCEL_CELL.label} w-48`}>Nominal Bayar (IDR) *</td>
+                <td className={EXCEL_CELL.value}>
+                  <input
+                    type="number"
+                    value={draft.paymentAmount}
+                    onChange={(e) => setDraft({ ...draft, paymentAmount: Number(e.target.value) })}
+                    className={`${EXCEL_CELL.input} font-mono text-right font-bold text-emerald-700`}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td className={EXCEL_CELL.label}>Metode Bayar</td>
+                <td className={EXCEL_CELL.value}>
+                  <select
+                    value={draft.paymentMethod}
+                    onChange={(e) =>
+                      setDraft({ ...draft, paymentMethod: e.target.value as ArPaymentPayload['paymentMethod'] })
+                    }
+                    className={EXCEL_CELL.input}
+                  >
+                    <option value="BANK_TRANSFER">BANK_TRANSFER</option>
+                    <option value="CASH">CASH</option>
+                    <option value="GIRO">GIRO</option>
+                    <option value="CHEQUE">CHEQUE</option>
+                    <option value="VIRTUAL_ACCOUNT">VIRTUAL_ACCOUNT</option>
+                  </select>
+                </td>
+                <td className={EXCEL_CELL.label}>Rekening Kas / Bank</td>
+                <td className={EXCEL_CELL.value}>
+                  <input
+                    type="text"
+                    placeholder="BCA / Mandiri / Kas Kecil..."
+                    value={draft.bankAccount}
+                    onChange={(e) => setDraft({ ...draft, bankAccount: e.target.value })}
+                    className={EXCEL_CELL.input}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td className={EXCEL_CELL.label}>No. Referensi</td>
+                <td className={EXCEL_CELL.value}>
+                  <input
+                    type="text"
+                    placeholder="TRF-001 / No. Giro..."
+                    value={draft.referenceNumber}
+                    onChange={(e) => setDraft({ ...draft, referenceNumber: e.target.value })}
+                    className={`${EXCEL_CELL.input} font-mono`}
+                  />
+                </td>
+                <td className={EXCEL_CELL.label}>Bukti Pembayaran</td>
+                <td className="px-3 py-2 bg-white border border-slate-300">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-xs font-bold cursor-pointer">
+                      {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      <span>{draft.proofFileUrl ? 'Ganti Bukti' : 'Upload Bukti'}</span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*,.pdf"
+                        onChange={(e) => e.target.files?.[0] && handleUploadProof(e.target.files[0])}
+                      />
+                    </label>
+                    {proofHref && (
+                      <a
+                        href={proofHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-semibold"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> Lihat File Terunggah
+                      </a>
+                    )}
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className={EXCEL_CELL.label}>Catatan</td>
+                <td className={EXCEL_CELL.value} colSpan={3}>
+                  <input
+                    type="text"
+                    placeholder="Catatan tambahan (opsional)..."
+                    value={draft.notes}
+                    onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+                    className={EXCEL_CELL.input}
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ExcelWorksheetShell>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -349,7 +564,7 @@ export const ArPaymentsTab: React.FC<Props> = ({ canMutate }) => {
               setReconFilter(e.target.value);
               setPage(1);
             }}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
+            className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-sm bg-white"
           >
             <option value="ALL">Semua Rekonsiliasi</option>
             <option value="UNRECONCILED">UNRECONCILED</option>
@@ -361,7 +576,7 @@ export const ArPaymentsTab: React.FC<Props> = ({ canMutate }) => {
               setMethodFilter(e.target.value);
               setPage(1);
             }}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
+            className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-sm bg-white"
           >
             <option value="ALL">Semua Metode Bayar</option>
             <option value="BANK_TRANSFER">BANK_TRANSFER</option>
@@ -376,7 +591,7 @@ export const ArPaymentsTab: React.FC<Props> = ({ canMutate }) => {
               setInvoiceFilter(e.target.value);
               setPage(1);
             }}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white max-w-[220px]"
+            className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-sm bg-white max-w-[240px]"
           >
             <option value="ALL">Semua Invoice</option>
             {allInvoices.map((inv) => (
@@ -387,169 +602,191 @@ export const ArPaymentsTab: React.FC<Props> = ({ canMutate }) => {
           </select>
         </div>
 
-        {canMutate && (
-          <button
-            type="button"
-            onClick={startAdd}
-            disabled={isAdding}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Catat Pelunasan</span>
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <ExcelViewToggle
+            value={tableStyle}
+            onChange={setTableStyle}
+            onExport={handleExportCsv}
+            exportDisabled={payments.length === 0}
+          />
+          {canMutate && (
+            <button
+              type="button"
+              onClick={startAdd}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Catat Pelunasan</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Inline Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
-                <th className="px-3 py-2.5">No. Pembayaran</th>
-                <th className="px-3 py-2.5">Tanggal</th>
-                <th className="px-3 py-2.5">No. Invoice &amp; Customer</th>
-                <th className="px-3 py-2.5">Metode Bayar</th>
-                <th className="px-3 py-2.5">Rekening Kas/Bank</th>
-                <th className="px-3 py-2.5">No. Referensi &amp; Bukti</th>
-                <th className="px-3 py-2.5 text-right">Nominal Bayar</th>
-                <th className="px-3 py-2.5 text-center">Status Rekonsiliasi</th>
-                <th className="px-3 py-2.5 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {isAdding && renderInlineEditorRow(true)}
-
-              {isLoading ? (
-                <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Memuat mutasi pelunasan AR...
-                  </td>
+      {tableStyle === 'excel' ? (
+        <ExcelSpreadsheetTable
+          title="Mutasi Pelunasan AR (Account Receivable Payments) — Tabel Excel"
+          subtitle="Seluruh kolom pembayaran terpisah rapi • Total nominal pada footer"
+          columns={excelColumns}
+          rows={payments}
+          rowKey={(p) => p.id}
+          isLoading={isLoading}
+          emptyText="Belum ada mutasi pelunasan AR."
+          footerLabel="TOTAL"
+          pagination={{
+            page,
+            totalPages,
+            totalItems,
+            unitLabel: 'pembayaran',
+            onPrev: () => setPage((p) => Math.max(1, p - 1)),
+            onNext: () => setPage((p) => p + 1),
+          }}
+        />
+      ) : (
+        <div className="bg-white rounded-xl border border-slate-300 overflow-hidden shadow-2xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-100 border-b border-slate-300 text-xs font-bold text-slate-700 uppercase">
+                  <th className="px-3.5 py-2.5 border-r border-slate-200">No. Pembayaran</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200">Tanggal</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200">No. Invoice &amp; Customer</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200">Metode Bayar</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200">Rekening Kas/Bank</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200">No. Referensi &amp; Bukti</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200 text-right">Nominal Bayar</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200 text-center">Status Rekonsiliasi</th>
+                  <th className="px-3.5 py-2.5 text-right">Aksi</th>
                 </tr>
-              ) : payments.length === 0 && !isAdding ? (
-                <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">
-                    Belum ada mutasi pelunasan AR.
-                  </td>
-                </tr>
-              ) : (
-                payments.map((p) => {
-                  if (editingId === p.id) {
-                    return <React.Fragment key={p.id}>{renderInlineEditorRow(false, p)}</React.Fragment>;
-                  }
-                  const isReconciled = p.reconciliationStatus === 'RECONCILED';
-                  const fileHref = resolveFinanceFileUrl(p.proofFileUrl);
+              </thead>
+              <tbody className="divide-y divide-slate-200 text-sm">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={9} className="py-10 text-center text-slate-400">
+                      <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Memuat mutasi pelunasan AR...
+                    </td>
+                  </tr>
+                ) : payments.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="py-10 text-center text-slate-400">
+                      Belum ada mutasi pelunasan AR.
+                    </td>
+                  </tr>
+                ) : (
+                  payments.map((p) => {
+                    const isReconciled = p.reconciliationStatus === 'RECONCILED';
+                    const fileHref = resolveFinanceFileUrl(p.proofFileUrl);
 
-                  return (
-                    <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-3 py-2.5 font-mono font-bold text-slate-800 whitespace-nowrap">
-                        {p.paymentNumber}
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">{p.paymentDate}</td>
-                      <td className="px-3 py-2.5">
-                        <div className="font-mono font-semibold text-blue-700">{p.invoiceNumber}</div>
-                        <div className="text-[11px] text-slate-500">{p.customerName}</div>
-                      </td>
-                      <td className="px-3 py-2.5 font-medium">{p.paymentMethod}</td>
-                      <td className="px-3 py-2.5">
-                        <div>{p.bankAccount || '-'}</div>
-                        {p.notes && <div className="text-[11px] text-slate-400 truncate max-w-[160px]">{p.notes}</div>}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <div className="font-mono">{p.referenceNumber || '-'}</div>
-                        {fileHref && (
-                          <a
-                            href={fileHref}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline mt-0.5"
-                          >
-                            <ExternalLink className="w-3 h-3" /> Lihat Bukti
-                          </a>
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-mono font-bold text-emerald-700 whitespace-nowrap">
-                        {formatIDR(p.paymentAmount)}
-                      </td>
-                      <td className="px-3 py-2.5 text-center">
-                        {isReconciled ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold">
-                            <CheckCircle2 className="w-3 h-3" /> RECONCILED
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">
-                            UNRECONCILED
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
-                          {canMutate && !isReconciled && (
-                            <button
-                              type="button"
-                              onClick={() => reconcileMutation.mutate(p.id)}
-                              disabled={reconcileMutation.isPending}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer"
+                    return (
+                      <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-3.5 py-2.5 border-r border-slate-200 font-mono font-bold text-slate-800 whitespace-nowrap">
+                          {p.paymentNumber}
+                        </td>
+                        <td className="px-3.5 py-2.5 border-r border-slate-200 whitespace-nowrap">{p.paymentDate}</td>
+                        <td className="px-3.5 py-2.5 border-r border-slate-200">
+                          <div className="font-mono font-semibold text-blue-700">{p.invoiceNumber}</div>
+                          <div className="text-xs text-slate-500">{p.customerName}</div>
+                        </td>
+                        <td className="px-3.5 py-2.5 border-r border-slate-200 font-medium">{p.paymentMethod}</td>
+                        <td className="px-3.5 py-2.5 border-r border-slate-200">
+                          <div>{p.bankAccount || '-'}</div>
+                          {p.notes && <div className="text-xs text-slate-400 truncate max-w-[180px]">{p.notes}</div>}
+                        </td>
+                        <td className="px-3.5 py-2.5 border-r border-slate-200">
+                          <div className="font-mono">{p.referenceNumber || '-'}</div>
+                          {fileHref && (
+                            <a
+                              href={fileHref}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mt-0.5"
                             >
-                              <CheckCircle2 className="w-3 h-3" />
-                              <span>Rekonsiliasi</span>
-                            </button>
+                              <ExternalLink className="w-3 h-3" /> Lihat Bukti
+                            </a>
                           )}
-                          {canMutate && !isReconciled && (
-                            <button
-                              type="button"
-                              onClick={() => startEdit(p)}
-                              title="Edit Inline"
-                              className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 text-blue-600 cursor-pointer"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
+                        </td>
+                        <td className="px-3.5 py-2.5 border-r border-slate-200 text-right font-mono font-bold text-emerald-700 whitespace-nowrap">
+                          {formatIDR(p.paymentAmount)}
+                        </td>
+                        <td className="px-3.5 py-2.5 border-r border-slate-200 text-center">
+                          {isReconciled ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> RECONCILED
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
+                              UNRECONCILED
+                            </span>
                           )}
-                          {canMutate && (
-                            <button
-                              type="button"
-                              onClick={() => setVoidTarget(p)}
-                              title="Void / Batal"
-                              className="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        </td>
+                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1">
+                            {canMutate && !isReconciled && (
+                              <button
+                                type="button"
+                                onClick={() => reconcileMutation.mutate(p.id)}
+                                disabled={reconcileMutation.isPending}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Rekonsiliasi</span>
+                              </button>
+                            )}
+                            {canMutate && !isReconciled && (
+                              <button
+                                type="button"
+                                onClick={() => startEdit(p)}
+                                title="Edit"
+                                className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 text-blue-600 cursor-pointer"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            )}
+                            {canMutate && (
+                              <button
+                                type="button"
+                                onClick={() => setVoidTarget(p)}
+                                title="Void / Batal"
+                                className="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
-        {/* Pagination */}
-        <div className="px-4 py-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span>
-            Halaman {page} dari {totalPages}
-          </span>
-          <div className="flex gap-1.5">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
-            >
-              Prev
-            </button>
-            <button
-              type="button"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
-            >
-              Next
-            </button>
+          {/* Pagination */}
+          <div className="px-4 py-2.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-600">
+            <span>
+              Halaman <strong>{page}</strong> dari <strong>{totalPages}</strong>
+            </span>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1 rounded-lg border border-slate-300 bg-white disabled:opacity-40 hover:bg-slate-100 font-semibold cursor-pointer"
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="px-3 py-1 rounded-lg border border-slate-300 bg-white disabled:opacity-40 hover:bg-slate-100 font-semibold cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <ConfirmActionModal
         open={Boolean(voidTarget)}

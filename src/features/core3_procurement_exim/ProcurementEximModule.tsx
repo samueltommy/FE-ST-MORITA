@@ -118,11 +118,11 @@ export const ProcurementEximModule: React.FC = () => {
   const filteredEximDocs = eximDocs;
 
   const stages: { key: ProcurementStage; label: string; dept: string }[] = [
-    { key: 'PR', label: '1. Purchase Request', dept: 'PPIC Planner' },
-    { key: 'PO', label: '2. Purchase Order', dept: 'Purchasing' },
-    { key: 'LOG', label: '3. In-Transit / Port', dept: 'Logistik Pergudangan' },
-    { key: 'IQC', label: '4. IQC Incoming Test', dept: 'QC Lab' },
-    { key: 'AP', label: '5. AP Reconciliation', dept: 'Finance / AP' },
+    { key: 'PR', label: 'Purchase Request', dept: 'PPIC Planner' },
+    { key: 'PO', label: 'Purchase Order', dept: 'Purchasing' },
+    { key: 'LOG', label: 'In-Transit / Port', dept: 'Logistik Pergudangan' },
+    { key: 'IQC', label: 'IQC Incoming Test', dept: 'QC Lab' },
+    { key: 'AP', label: 'AP Reconciliation', dept: 'Finance / AP' },
   ];
 
   const handleUploadDocument = (e: React.FormEvent) => {
@@ -158,14 +158,14 @@ export const ProcurementEximModule: React.FC = () => {
   const pageOptions: PageOptionItem[] = [
     {
       id: 'kanban',
-      label: '1. Alur Pengadaan (Kanban PR → PO)',
+      label: 'Alur Pengadaan (Kanban PR → PO)',
       subtitle: `${procurementOrders.length} Pesanan Pengadaan Berjalan`,
       icon: Truck,
       badge: procurementOrders.length,
     },
     {
       id: 'exim_dropzone',
-      label: '2. Dokumen Kepabeanan EXIM',
+      label: 'Dokumen Kepabeanan EXIM',
       subtitle: `${eximDocs.length} Berkas Pabean Kawasan Berikat`,
       icon: ShieldCheck,
       badge: `${eximDocs.length} Berkas`,
@@ -343,13 +343,12 @@ export const ProcurementEximModule: React.FC = () => {
                               {ord.poNumber}
                             </span>
                             <span
-                              className={`shrink-0 text-xs font-bold px-1.5 py-0.5 rounded uppercase ${
-                                (ord.status || (ord.stageProgress === 100 ? 'COMPLETED' : 'IN_PROGRESS')) === 'COMPLETED'
+                              className={`shrink-0 text-xs font-bold px-1.5 py-0.5 rounded uppercase ${(ord.status || (ord.stageProgress === 100 ? 'COMPLETED' : 'IN_PROGRESS')) === 'COMPLETED'
                                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                                   : (ord.status || '') === 'INSPECTING'
-                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                              }`}
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                }`}
                             >
                               {ord.status || (ord.stageProgress === 100 ? 'COMPLETED' : 'ACTIVE')}
                             </span>
@@ -379,16 +378,14 @@ export const ProcurementEximModule: React.FC = () => {
                                 {ord.bcDocumentType || 'BC 2.3'}
                               </span>
                               <span
-                                className={`shrink-0 flex items-center gap-1 font-bold ${
-                                  (ord.bcDocStatus || 'COMPLETE') === 'COMPLETE'
+                                className={`shrink-0 flex items-center gap-1 font-bold ${(ord.bcDocStatus || 'COMPLETE') === 'COMPLETE'
                                     ? 'text-emerald-600'
                                     : 'text-amber-500'
-                                }`}
+                                  }`}
                               >
                                 <span
-                                  className={`w-1.5 h-1.5 rounded-full ${
-                                    (ord.bcDocStatus || 'COMPLETE') === 'COMPLETE' ? 'bg-emerald-500' : 'bg-amber-500'
-                                  }`}
+                                  className={`w-1.5 h-1.5 rounded-full ${(ord.bcDocStatus || 'COMPLETE') === 'COMPLETE' ? 'bg-emerald-500' : 'bg-amber-500'
+                                    }`}
                                 />
                                 {ord.bcDocStatus || 'COMPLETE'}
                               </span>
@@ -450,8 +447,8 @@ export const ProcurementEximModule: React.FC = () => {
 
             <div className="divide-y divide-slate-100 dark:divide-slate-800 overflow-auto max-h-[60vh] 2xl:max-h-[70vh] pr-1">
               {filteredEximDocs.map((doc, docIdx) => (
-                <div 
-                  key={doc.id || doc.referenceNumber || `doc-${docIdx}`} 
+                <div
+                  key={doc.id || doc.referenceNumber || `doc-${docIdx}`}
                   onClick={() => setSelectedDetailItem(doc)}
                   className="py-3 px-2 -mx-2 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                 >
@@ -468,11 +465,10 @@ export const ProcurementEximModule: React.FC = () => {
                           {doc.referenceNo || doc.referenceNumber}
                         </span>
                         <span
-                          className={`text-xs font-bold px-1.5 py-0.2 rounded-full uppercase ${
-                            doc.status === 'VERIFIED'
+                          className={`text-xs font-bold px-1.5 py-0.2 rounded-full uppercase ${doc.status === 'VERIFIED'
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                               : 'bg-amber-100 text-amber-800'
-                          }`}
+                            }`}
                         >
                           {doc.status}
                         </span>
@@ -500,7 +496,7 @@ export const ProcurementEximModule: React.FC = () => {
                 </div>
               ))}
             </div>
-            
+
             {/* KONTROL PAGINATION EXIM */}
             <div className="flex justify-between items-center mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-4">
@@ -522,14 +518,14 @@ export const ProcurementEximModule: React.FC = () => {
                 </select>
               </div>
               <div className="flex gap-2">
-                <button 
+                <button
                   disabled={eximPage === 1}
                   onClick={() => setEximPage(p => Math.max(1, p - 1))}
                   className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
                 >
                   Sebelumnya
                 </button>
-                <button 
+                <button
                   disabled={eximPage >= eximTotalPages}
                   onClick={() => setEximPage(p => p + 1)}
                   className="px-3 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"

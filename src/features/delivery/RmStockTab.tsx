@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Plus,
   Search,
@@ -26,18 +26,27 @@ import {
   RmTransferPayload,
 } from '../../services/logisticsService';
 import { listProductionStocksApi } from '../../services/productionService';
-import type { StockMovement } from '../../types/logisticsRmStock';
+import type { RMStockItemSummary, StockMovement } from '../../types/logisticsRmStock';
 import { ConfirmActionModal } from '../core1_hrd/ConfirmActionModal';
 import { useRBAC } from '../../hooks/useRBAC';
+import {
+  ExcelColumn,
+  ExcelSpreadsheetTable,
+  ExcelViewToggle,
+  TableViewStyle,
+  exportExcelCsv,
+} from '../../components/shared/ExcelDataKit';
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 
 export const RmStockTab: React.FC = () => {
   const queryClient = useQueryClient();
   const { isSuperAdmin, isExecutive, userDivision } = useRBAC();
-  const canWrite = isSuperAdmin || isExecutive || userDivision === 'WAREHOUSE_PPIC' || userDivision === 'DELIVERY';
+  const canWrite =
+    isSuperAdmin || isExecutive || userDivision === 'WAREHOUSE_PPIC' || userDivision === 'DELIVERY';
 
   const [subTab, setSubTab] = useState<'monitoring' | 'adjustments' | 'transfers'>('monitoring');
+  const [tableStyle, setTableStyle] = useState<TableViewStyle>('preview');
 
   // Sub-Tab A: Monitoring
   const [catFilter, setCatFilter] = useState('RAW_MATERIAL');
@@ -77,7 +86,12 @@ export const RmStockTab: React.FC = () => {
 
   const { data: monitoring = [], isLoading: isLoadingMon } = useQuery({
     queryKey: ['rmStockMonitoring', catFilter, lowStockOnly, monSearch],
-    queryFn: () => getRmStockMonitoringApi({ category: catFilter, lowStockOnly, search: monSearch || undefined }),
+    queryFn: () =>
+      getRmStockMonitoringApi({
+        category: catFilter,
+        lowStockOnly,
+        search: monSearch || undefined,
+      }),
     enabled: subTab === 'monitoring',
   });
 
@@ -96,6 +110,7 @@ export const RmStockTab: React.FC = () => {
     subTab === 'transfers' ? m.movementType === 'RM_TRANSFER' : m.movementType !== 'RM_TRANSFER'
   );
   const movTotalPages = movementsRes?.meta?.totalPages || movementsRes?.meta?.total_pages || 1;
+  const movTotalItems = movementsRes?.meta?.total ?? movementsRes?.meta?.totalItems ?? movements.length;
 
   const { data: stocksRes } = useQuery({
     queryKey: ['productionStocksDropdown'],
@@ -121,7 +136,8 @@ export const RmStockTab: React.FC = () => {
   };
 
   const minStockMut = useMutation({
-    mutationFn: ({ itemId, minStock }: { itemId: string; minStock: number }) => updateItemMinStockApi(itemId, minStock),
+    mutationFn: ({ itemId, minStock }: { itemId: string; minStock: number }) =>
+      updateItemMinStockApi(itemId, minStock),
     onSuccess: () => {
       toast.success('Batas minimum stok (min_stock) diperbarui');
       setEditMinItemId(null);
@@ -151,8 +167,13 @@ export const RmStockTab: React.FC = () => {
   });
 
   const updateMovMut = useMutation({
-    mutationFn: ({ id, p }: { id: string; p: { referenceNumber?: string; reason?: string; notes?: string } }) =>
-      updateStockMovementApi(id, p),
+    mutationFn: ({
+      id,
+      p,
+    }: {
+      id: string;
+      p: { referenceNumber?: string; reason?: string; notes?: string };
+    }) => updateStockMovementApi(id, p),
     onSuccess: () => {
       toast.success('Mutasi stok berhasil diperbarui');
       setEditingMovId(null);
@@ -172,9 +193,287 @@ export const RmStockTab: React.FC = () => {
   });
 
   const renderHealthBadge = (health: string) => {
-    if (health === 'OUT_OF_STOCK') return <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-black">OUT_OF_STOCK</span>;
-    if (health === 'LOW_STOCK') return <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">LOW_STOCK</span>;
-    return <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">SAFE</span>;
+    if (health === 'OUT_OF_STOCK') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-xs font-black">
+          OUT_OF_STOCK
+        </span>
+      );
+    }
+    if (health === 'LOW_STOCK') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
+          LOW_STOCK
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+        SAFE
+      </span>
+    );
+  };
+
+  // Excel columns for Sub-Tab A (Monitoring)
+  const monTotals = useMemo(
+    () =>
+      monitoring.reduce(
+        (acc, m) => ({
+          available: acc.available + (Number(m.availableQty) || 0),
+          hold: acc.hold + (Number(m.holdQty) || 0),
+          total: acc.total + (Number(m.totalQty) || 0),
+          shortage: acc.shortage + (Number(m.shortageQty) || 0),
+        }),
+        { available: 0, hold: 0, total: 0, shortage: 0 }
+      ),
+    [monitoring]
+  );
+
+  const monExcelColumns: ExcelColumn<RMStockItemSummary>[] = useMemo(
+    () => [
+      {
+        key: 'itemCode',
+        header: 'Kode Item',
+        mono: true,
+        minWidth: 'min-w-[130px]',
+        getValue: (m) => m.itemCode,
+      },
+      {
+        key: 'itemName',
+        header: 'Nama Bahan Baku / Item',
+        minWidth: 'min-w-[220px]',
+        getValue: (m) => m.itemName,
+      },
+      {
+        key: 'category',
+        header: 'Kategori',
+        mono: true,
+        getValue: (m) => m.category || '-',
+      },
+      {
+        key: 'unit',
+        header: 'Unit',
+        align: 'center',
+        getValue: (m) => m.unit || '-',
+      },
+      {
+        key: 'batchCount',
+        header: 'Jumlah Batch',
+        align: 'right',
+        mono: true,
+        getValue: (m) => m.batchCount,
+      },
+      {
+        key: 'availableQty',
+        header: 'Stok AVAILABLE',
+        align: 'right',
+        mono: true,
+        getValue: (m) => m.availableQty,
+        render: (m) => (
+          <span className="font-bold text-emerald-700">
+            {Number(m.availableQty).toLocaleString('id-ID')}
+          </span>
+        ),
+        footer: (
+          <span className="text-emerald-800">{monTotals.available.toLocaleString('id-ID')}</span>
+        ),
+      },
+      {
+        key: 'holdQty',
+        header: 'Stok HOLD',
+        align: 'right',
+        mono: true,
+        getValue: (m) => m.holdQty,
+        render: (m) => (
+          <span className="text-amber-700">{Number(m.holdQty).toLocaleString('id-ID')}</span>
+        ),
+        footer: <span className="text-amber-800">{monTotals.hold.toLocaleString('id-ID')}</span>,
+      },
+      {
+        key: 'totalQty',
+        header: 'Total Stok',
+        align: 'right',
+        mono: true,
+        getValue: (m) => m.totalQty,
+        render: (m) => <span className="font-bold">{Number(m.totalQty).toLocaleString('id-ID')}</span>,
+        footer: <span>{monTotals.total.toLocaleString('id-ID')}</span>,
+      },
+      {
+        key: 'minStock',
+        header: 'Batas Minimum (min_stock)',
+        align: 'right',
+        mono: true,
+        getValue: (m) => m.minStock,
+      },
+      {
+        key: 'shortageQty',
+        header: 'Shortage',
+        align: 'right',
+        mono: true,
+        getValue: (m) => (m.shortageQty > 0 ? -m.shortageQty : 0),
+        render: (m) => (
+          <span className="font-bold text-rose-600">
+            {m.shortageQty > 0 ? `-${Number(m.shortageQty).toLocaleString('id-ID')}` : '0'}
+          </span>
+        ),
+        footer: (
+          <span className="text-rose-700">
+            {monTotals.shortage > 0 ? `-${monTotals.shortage.toLocaleString('id-ID')}` : '0'}
+          </span>
+        ),
+      },
+      {
+        key: 'stockHealth',
+        header: 'Status Kesehatan',
+        align: 'center',
+        getValue: (m) => m.stockHealth,
+        render: (m) => renderHealthBadge(m.stockHealth),
+      },
+    ],
+    [monTotals]
+  );
+
+  // Excel columns for Sub-Tab B & C (Movements)
+  const totalMovChange = useMemo(
+    () => movements.reduce((acc, m) => acc + (Number(m.qtyChange) || 0), 0),
+    [movements]
+  );
+
+  const movExcelColumns: ExcelColumn<StockMovement>[] = useMemo(
+    () => [
+      {
+        key: 'movementNumber',
+        header: 'No. Mutasi',
+        mono: true,
+        minWidth: 'min-w-[140px]',
+        getValue: (m) => m.movementNumber,
+      },
+      {
+        key: 'movementDate',
+        header: 'Tanggal Mutasi',
+        mono: true,
+        getValue: (m) => m.movementDate || '-',
+      },
+      {
+        key: 'movementType',
+        header: 'Tipe Mutasi',
+        mono: true,
+        getValue: (m) => m.movementType,
+        render: (m) => (
+          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-bold">
+            {m.movementType}
+          </span>
+        ),
+      },
+      {
+        key: 'itemCode',
+        header: 'Kode Item',
+        mono: true,
+        getValue: (m) => m.itemCode || '-',
+      },
+      {
+        key: 'itemName',
+        header: 'Nama Item',
+        minWidth: 'min-w-[200px]',
+        getValue: (m) => m.itemName || '-',
+      },
+      {
+        key: 'lotNumber',
+        header: 'No. LOT / Batch',
+        mono: true,
+        getValue: (m) => m.lotNumber || '-',
+      },
+      {
+        key: 'qtyBefore',
+        header: 'Saldo Sebelum',
+        align: 'right',
+        mono: true,
+        getValue: (m) => m.qtyBefore,
+      },
+      {
+        key: 'qtyChange',
+        header: 'Perubahan (+/-)',
+        align: 'right',
+        mono: true,
+        getValue: (m) => m.qtyChange,
+        render: (m) => (
+          <span className={`font-bold ${m.qtyChange >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
+            {m.qtyChange >= 0 ? `+${m.qtyChange}` : m.qtyChange}
+          </span>
+        ),
+        footer: (
+          <span className={totalMovChange >= 0 ? 'text-emerald-800' : 'text-rose-700'}>
+            {totalMovChange >= 0 ? `+${totalMovChange}` : totalMovChange}
+          </span>
+        ),
+      },
+      {
+        key: 'qtyAfter',
+        header: 'Saldo Sesudah',
+        align: 'right',
+        mono: true,
+        getValue: (m) => m.qtyAfter,
+        render: (m) => <span className="font-bold text-slate-900">{m.qtyAfter}</span>,
+      },
+      {
+        key: 'fromLocation',
+        header: 'Lokasi Asal',
+        getValue: (m) => m.fromLocation || '-',
+      },
+      {
+        key: 'fromRack',
+        header: 'Rak Asal',
+        mono: true,
+        getValue: (m) => m.fromRack || '-',
+      },
+      {
+        key: 'toLocation',
+        header: 'Lokasi Tujuan',
+        getValue: (m) => m.toLocation || '-',
+      },
+      {
+        key: 'toRack',
+        header: 'Rak Tujuan',
+        mono: true,
+        getValue: (m) => m.toRack || '-',
+      },
+      {
+        key: 'referenceNumber',
+        header: 'No. Referensi',
+        mono: true,
+        getValue: (m) => m.referenceNumber || '-',
+      },
+      {
+        key: 'reason',
+        header: 'Alasan',
+        minWidth: 'min-w-[180px]',
+        getValue: (m) => m.reason || '-',
+      },
+      {
+        key: 'notes',
+        header: 'Catatan',
+        minWidth: 'min-w-[160px]',
+        getValue: (m) => m.notes || '-',
+      },
+      {
+        key: 'performedBy',
+        header: 'Petugas',
+        getValue: (m) => m.performedBy || '-',
+      },
+    ],
+    [totalMovChange]
+  );
+
+  const handleExportMonCsv = () => {
+    exportExcelCsv('rm-stock-monitoring', monExcelColumns, monitoring);
+  };
+
+  const handleExportMovCsv = () => {
+    exportExcelCsv(
+      subTab === 'transfers' ? 'rm-stock-transfers' : 'rm-stock-adjustments',
+      movExcelColumns,
+      movements
+    );
   };
 
   return (
@@ -189,9 +488,14 @@ export const RmStockTab: React.FC = () => {
           <button
             key={t.id}
             type="button"
-            onClick={() => { setSubTab(t.id as any); setMovPage(1); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              subTab === t.id ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+            onClick={() => {
+              setSubTab(t.id as any);
+              setMovPage(1);
+            }}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              subTab === t.id
+                ? 'bg-white text-emerald-700 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             {t.label}
@@ -202,356 +506,694 @@ export const RmStockTab: React.FC = () => {
       {/* ── SUB-TAB A: Monitoring & Inline min_stock ── */}
       {subTab === 'monitoring' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[180px] max-w-xs">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input type="text" placeholder="Cari Kode / Nama Bahan Baku..." value={monSearch} onChange={(e) => setMonSearch(e.target.value)} className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 text-xs" />
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[240px]">
+              <div className="relative flex-1 min-w-[200px] max-w-xs">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Cari Kode / Nama Bahan Baku..."
+                  value={monSearch}
+                  onChange={(e) => setMonSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm"
+                />
+              </div>
+              <select
+                value={catFilter}
+                onChange={(e) => setCatFilter(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white"
+              >
+                <option value="RAW_MATERIAL">RAW_MATERIAL</option>
+                <option value="FINISH_GOOD">FINISH_GOOD</option>
+                <option value="ALL">Semua Kategori</option>
+              </select>
+              <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-bold cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={lowStockOnly}
+                  onChange={(e) => setLowStockOnly(e.target.checked)}
+                />
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Hanya Low Stock</span>
+              </label>
             </div>
-            <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
-              <option value="RAW_MATERIAL">RAW_MATERIAL</option>
-              <option value="FINISH_GOOD">FINISH_GOOD</option>
-              <option value="ALL">Semua Kategori</option>
-            </select>
-            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-bold cursor-pointer">
-              <input type="checkbox" checked={lowStockOnly} onChange={(e) => setLowStockOnly(e.target.checked)} />
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Hanya Low Stock</span>
-            </label>
+
+            <ExcelViewToggle
+              value={tableStyle}
+              onChange={setTableStyle}
+              onExport={handleExportMonCsv}
+              exportDisabled={monitoring.length === 0}
+            />
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
-                    <th className="px-3 py-2.5">Kode &amp; Nama Bahan Baku</th>
-                    <th className="px-3 py-2.5">Unit</th>
-                    <th className="px-3 py-2.5 text-right">Stok AVAILABLE</th>
-                    <th className="px-3 py-2.5 text-right">Stok HOLD</th>
-                    <th className="px-3 py-2.5 text-right">Total Stok</th>
-                    <th className="px-3 py-2.5 text-right">Batas Minimum (min_stock)</th>
-                    <th className="px-3 py-2.5 text-right">Shortage</th>
-                    <th className="px-3 py-2.5 text-center">Status Kesehatan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {isLoadingMon ? (
-                    <tr><td colSpan={8} className="py-10 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Memuat monitoring stok...</td></tr>
-                  ) : monitoring.length === 0 ? (
-                    <tr><td colSpan={8} className="py-10 text-center text-slate-400">Tidak ada item stok ditemukan.</td></tr>
-                  ) : (
-                    monitoring.map((m) => (
-                      <tr key={m.itemId} className={`hover:bg-slate-50/80 ${m.isLowStock ? 'bg-rose-50/30' : ''}`}>
-                        <td className="px-3 py-2.5">
-                          <div className="font-semibold text-slate-800">{m.itemName}</div>
-                          <div className="text-[11px] font-mono text-slate-400">{m.itemCode} • {m.batchCount} Batch</div>
+          {tableStyle === 'excel' ? (
+            <ExcelSpreadsheetTable
+              title={`Tabel Excel Monitoring Stok RM & Min Stock — ${monitoring.length} Item`}
+              subtitle="Beralih ke mode Ringkas untuk mengubah batas minimum (min_stock) secara inline"
+              columns={monExcelColumns}
+              rows={monitoring}
+              rowKey={(m) => m.itemId}
+              isLoading={isLoadingMon}
+              emptyText="Tidak ada item stok ditemukan."
+              footerLabel="TOTAL STOK"
+            />
+          ) : (
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-xs font-bold text-slate-600 uppercase">
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3">
+                        Kode &amp; Nama Bahan Baku
+                      </th>
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3">Unit</th>
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3 text-right">
+                        Stok AVAILABLE
+                      </th>
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3 text-right">
+                        Stok HOLD
+                      </th>
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3 text-right">
+                        Total Stok
+                      </th>
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3 text-right">
+                        Batas Minimum (min_stock)
+                      </th>
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3 text-right">
+                        Shortage
+                      </th>
+                      <th className="border-b border-slate-200 px-3.5 py-3 text-center">
+                        Status Kesehatan
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-sm">
+                    {isLoadingMon ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-slate-400">
+                          <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Memuat monitoring
+                          stok...
                         </td>
-                        <td className="px-3 py-2.5">{m.unit}</td>
-                        <td className="px-3 py-2.5 text-right font-mono font-bold text-emerald-700">{m.availableQty}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-amber-700">{m.holdQty}</td>
-                        <td className="px-3 py-2.5 text-right font-mono font-bold">{m.totalQty}</td>
-                        <td className="px-3 py-2.5 text-right font-mono">
-                          {editMinItemId === m.itemId ? (
-                            <div className="inline-flex items-center gap-1">
-                              <input
-                                type="number"
-                                min={0}
-                                value={editMinVal}
-                                onChange={(e) => setEditMinVal(Number(e.target.value))}
-                                className="w-20 px-1.5 py-0.5 rounded border border-blue-400 text-right font-mono bg-white"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => minStockMut.mutate({ itemId: m.itemId, minStock: editMinVal })}
-                                disabled={minStockMut.isPending}
-                                className="p-1 rounded bg-emerald-600 text-white cursor-pointer"
-                              >
-                                <Save className="w-3 h-3" />
-                              </button>
-                              <button type="button" onClick={() => setEditMinItemId(null)} className="p-1 rounded border border-slate-300 bg-white cursor-pointer">
-                                <X className="w-3 h-3" />
-                              </button>
+                      </tr>
+                    ) : monitoring.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-slate-400">
+                          Tidak ada item stok ditemukan.
+                        </td>
+                      </tr>
+                    ) : (
+                      monitoring.map((m) => (
+                        <tr
+                          key={m.itemId}
+                          className={`hover:bg-slate-50/80 transition-colors ${
+                            m.isLowStock ? 'bg-rose-50/30' : ''
+                          }`}
+                        >
+                          <td className="border-r border-slate-200 px-3.5 py-3">
+                            <div className="font-semibold text-slate-900">{m.itemName}</div>
+                            <div className="text-xs font-mono text-slate-500 mt-0.5">
+                              {m.itemCode} • {m.batchCount} Batch
                             </div>
-                          ) : (
-                            <div className="inline-flex items-center gap-1.5">
-                              <span>{m.minStock}</span>
-                              {canWrite && (
+                          </td>
+                          <td className="border-r border-slate-200 px-3.5 py-3 text-slate-700">
+                            {m.unit}
+                          </td>
+                          <td className="border-r border-slate-200 px-3.5 py-3 text-right font-mono font-bold text-emerald-700">
+                            {Number(m.availableQty).toLocaleString('id-ID')}
+                          </td>
+                          <td className="border-r border-slate-200 px-3.5 py-3 text-right font-mono text-amber-700">
+                            {Number(m.holdQty).toLocaleString('id-ID')}
+                          </td>
+                          <td className="border-r border-slate-200 px-3.5 py-3 text-right font-mono font-bold text-slate-900">
+                            {Number(m.totalQty).toLocaleString('id-ID')}
+                          </td>
+                          <td className="border-r border-slate-200 px-3.5 py-3 text-right font-mono">
+                            {editMinItemId === m.itemId ? (
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={editMinVal}
+                                  onChange={(e) => setEditMinVal(Number(e.target.value))}
+                                  className="w-24 px-2 py-1 rounded-lg border border-blue-400 text-right font-mono bg-white text-sm"
+                                />
                                 <button
                                   type="button"
-                                  onClick={() => { setEditMinItemId(m.itemId); setEditMinVal(m.minStock); }}
-                                  title="Edit min_stock inline"
-                                  className="p-1 rounded hover:bg-blue-50 text-blue-600 cursor-pointer"
+                                  onClick={() =>
+                                    minStockMut.mutate({ itemId: m.itemId, minStock: editMinVal })
+                                  }
+                                  disabled={minStockMut.isPending}
+                                  className="p-1.5 rounded-lg bg-emerald-600 text-white cursor-pointer"
                                 >
-                                  <Pencil className="w-3 h-3" />
+                                  <Save className="w-3.5 h-3.5" />
                                 </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono font-bold text-rose-600">
-                          {m.shortageQty > 0 ? `-${m.shortageQty}` : '0'}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">{renderHealthBadge(m.stockHealth)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditMinItemId(null)}
+                                  className="p-1.5 rounded-lg border border-slate-300 bg-white cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center gap-1.5">
+                                <span>{Number(m.minStock).toLocaleString('id-ID')}</span>
+                                {canWrite && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditMinItemId(m.itemId);
+                                      setEditMinVal(m.minStock);
+                                    }}
+                                    title="Edit min_stock inline"
+                                    className="p-1 rounded hover:bg-blue-50 text-blue-600 cursor-pointer"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          <td className="border-r border-slate-200 px-3.5 py-3 text-right font-mono font-bold text-rose-600">
+                            {m.shortageQty > 0
+                              ? `-${Number(m.shortageQty).toLocaleString('id-ID')}`
+                              : '0'}
+                          </td>
+                          <td className="px-3.5 py-3 text-center">
+                            {renderHealthBadge(m.stockHealth)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* ── SUB-TAB B & C: Stock Adjustments & RM Transfers ── */}
       {subTab !== 'monitoring' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+            <div className="relative flex-1 min-w-[200px] max-w-xs">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input type="text" placeholder="Cari No. Mutasi / LOT / Item..." value={movSearch} onChange={(e) => { setMovSearch(e.target.value); setMovPage(1); }} className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 text-xs" />
+              <input
+                type="text"
+                placeholder="Cari No. Mutasi / LOT / Item..."
+                value={movSearch}
+                onChange={(e) => {
+                  setMovSearch(e.target.value);
+                  setMovPage(1);
+                }}
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm"
+              />
             </div>
 
-            {canWrite && subTab === 'adjustments' && (
-              <button
-                type="button"
-                onClick={() => setIsAddingAdj(true)}
-                disabled={isAddingAdj}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
-              >
-                <Plus className="w-4 h-4" /> <span>+ Catat Stock Adjustment</span>
-              </button>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <ExcelViewToggle
+                value={tableStyle}
+                onChange={setTableStyle}
+                onExport={handleExportMovCsv}
+                exportDisabled={movements.length === 0}
+              />
 
-            {canWrite && subTab === 'transfers' && (
-              <button
-                type="button"
-                onClick={() => setIsAddingTrf(true)}
-                disabled={isAddingTrf}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
-              >
-                <Plus className="w-4 h-4" /> <span>+ Catat RM Transfer</span>
-              </button>
-            )}
+              {canWrite && subTab === 'adjustments' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTableStyle('preview');
+                    setIsAddingAdj(true);
+                  }}
+                  disabled={isAddingAdj}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Catat Stock Adjustment</span>
+                </button>
+              )}
+
+              {canWrite && subTab === 'transfers' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTableStyle('preview');
+                    setIsAddingTrf(true);
+                  }}
+                  disabled={isAddingTrf}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Catat RM Transfer</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
-                    <th className="px-3 py-2.5">No. Mutasi &amp; Tgl</th>
-                    <th className="px-3 py-2.5">Tipe</th>
-                    <th className="px-3 py-2.5">Item &amp; LOT</th>
-                    <th className="px-3 py-2.5 text-right">Saldo (Sebelum → Sesudah)</th>
-                    <th className="px-3 py-2.5">Lokasi / Rak</th>
-                    <th className="px-3 py-2.5">Referensi &amp; Alasan</th>
-                    <th className="px-3 py-2.5 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {/* Inline Add Stock Adjustment */}
-                  {canWrite && subTab === 'adjustments' && isAddingAdj && (
-                    <tr className="bg-blue-50 border-b border-blue-200 align-top">
-                      <td className="px-3 py-2.5 space-y-1">
-                        <div className="font-mono font-bold text-blue-700">AUTO-ADJ</div>
-                        <input type="date" value={adjDraft.movementDate} onChange={(e) => setAdjDraft({ ...adjDraft, movementDate: e.target.value })} className="px-1.5 py-0.5 rounded border border-slate-300 bg-white text-[11px]" />
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <select value={adjDraft.movementType} onChange={(e) => setAdjDraft({ ...adjDraft, movementType: e.target.value as StockAdjustmentPayload['movementType'] })} className="px-2 py-1 rounded border border-slate-300 bg-white text-xs font-bold">
-                          <option value="ADJUSTMENT_IN">ADJUSTMENT_IN</option>
-                          <option value="ADJUSTMENT_OUT">ADJUSTMENT_OUT</option>
-                          <option value="STOCK_OPNAME">STOCK_OPNAME</option>
-                        </select>
-                      </td>
-                      <td className="px-3 py-2.5 min-w-[220px]">
-                        <select value={adjDraft.stockInventoryId} onChange={(e) => setAdjDraft({ ...adjDraft, stockInventoryId: e.target.value })} className="w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs">
-                          <option value="">-- Pilih Batch Stok --</option>
-                          {stocks.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              [{s.lotNumber}] {s.itemName} (Saldo: {s.qty} • {s.stockStatus})
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <input type="number" min={0} value={adjDraft.qty} onChange={(e) => setAdjDraft({ ...adjDraft, qty: Number(e.target.value) })} className="w-24 px-2 py-1 rounded border border-slate-300 bg-white font-mono text-right" />
-                      </td>
-                      <td className="px-3 py-2.5 text-slate-400">-</td>
-                      <td className="px-3 py-2.5 space-y-1 min-w-[180px]">
-                        <input type="text" placeholder="No. Ref (OPN-2026-11)" value={adjDraft.referenceNumber || ''} onChange={(e) => setAdjDraft({ ...adjDraft, referenceNumber: e.target.value })} className="w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
-                        <input type="text" placeholder="Alasan penyesuaian..." value={adjDraft.reason || ''} onChange={(e) => setAdjDraft({ ...adjDraft, reason: e.target.value })} className="w-full px-2 py-0.5 rounded border border-slate-300 bg-white text-[11px]" />
-                      </td>
-                      <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                        <div className="inline-flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!adjDraft.stockInventoryId) return toast.error('Pilih batch stok terlebih dahulu');
-                              adjMut.mutate(adjDraft);
-                            }}
-                            disabled={adjMut.isPending}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold cursor-pointer"
-                          >
-                            <Save className="w-3.5 h-3.5" /> Simpan
-                          </button>
-                          <button type="button" onClick={() => setIsAddingAdj(false)} className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold cursor-pointer">
-                            <X className="w-3.5 h-3.5" /> Batal
-                          </button>
-                        </div>
-                      </td>
+          {tableStyle === 'excel' ? (
+            <ExcelSpreadsheetTable
+              title={`Tabel Excel ${
+                subTab === 'transfers' ? 'Raw Material Transfer' : 'Stock Adjustment'
+              } — ${movements.length} Mutasi`}
+              subtitle="Beralih ke mode Ringkas untuk mencatat mutasi baru, cetak bukti, atau reversal"
+              columns={movExcelColumns}
+              rows={movements}
+              rowKey={(m) => m.id}
+              isLoading={isLoadingMov}
+              emptyText="Belum ada data mutasi stok."
+              footerLabel="NET PERUBAHAN"
+              pagination={{
+                page: movPage,
+                totalPages: movTotalPages,
+                totalItems: movTotalItems,
+                unitLabel: 'mutasi',
+                onPrev: () => setMovPage((p) => Math.max(1, p - 1)),
+                onNext: () => setMovPage((p) => p + 1),
+              }}
+            />
+          ) : (
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-xs font-bold text-slate-600 uppercase">
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3">
+                        No. Mutasi &amp; Tgl
+                      </th>
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3">Tipe</th>
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3">
+                        Item &amp; LOT
+                      </th>
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3 text-right">
+                        Saldo (Sebelum → Sesudah)
+                      </th>
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3">
+                        Lokasi / Rak
+                      </th>
+                      <th className="border-b border-r border-slate-200 px-3.5 py-3">
+                        Referensi &amp; Alasan
+                      </th>
+                      <th className="border-b border-slate-200 px-3.5 py-3 text-right">Aksi</th>
                     </tr>
-                  )}
-
-                  {/* Inline Add RM Transfer */}
-                  {canWrite && subTab === 'transfers' && isAddingTrf && (
-                    <tr className="bg-blue-50 border-b border-blue-200 align-top">
-                      <td className="px-3 py-2.5 space-y-1">
-                        <div className="font-mono font-bold text-blue-700">AUTO-TRF</div>
-                        <input type="date" value={trfDraft.movementDate} onChange={(e) => setTrfDraft({ ...trfDraft, movementDate: e.target.value })} className="px-1.5 py-0.5 rounded border border-slate-300 bg-white text-[11px]" />
-                      </td>
-                      <td className="px-3 py-2.5 font-bold text-indigo-700">RM_TRANSFER</td>
-                      <td className="px-3 py-2.5 min-w-[220px]">
-                        <select value={trfDraft.stockInventoryId} onChange={(e) => setTrfDraft({ ...trfDraft, stockInventoryId: e.target.value })} className="w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs">
-                          <option value="">-- Pilih Batch RM --</option>
-                          {stocks.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              [{s.lotNumber}] {s.itemName} (Rak: {s.rackNumber || '-'} • Qty: {s.qty} • {s.stockStatus})
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <input type="number" min={1} value={trfDraft.qtyTransfer} onChange={(e) => setTrfDraft({ ...trfDraft, qtyTransfer: Number(e.target.value) })} className="w-20 px-2 py-1 rounded border border-slate-300 bg-white font-mono text-right" />
-                      </td>
-                      <td className="px-3 py-2.5 space-y-1 min-w-[160px]">
-                        <select value={trfDraft.toLocation} onChange={(e) => setTrfDraft({ ...trfDraft, toLocation: e.target.value })} className="w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs">
-                          <option value="PRODUCTION_FLOOR">PRODUCTION_FLOOR</option>
-                          <option value="RM_WAREHOUSE">RM_WAREHOUSE</option>
-                          <option value="WIP_AREA">WIP_AREA</option>
-                        </select>
-                        <input type="text" placeholder="Rak Tujuan (LINE-SLIT-01)" value={trfDraft.toRack || ''} onChange={(e) => setTrfDraft({ ...trfDraft, toRack: e.target.value })} className="w-full px-2 py-0.5 rounded border border-slate-300 bg-white font-mono text-[11px]" />
-                      </td>
-                      <td className="px-3 py-2.5 space-y-1 min-w-[160px]">
-                        <input type="text" placeholder="No. SPK / Ref" value={trfDraft.referenceNumber || ''} onChange={(e) => setTrfDraft({ ...trfDraft, referenceNumber: e.target.value })} className="w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
-                        <input type="text" placeholder="Alasan transfer..." value={trfDraft.reason || ''} onChange={(e) => setTrfDraft({ ...trfDraft, reason: e.target.value })} className="w-full px-2 py-0.5 rounded border border-slate-300 bg-white text-[11px]" />
-                      </td>
-                      <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                        <div className="inline-flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!trfDraft.stockInventoryId) return toast.error('Pilih batch RM terlebih dahulu');
-                              trfMut.mutate(trfDraft);
-                            }}
-                            disabled={trfMut.isPending}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold cursor-pointer"
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-sm">
+                    {/* Inline Add Stock Adjustment */}
+                    {canWrite && subTab === 'adjustments' && isAddingAdj && (
+                      <tr className="bg-blue-50 border-b border-blue-200 align-top">
+                        <td className="border-r border-blue-200 px-3 py-3 space-y-1.5">
+                          <div className="font-mono text-xs font-bold text-blue-700">AUTO-ADJ</div>
+                          <input
+                            type="date"
+                            value={adjDraft.movementDate}
+                            onChange={(e) =>
+                              setAdjDraft({ ...adjDraft, movementDate: e.target.value })
+                            }
+                            className="px-2 py-1 rounded-lg border border-slate-300 bg-white text-xs"
+                          />
+                        </td>
+                        <td className="border-r border-blue-200 px-3 py-3">
+                          <select
+                            value={adjDraft.movementType}
+                            onChange={(e) =>
+                              setAdjDraft({
+                                ...adjDraft,
+                                movementType: e.target
+                                  .value as StockAdjustmentPayload['movementType'],
+                              })
+                            }
+                            className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold"
                           >
-                            <Save className="w-3.5 h-3.5" /> Simpan
-                          </button>
-                          <button type="button" onClick={() => setIsAddingTrf(false)} className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold cursor-pointer">
-                            <X className="w-3.5 h-3.5" /> Batal
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-
-                  {isLoadingMov ? (
-                    <tr><td colSpan={7} className="py-10 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Memuat riwayat mutasi stok...</td></tr>
-                  ) : movements.length === 0 && !isAddingAdj && !isAddingTrf ? (
-                    <tr><td colSpan={7} className="py-10 text-center text-slate-400">Belum ada data mutasi stok.</td></tr>
-                  ) : (
-                    movements.map((m) => (
-                      <tr key={m.id} className="hover:bg-slate-50/80">
-                        <td className="px-3 py-2.5 whitespace-nowrap">
-                          <div className="font-mono font-bold text-slate-800">{m.movementNumber}</div>
-                          <div className="text-[10px] text-slate-400">{m.movementDate} • {m.performedBy}</div>
+                            <option value="ADJUSTMENT_IN">ADJUSTMENT_IN</option>
+                            <option value="ADJUSTMENT_OUT">ADJUSTMENT_OUT</option>
+                            <option value="STOCK_OPNAME">STOCK_OPNAME</option>
+                          </select>
                         </td>
-                        <td className="px-3 py-2.5 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">{m.movementType}</span>
+                        <td className="border-r border-blue-200 px-3 py-3 min-w-[230px]">
+                          <select
+                            value={adjDraft.stockInventoryId}
+                            onChange={(e) =>
+                              setAdjDraft({ ...adjDraft, stockInventoryId: e.target.value })
+                            }
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                          >
+                            <option value="">-- Pilih Batch Stok --</option>
+                            {stocks.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                [{s.lotNumber}] {s.itemName} (Saldo: {s.qty} • {s.stockStatus})
+                              </option>
+                            ))}
+                          </select>
                         </td>
-                        <td className="px-3 py-2.5">
-                          <div className="font-semibold text-slate-800">{m.itemName}</div>
-                          <div className="text-[11px] font-mono text-slate-400">LOT: {m.lotNumber || '-'}</div>
+                        <td className="border-r border-blue-200 px-3 py-3">
+                          <input
+                            type="number"
+                            min={0}
+                            value={adjDraft.qty}
+                            onChange={(e) =>
+                              setAdjDraft({ ...adjDraft, qty: Number(e.target.value) })
+                            }
+                            className="w-24 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white font-mono text-right text-sm"
+                          />
                         </td>
-                        <td className="px-3 py-2.5 text-right font-mono whitespace-nowrap">
-                          <span className="text-slate-500">{m.qtyBefore}</span> →{' '}
-                          <strong className={m.qtyChange >= 0 ? 'text-emerald-700' : 'text-rose-600'}>
-                            {m.qtyAfter} ({m.qtyChange >= 0 ? `+${m.qtyChange}` : m.qtyChange})
-                          </strong>
+                        <td className="border-r border-blue-200 px-3 py-3 text-slate-400">-</td>
+                        <td className="border-r border-blue-200 px-3 py-3 space-y-1.5 min-w-[190px]">
+                          <input
+                            type="text"
+                            placeholder="No. Ref (OPN-2026-11)"
+                            value={adjDraft.referenceNumber || ''}
+                            onChange={(e) =>
+                              setAdjDraft({ ...adjDraft, referenceNumber: e.target.value })
+                            }
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Alasan penyesuaian..."
+                            value={adjDraft.reason || ''}
+                            onChange={(e) => setAdjDraft({ ...adjDraft, reason: e.target.value })}
+                            className="w-full px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-xs"
+                          />
                         </td>
-                        <td className="px-3 py-2.5 text-[11px]">
-                          {m.fromLocation || m.fromRack || '-'} → <strong>{m.toLocation || m.toRack || '-'}</strong>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {editingMovId === m.id ? (
-                            <div className="space-y-1">
-                              <input type="text" value={editMovDraft.referenceNumber} onChange={(e) => setEditMovDraft({ ...editMovDraft, referenceNumber: e.target.value })} className="w-full px-1.5 py-0.5 rounded border border-blue-400 text-xs" />
-                              <input type="text" value={editMovDraft.reason} onChange={(e) => setEditMovDraft({ ...editMovDraft, reason: e.target.value })} className="w-full px-1.5 py-0.5 rounded border border-blue-400 text-[11px]" />
-                            </div>
-                          ) : (
-                            <>
-                              <div className="font-mono text-[11px]">{m.referenceNumber || '-'}</div>
-                              <div className="text-[11px] text-slate-500">{m.reason || '-'}</div>
-                            </>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                          <div className="inline-flex gap-1">
-                            {editingMovId === m.id ? (
-                              <>
-                                <button type="button" onClick={() => updateMovMut.mutate({ id: m.id, p: editMovDraft })} className="px-2 py-1 rounded bg-emerald-600 text-white text-[10px] font-bold cursor-pointer">Simpan</button>
-                                <button type="button" onClick={() => setEditingMovId(null)} className="px-2 py-1 rounded border border-slate-300 bg-white text-[10px] font-bold cursor-pointer">Batal</button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    printLogisticsHtmlReport(`/warehouse/rm-stocks/movements/${m.id}/print`).catch((e) =>
-                                      toast.error(e?.message || 'Gagal mencetak bukti mutasi')
-                                    )
-                                  }
-                                  title="Cetak Bukti Mutasi"
-                                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer"
-                                >
-                                  <Printer className="w-3.5 h-3.5" />
-                                </button>
-                                {canWrite && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEditingMovId(m.id);
-                                      setEditMovDraft({ referenceNumber: m.referenceNumber || '', reason: m.reason || '', notes: m.notes || '' });
-                                    }}
-                                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 text-blue-600 cursor-pointer"
-                                  >
-                                    <Pencil className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                                {canWrite && (
-                                  <button type="button" onClick={() => setVoidMovement(m)} title="Batalkan & Kembalikan Stok" className="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 cursor-pointer">
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </>
-                            )}
+                        <td className="px-3 py-3 text-right whitespace-nowrap">
+                          <div className="inline-flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!adjDraft.stockInventoryId)
+                                  return toast.error('Pilih batch stok terlebih dahulu');
+                                adjMut.mutate(adjDraft);
+                              }}
+                              disabled={adjMut.isPending}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer"
+                            >
+                              <Save className="w-3.5 h-3.5" /> Simpan
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingAdj(false)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" /> Batal
+                            </button>
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="px-4 py-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <span>Halaman {movPage} dari {movTotalPages}</span>
-              <div className="flex gap-1.5">
-                <button type="button" disabled={movPage <= 1} onClick={() => setMovPage((p) => Math.max(1, p - 1))} className="px-2.5 py-1 rounded-lg border border-slate-200 disabled:opacity-40 cursor-pointer">Prev</button>
-                <button type="button" disabled={movPage >= movTotalPages} onClick={() => setMovPage((p) => p + 1)} className="px-2.5 py-1 rounded-lg border border-slate-200 disabled:opacity-40 cursor-pointer">Next</button>
+                    )}
+
+                    {/* Inline Add RM Transfer */}
+                    {canWrite && subTab === 'transfers' && isAddingTrf && (
+                      <tr className="bg-blue-50 border-b border-blue-200 align-top">
+                        <td className="border-r border-blue-200 px-3 py-3 space-y-1.5">
+                          <div className="font-mono text-xs font-bold text-blue-700">AUTO-TRF</div>
+                          <input
+                            type="date"
+                            value={trfDraft.movementDate}
+                            onChange={(e) =>
+                              setTrfDraft({ ...trfDraft, movementDate: e.target.value })
+                            }
+                            className="px-2 py-1 rounded-lg border border-slate-300 bg-white text-xs"
+                          />
+                        </td>
+                        <td className="border-r border-blue-200 px-3 py-3 font-bold text-xs text-indigo-700">
+                          RM_TRANSFER
+                        </td>
+                        <td className="border-r border-blue-200 px-3 py-3 min-w-[230px]">
+                          <select
+                            value={trfDraft.stockInventoryId}
+                            onChange={(e) =>
+                              setTrfDraft({ ...trfDraft, stockInventoryId: e.target.value })
+                            }
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                          >
+                            <option value="">-- Pilih Batch RM --</option>
+                            {stocks.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                [{s.lotNumber}] {s.itemName} (Rak: {s.rackNumber || '-'} • Qty:{' '}
+                                {s.qty} • {s.stockStatus})
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="border-r border-blue-200 px-3 py-3">
+                          <input
+                            type="number"
+                            min={1}
+                            value={trfDraft.qtyTransfer}
+                            onChange={(e) =>
+                              setTrfDraft({ ...trfDraft, qtyTransfer: Number(e.target.value) })
+                            }
+                            className="w-24 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white font-mono text-right text-sm"
+                          />
+                        </td>
+                        <td className="border-r border-blue-200 px-3 py-3 space-y-1.5 min-w-[170px]">
+                          <select
+                            value={trfDraft.toLocation}
+                            onChange={(e) =>
+                              setTrfDraft({ ...trfDraft, toLocation: e.target.value })
+                            }
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                          >
+                            <option value="PRODUCTION_FLOOR">PRODUCTION_FLOOR</option>
+                            <option value="RM_WAREHOUSE">RM_WAREHOUSE</option>
+                            <option value="WIP_AREA">WIP_AREA</option>
+                          </select>
+                          <input
+                            type="text"
+                            placeholder="Rak Tujuan (LINE-SLIT-01)"
+                            value={trfDraft.toRack || ''}
+                            onChange={(e) => setTrfDraft({ ...trfDraft, toRack: e.target.value })}
+                            className="w-full px-2.5 py-1 rounded-lg border border-slate-300 bg-white font-mono text-xs"
+                          />
+                        </td>
+                        <td className="border-r border-blue-200 px-3 py-3 space-y-1.5 min-w-[170px]">
+                          <input
+                            type="text"
+                            placeholder="No. SPK / Ref"
+                            value={trfDraft.referenceNumber || ''}
+                            onChange={(e) =>
+                              setTrfDraft({ ...trfDraft, referenceNumber: e.target.value })
+                            }
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Alasan transfer..."
+                            value={trfDraft.reason || ''}
+                            onChange={(e) => setTrfDraft({ ...trfDraft, reason: e.target.value })}
+                            className="w-full px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-xs"
+                          />
+                        </td>
+                        <td className="px-3 py-3 text-right whitespace-nowrap">
+                          <div className="inline-flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!trfDraft.stockInventoryId)
+                                  return toast.error('Pilih batch RM terlebih dahulu');
+                                trfMut.mutate(trfDraft);
+                              }}
+                              disabled={trfMut.isPending}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer"
+                            >
+                              <Save className="w-3.5 h-3.5" /> Simpan
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingTrf(false)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" /> Batal
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {isLoadingMov ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-slate-400">
+                          <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Memuat riwayat
+                          mutasi stok...
+                        </td>
+                      </tr>
+                    ) : movements.length === 0 && !isAddingAdj && !isAddingTrf ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-slate-400">
+                          Belum ada data mutasi stok.
+                        </td>
+                      </tr>
+                    ) : (
+                      movements.map((m) => (
+                        <tr key={m.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="border-r border-slate-200 px-3.5 py-3 whitespace-nowrap">
+                            <div className="font-mono font-bold text-slate-900">
+                              {m.movementNumber}
+                            </div>
+                            <div className="text-xs text-slate-500 mt-0.5">
+                              {m.movementDate} • {m.performedBy}
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-200 px-3.5 py-3 whitespace-nowrap">
+                            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
+                              {m.movementType}
+                            </span>
+                          </td>
+                          <td className="border-r border-slate-200 px-3.5 py-3">
+                            <div className="font-semibold text-slate-900">{m.itemName}</div>
+                            <div className="text-xs font-mono text-slate-500 mt-0.5">
+                              LOT: {m.lotNumber || '-'}
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-200 px-3.5 py-3 text-right font-mono whitespace-nowrap">
+                            <span className="text-slate-500">{m.qtyBefore}</span> →{' '}
+                            <strong
+                              className={m.qtyChange >= 0 ? 'text-emerald-700' : 'text-rose-600'}
+                            >
+                              {m.qtyAfter} ({m.qtyChange >= 0 ? `+${m.qtyChange}` : m.qtyChange})
+                            </strong>
+                          </td>
+                          <td className="border-r border-slate-200 px-3.5 py-3 text-xs text-slate-700">
+                            {m.fromLocation || m.fromRack || '-'} →{' '}
+                            <strong className="text-slate-900">
+                              {m.toLocation || m.toRack || '-'}
+                            </strong>
+                          </td>
+                          <td className="border-r border-slate-200 px-3.5 py-3">
+                            {editingMovId === m.id ? (
+                              <div className="space-y-1.5">
+                                <input
+                                  type="text"
+                                  value={editMovDraft.referenceNumber}
+                                  onChange={(e) =>
+                                    setEditMovDraft({
+                                      ...editMovDraft,
+                                      referenceNumber: e.target.value,
+                                    })
+                                  }
+                                  className="w-full px-2 py-1 rounded-lg border border-blue-400 text-xs"
+                                />
+                                <input
+                                  type="text"
+                                  value={editMovDraft.reason}
+                                  onChange={(e) =>
+                                    setEditMovDraft({ ...editMovDraft, reason: e.target.value })
+                                  }
+                                  className="w-full px-2 py-1 rounded-lg border border-blue-400 text-xs"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <div className="font-mono text-xs text-slate-800">
+                                  {m.referenceNumber || '-'}
+                                </div>
+                                <div className="text-xs text-slate-500 mt-0.5">
+                                  {m.reason || '-'}
+                                </div>
+                              </>
+                            )}
+                          </td>
+                          <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                            <div className="inline-flex gap-1.5">
+                              {editingMovId === m.id ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateMovMut.mutate({ id: m.id, p: editMovDraft })
+                                    }
+                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold cursor-pointer"
+                                  >
+                                    Simpan
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingMovId(null)}
+                                    className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold cursor-pointer"
+                                  >
+                                    Batal
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      printLogisticsHtmlReport(
+                                        `/warehouse/rm-stocks/movements/${m.id}/print`
+                                      ).catch((e) =>
+                                        toast.error(e?.message || 'Gagal mencetak bukti mutasi')
+                                      )
+                                    }
+                                    title="Cetak Bukti Mutasi"
+                                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer"
+                                  >
+                                    <Printer className="w-4 h-4" />
+                                  </button>
+                                  {canWrite && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingMovId(m.id);
+                                        setEditMovDraft({
+                                          referenceNumber: m.referenceNumber || '',
+                                          reason: m.reason || '',
+                                          notes: m.notes || '',
+                                        });
+                                      }}
+                                      title="Edit Referensi / Alasan"
+                                      className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 text-blue-600 cursor-pointer"
+                                    >
+                                      <Pencil className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  {canWrite && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setVoidMovement(m)}
+                                      title="Batalkan & Kembalikan Stok"
+                                      className="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 cursor-pointer"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-600">
+                <span>
+                  Halaman <strong className="text-slate-900">{movPage}</strong> dari{' '}
+                  <strong className="text-slate-900">{movTotalPages}</strong> • Total{' '}
+                  <strong className="text-slate-900">{movTotalItems}</strong> mutasi
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={movPage <= 1}
+                    onClick={() => setMovPage((p) => Math.max(1, p - 1))}
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 font-semibold disabled:opacity-40 cursor-pointer"
+                  >
+                    Sebelumnya
+                  </button>
+                  <button
+                    type="button"
+                    disabled={movPage >= movTotalPages}
+                    onClick={() => setMovPage((p) => p + 1)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 font-semibold disabled:opacity-40 cursor-pointer"
+                  >
+                    Berikutnya
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

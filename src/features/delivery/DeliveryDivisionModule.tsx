@@ -31,7 +31,7 @@ export const DeliveryDivisionModule: React.FC = () => {
     const hubItems: ModuleFeatureHubItem[] = [
       {
         id: 'delivery_plans',
-        label: '5.3.1 Pengelolaan Delivery Plan',
+        label: 'Pengelolaan Delivery Plan',
         subtitle: `Jadwal armada, zonasi, prioritas, convert ke DO & cetak Delivery Plan (${summary?.deliveryPlansActive ?? 0} Aktif / ${summary?.deliveryPlansTotal ?? 0} Total)`,
         icon: Calendar,
         iconColor: 'text-cyan-600',
@@ -41,7 +41,7 @@ export const DeliveryDivisionModule: React.FC = () => {
       },
       {
         id: 'delivery_requests',
-        label: '5.3.2 Request Delivery Order (RDO)',
+        label: 'Request Delivery Order (RDO)',
         subtitle: 'Pengajuan pengiriman oleh Sales/Marketing dari PO/IO & review ketersediaan stok oleh Delivery',
         icon: ClipboardCheck,
         iconColor: 'text-amber-600',
@@ -51,7 +51,7 @@ export const DeliveryDivisionModule: React.FC = () => {
       },
       {
         id: 'delivery_orders',
-        label: '5.3.3 Delivery Order / Surat Jalan (DO)',
+        label: 'Delivery Order / Surat Jalan (DO)',
         subtitle: `Terbitkan DO anti-HOLD, potong stok FG, Dok. BC, COA, update POD & cetak (${summary?.doPreparing ?? 0} Muat · ${summary?.doOnTheWay ?? 0} Jalan · ${summary?.doDelivered ?? 0} Terkirim)`,
         icon: Truck,
         iconColor: 'text-blue-600',
@@ -61,7 +61,7 @@ export const DeliveryDivisionModule: React.FC = () => {
       },
       {
         id: 'e_tracking',
-        label: '5.4.1 & 5.4.2 Sistem E-Tracking Terpadu',
+        label: 'Sistem E-Tracking Terpadu',
         subtitle: 'Portal pelacakan timeline pesanan untuk semua divisi & input checkpoint GPS oleh PPIC/Delivery',
         icon: Barcode,
         iconColor: 'text-indigo-600',
@@ -71,7 +71,7 @@ export const DeliveryDivisionModule: React.FC = () => {
       },
       {
         id: 'rm_stocks',
-        label: '3.2.1 RM Stock (Low Stock, Adjustment & RM Transfer)',
+        label: 'RM Stock (Low Stock, Adjustment & RM Transfer)',
         subtitle: `Monitoring batas min_stock (${summary?.rmLowStockCount ?? 0} Low Stock · ${summary?.rmOutOfStockCount ?? 0} Habis), Adjustment & Transfer RM anti-HOLD`,
         icon: Boxes,
         iconColor: 'text-emerald-600',
@@ -85,7 +85,7 @@ export const DeliveryDivisionModule: React.FC = () => {
       <ModuleFeatureHub
         moduleCode="DELIVERY & RM"
         moduleName="DEPARTMENT DELIVERY / LOGISTIK & RM STOCK"
-        moduleDescription="Pengelolaan Delivery Plan (5.3.1), Request DO (5.3.2), Surat Jalan DO anti-HOLD (5.3.3), E-Tracking Terpadu (5.4), serta RM Stock Monitoring, Adjustment & Transfer (3.2.1)."
+        moduleDescription="Pengelolaan Delivery Plan, Request DO, Surat Jalan DO anti-HOLD, E-Tracking Terpadu, serta RM Stock Monitoring, Adjustment & Transfer."
         headerBgColor="bg-cyan-700"
         items={hubItems}
         onBackToHome={() => appStore.setActiveModule('home')}

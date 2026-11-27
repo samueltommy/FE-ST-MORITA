@@ -35,7 +35,7 @@ export const ProductionQcModule: React.FC = () => {
     const hubItems: ModuleFeatureHubItem[] = [
       {
         id: 'plans',
-        label: '4.1.1 Production Planning & 4.1.2 Penerbitan SPK',
+        label: 'Production Planning & Penerbitan SPK',
         subtitle: `Rencana produksi PPIC, alokasi BOM RM (anti-HOLD), terbitkan SPK & cetak SPK (${summary?.spkActive ?? 0} SPK Aktif)`,
         icon: ClipboardList,
         iconColor: 'text-blue-600',
@@ -45,7 +45,7 @@ export const ProductionQcModule: React.FC = () => {
       },
       {
         id: 'outputs',
-        label: '4.1.3 Output Produksi & Pemotongan Stok RM',
+        label: 'Output Produksi & Pemotongan Stok RM',
         subtitle: 'Catat hasil Good/NG/Rework/Waste operator, potong batch RM otomatis & auto-FG berstatus HOLD',
         icon: Factory,
         iconColor: 'text-emerald-600',
@@ -55,7 +55,7 @@ export const ProductionQcModule: React.FC = () => {
       },
       {
         id: 'stocks',
-        label: '4.5.3 Pengendalian Stok & Status HOLD QC',
+        label: 'Pengendalian Stok & Status HOLD QC',
         subtitle: `Database batch stok gudang (${summary?.stockAvailableBatches ?? 0} AVAILABLE · ${summary?.stockHoldBatches ?? 0} HOLD) & otorisasi Release HOLD`,
         icon: ShieldAlert,
         iconColor: 'text-amber-600',
@@ -65,7 +65,7 @@ export const ProductionQcModule: React.FC = () => {
       },
       {
         id: 'iqc',
-        label: '4.3.1 Incoming QC (IQC — Material Masuk)',
+        label: 'Incoming QC (IQC — Material Masuk)',
         subtitle: 'Uji material masuk terhadap TDS, auto-release HOLD → AVAILABLE & Cetak LKP',
         icon: Microscope,
         iconColor: 'text-cyan-600',
@@ -75,8 +75,8 @@ export const ProductionQcModule: React.FC = () => {
       },
       {
         id: 'pqc',
-        label: '4.4.1 In-Process QC (PQC — Lini Produksi)',
-        subtitle: 'Inspeksi lini per SPK/lot, auto-routing ke Jalur Rework 4.5.2 & Cetak LKP',
+        label: 'In-Process QC (PQC — Lini Produksi)',
+        subtitle: 'Inspeksi lini per SPK/lot, auto-routing ke Jalur Rework & Cetak LKP',
         icon: Activity,
         iconColor: 'text-indigo-600',
         badge: `${summary?.qcPqcCount ?? 0} PQC`,
@@ -85,7 +85,7 @@ export const ProductionQcModule: React.FC = () => {
       },
       {
         id: 'reworks',
-        label: '4.5.2 Jalur Rework / Repair & Re-Inspeksi QC',
+        label: 'Jalur Rework / Repair & Re-Inspeksi QC',
         subtitle: `Pengerjaan ulang barang NG/rework (${summary?.reworkOpen ?? 0} Open · ${summary?.reworkPassed ?? 0} Passed · ${summary?.reworkScrapped ?? 0} Scrap)`,
         icon: RotateCcw,
         iconColor: 'text-orange-600',
@@ -95,7 +95,7 @@ export const ProductionQcModule: React.FC = () => {
       },
       {
         id: 'oqc',
-        label: '4.5.1 Outgoing QC (OQC / COA)',
+        label: 'Outgoing QC (OQC / COA)',
         subtitle: `Inspeksi produk akhir sebelum DO, auto-generate nomor COA, release FG & Cetak COA (Pass Rate ${summary?.qcPassRatePct ?? 0}%)`,
         icon: Award,
         iconColor: 'text-teal-600',
@@ -105,7 +105,7 @@ export const ProductionQcModule: React.FC = () => {
       },
       {
         id: 'product_developments',
-        label: '4.2.1 & 4.2.2 Pengembangan Produk & Approval Sampel',
+        label: 'Pengembangan Produk & Approval Sampel',
         subtitle: 'Input proyek riset oleh Sales/R&D, upload dokumen spesifikasi, Approval Sampel Akhir & Cetak Approval Sheet',
         icon: FlaskConical,
         iconColor: 'text-purple-600',
@@ -115,7 +115,7 @@ export const ProductionQcModule: React.FC = () => {
       },
       {
         id: 'wastes',
-        label: '3.5.1 RM Wastes & 3.6.1 Product Wastes (CAPA)',
+        label: 'RM Wastes & Product Wastes (CAPA)',
         subtitle: `Laporan limbah RM (${summary?.rmWasteQty ?? 0}) & Produk Jadi (${summary?.productWasteQty ?? 0} · ${summary?.productWasteCriticalCount ?? 0} Critical) + CAPA`,
         icon: Trash2,
         iconColor: 'text-rose-600',
@@ -128,8 +128,8 @@ export const ProductionQcModule: React.FC = () => {
     return (
       <ModuleFeatureHub
         moduleCode="PRODUKSI & QC"
-        moduleName="DIVISI PRODUKSI & QA/QC (CORE 4 & 3.5/3.6)"
-        moduleDescription="Production Planning, SPK, Output Produksi, Pengendalian HOLD 4.5.3, IQC/PQC/OQC (COA), Jalur Rework 4.5.2, Pengembangan Produk R&D, serta RM & Product Wastes (CAPA)."
+        moduleName="DIVISI PRODUKSI & QA/QC"
+        moduleDescription="Production Planning, SPK, Output Produksi, Pengendalian HOLD QC, IQC/PQC/OQC (COA), Jalur Rework, Pengembangan Produk R&D, serta RM & Product Wastes (CAPA)."
         headerBgColor="bg-blue-700"
         items={hubItems}
         onBackToHome={() => appStore.setActiveModule('home')}

@@ -44,6 +44,13 @@ import {
 import { useRBAC } from '../../hooks/useRBAC';
 import { OFFICIAL_DIVISIONS } from '../../types';
 import { ConfirmActionModal } from './ConfirmActionModal';
+import {
+  ExcelColumn,
+  ExcelSpreadsheetTable,
+  ExcelViewToggle,
+  TableViewStyle,
+  exportExcelCsv,
+} from '../../components/shared/ExcelDataKit';
 
 const asOptions = (data: any, fallback: SelectOption[]): SelectOption[] =>
   Array.isArray(data) && data.length > 0 ? data : fallback;
@@ -55,6 +62,7 @@ export const UserManagementTab: React.FC = () => {
   const canManage = isSuperAdmin || isExecutive || userDivision === 'HRD';
 
   const [subTab, setSubTab] = useState<'users' | 'roles'>('users');
+  const [tableStyle, setTableStyle] = useState<TableViewStyle>('preview');
   const [search, setSearch] = useState('');
   const [filterDept, setFilterDept] = useState('ALL');
   const [filterLevel, setFilterLevel] = useState('ALL');
@@ -307,10 +315,147 @@ export const UserManagementTab: React.FC = () => {
     }
   };
 
+  const getUserDisplayName = (u: UserAccountRecord) =>
+    u.fullName || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.username;
+
+  const userExcelDataColumns: ExcelColumn<UserAccountRecord>[] = [
+    {
+      key: 'employeeNik',
+      header: 'NIK',
+      mono: true,
+      getValue: (u) => u.employeeNik || '-',
+    },
+    {
+      key: 'fullName',
+      header: 'Nama Lengkap',
+      minWidth: 'min-w-[180px]',
+      getValue: (u) => getUserDisplayName(u),
+    },
+    {
+      key: 'username',
+      header: 'Username',
+      mono: true,
+      getValue: (u) => u.username || '-',
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      getValue: (u) => u.email || '-',
+    },
+    {
+      key: 'department',
+      header: 'Divisi Utama',
+      getValue: (u) => findOptionLabel(divisions, u.department || '') || u.department || '-',
+    },
+    {
+      key: 'departmentAccess',
+      header: 'Akses Lintas Divisi',
+      getValue: (u) => {
+        const divAccess = u.departmentAccess || u.allowedDivisions || [];
+        return Array.isArray(divAccess) && divAccess.length > 0 ? divAccess.join(', ') : '-';
+      },
+    },
+    {
+      key: 'userLevel',
+      header: 'Level RBAC',
+      align: 'center',
+      getValue: (u) => u.userLevel || '-',
+      render: (u) => (
+        <span className="inline-block px-2 py-0.5 rounded-md bg-violet-100 text-violet-800 text-xs font-bold">
+          {u.userLevel || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'roleName',
+      header: 'Role',
+      getValue: (u) => u.roleName || u.roleId || '-',
+    },
+    {
+      key: 'isActive',
+      header: 'Status Akun',
+      align: 'center',
+      getValue: (u) => (u.isActive !== false ? 'Aktif' : 'Non-Aktif'),
+      render: (u) => {
+        const active = u.isActive !== false;
+        return (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleStatusMutation.mutate({ id: u.id, isActive: !active });
+            }}
+            disabled={toggleStatusMutation.isPending}
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer ${
+              active
+                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+            }`}
+          >
+            {active ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5" /> Aktif
+              </>
+            ) : (
+              <>
+                <XCircle className="w-3.5 h-3.5" /> Non-Aktif
+              </>
+            )}
+          </button>
+        );
+      },
+    },
+  ];
+
+  const renderUserActions = (u: UserAccountRecord) => {
+    const displayName = getUserDisplayName(u);
+    return (
+      <div
+        className="inline-flex items-center justify-end gap-1 whitespace-nowrap"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() =>
+            setConfirmTarget({
+              type: 'user',
+              id: u.id,
+              label: displayName,
+            })
+          }
+          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 text-rose-600 cursor-pointer"
+          title="Batalkan / Hapus"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+        <span className="w-px h-4 bg-slate-200 mx-0.5" />
+        <button
+          type="button"
+          onClick={() => openEditAccess(u)}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold whitespace-nowrap cursor-pointer"
+        >
+          <Key className="w-3.5 h-3.5" />
+          <span>Atur Akses</span>
+        </button>
+      </div>
+    );
+  };
+
+  const userExcelColumns: ExcelColumn<UserAccountRecord>[] = [
+    ...userExcelDataColumns,
+    {
+      key: 'actions',
+      header: 'Aksi',
+      align: 'right',
+      getValue: () => '',
+      render: (u) => renderUserActions(u),
+    },
+  ];
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setSubTab('users')}
             className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors cursor-pointer ${
@@ -348,79 +493,110 @@ export const UserManagementTab: React.FC = () => {
 
       {subTab === 'users' && (
         <>
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200 flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={search}
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5 flex-1">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Cari nama, username, email..."
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </div>
+
+              <select
+                value={filterDept}
                 onChange={(e) => {
-                  setSearch(e.target.value);
+                  setFilterDept(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Cari nama, username, email..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-              />
+                className="px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
+              >
+                <option value="ALL">Semua Divisi</option>
+                {divisions.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={filterLevel}
+                onChange={(e) => {
+                  setFilterLevel(e.target.value);
+                  setPage(1);
+                }}
+                className="px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
+              >
+                <option value="ALL">Semua Level RBAC</option>
+                {userLevels.map((lvl) => (
+                  <option key={lvl.value} value={lvl.value}>
+                    {lvl.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={filterActive}
+                onChange={(e) => {
+                  setFilterActive(e.target.value as any);
+                  setPage(1);
+                }}
+                className="px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
+              >
+                <option value="ALL">Semua Status</option>
+                <option value="true">Aktif</option>
+                <option value="false">Non-Aktif</option>
+              </select>
             </div>
 
-            <select
-              value={filterDept}
-              onChange={(e) => {
-                setFilterDept(e.target.value);
-                setPage(1);
-              }}
-              className="px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
-            >
-              <option value="ALL">Semua Divisi</option>
-              {divisions.map((d) => (
-                <option key={d.value} value={d.value}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={filterLevel}
-              onChange={(e) => {
-                setFilterLevel(e.target.value);
-                setPage(1);
-              }}
-              className="px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
-            >
-              <option value="ALL">Semua Level RBAC</option>
-              {userLevels.map((lvl) => (
-                <option key={lvl.value} value={lvl.value}>
-                  {lvl.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={filterActive}
-              onChange={(e) => {
-                setFilterActive(e.target.value as any);
-                setPage(1);
-              }}
-              className="px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
-            >
-              <option value="ALL">Semua Status</option>
-              <option value="true">Aktif</option>
-              <option value="false">Non-Aktif</option>
-            </select>
+            <ExcelViewToggle
+              value={tableStyle}
+              onChange={setTableStyle}
+              onExport={() =>
+                exportExcelCsv('daftar-pengguna-hrd', userExcelDataColumns, usersList)
+              }
+              exportDisabled={usersList.length === 0}
+            />
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          {tableStyle === 'excel' ? (
+            <ExcelSpreadsheetTable
+              title="Daftar Pengguna & Hak Akses RBAC — Tampilan Excel"
+              subtitle="Klik baris untuk mengatur akses • Geser horizontal untuk melihat seluruh kolom"
+              columns={userExcelColumns}
+              rows={usersList}
+              rowKey={(u) => u.id}
+              isLoading={loadingUsers}
+              emptyText="Belum ada pengguna yang sesuai filter."
+              onRowClick={(u) => openEditAccess(u)}
+              pagination={{
+                page,
+                totalPages: totalUserPages,
+                totalItems: totalUsersCount,
+                unitLabel: 'pengguna',
+                onPrev: () => setPage((p) => Math.max(1, p - 1)),
+                onNext: () => setPage((p) => Math.min(totalUserPages, p + 1)),
+              }}
+            />
+          ) : (
+          <div className="bg-white rounded-2xl border border-slate-300 overflow-x-auto shadow-xs">
+            <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
-                  <th className="py-3 px-4">Pengguna</th>
-                  <th className="py-3 px-4">Divisi & Akses</th>
-                  <th className="py-3 px-4">Level & Role</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
+                <tr className="bg-slate-100 border-b border-slate-300 text-xs font-bold text-slate-700 uppercase">
+                  <th className="py-3 px-4 border-r border-slate-200">Pengguna</th>
+                  <th className="py-3 px-4 border-r border-slate-200">Divisi & Akses</th>
+                  <th className="py-3 px-4 border-r border-slate-200">Level & Role</th>
+                  <th className="py-3 px-4 text-center border-r border-slate-200">Status</th>
+                  <th className="py-3 px-4 text-right whitespace-nowrap">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
+              <tbody className="divide-y divide-slate-200 text-sm">
                 {loadingUsers ? (
                   <tr>
                     <td colSpan={5} className="py-8 text-center text-slate-400">
@@ -435,21 +611,18 @@ export const UserManagementTab: React.FC = () => {
                   </tr>
                 ) : (
                   usersList.map((u) => {
-                    const displayName =
-                      u.fullName ||
-                      [u.firstName, u.lastName].filter(Boolean).join(' ') ||
-                      u.username;
+                    const displayName = getUserDisplayName(u);
                     const active = u.isActive !== false;
                     const divAccess = u.departmentAccess || u.allowedDivisions || [];
                     return (
-                      <tr key={u.id} className="hover:bg-slate-50/70">
-                        <td className="py-3 px-4">
+                      <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3.5 px-4 border-r border-slate-200">
                           <div className="font-bold text-slate-900">{displayName}</div>
-                          <div className="text-xs text-slate-500">
+                          <div className="text-xs text-slate-500 mt-0.5">
                             @{u.username} • {u.email}
                           </div>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3.5 px-4 border-r border-slate-200">
                           <div className="font-semibold text-slate-800">
                             {findOptionLabel(divisions, u.department || '') || u.department || '-'}
                           </div>
@@ -459,7 +632,7 @@ export const UserManagementTab: React.FC = () => {
                             </div>
                           )}
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3.5 px-4 border-r border-slate-200">
                           <span className="inline-block px-2 py-0.5 rounded-md bg-violet-100 text-violet-800 text-xs font-bold">
                             {u.userLevel || '-'}
                           </span>
@@ -469,7 +642,7 @@ export const UserManagementTab: React.FC = () => {
                             </div>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-3.5 px-4 text-center border-r border-slate-200">
                           <button
                             onClick={() =>
                               toggleStatusMutation.mutate({ id: u.id, isActive: !active })
@@ -492,29 +665,8 @@ export const UserManagementTab: React.FC = () => {
                             )}
                           </button>
                         </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="inline-flex items-center gap-1.5">
-                            <button
-                              onClick={() => openEditAccess(u)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-violet-100 text-slate-700 hover:text-violet-800 text-xs font-bold cursor-pointer"
-                            >
-                              <Key className="w-3.5 h-3.5" />
-                              <span>Atur Akses</span>
-                            </button>
-                            <button
-                              onClick={() =>
-                                setConfirmTarget({
-                                  type: 'user',
-                                  id: u.id,
-                                  label: displayName,
-                                })
-                              }
-                              className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 cursor-pointer"
-                              title="Nonaktifkan / Hapus Akun"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          {renderUserActions(u)}
                         </td>
                       </tr>
                     );
@@ -568,6 +720,7 @@ export const UserManagementTab: React.FC = () => {
               </div>
             </div>
           </div>
+          )}
         </>
       )}
 

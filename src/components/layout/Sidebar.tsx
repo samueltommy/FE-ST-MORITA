@@ -9,14 +9,11 @@ import {
   ScanLine,
   History,
   UserPlus,
-  LogOut,
-  ChevronLeft,
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
   X,
   Building2,
-  Keyboard,
   Home,
   ChevronDown,
   FileText,
@@ -26,8 +23,6 @@ import {
   CheckCircle2,
   Navigation,
   Calendar,
-  Lock,
-  Plus,
   Barcode,
   FlaskConical,
   BookOpen,
@@ -36,8 +31,6 @@ import {
   FileCheck2,
 } from 'lucide-react';
 import { useAppStore, appStore } from '../../store/useAppStore';
-import { useAuthStore } from '../../store/useAuthStore';
-import { canManageUsers, getTierBadge } from '../../utils/rbac';
 import { useRBAC } from '../../hooks/useRBAC';
 
 interface ModuleChildItem {
@@ -62,69 +55,69 @@ interface ModuleChildItem {
  */
 const MODULE_CHILDREN: Record<string, ModuleChildItem[]> = {
   sales: [
-    { id: 'customers', label: '2.1 Master Customer', icon: Users, endpoint: '/sales/customers' },
-    { id: 'quotations', label: '5.1 Quotation & Approval', icon: FileSpreadsheet, endpoint: '/sales/quotations' },
-    { id: 'customer_pos', label: '5.2 PO Customer & IO', icon: FileCheck2, endpoint: '/sales/customer-pos' },
-    { id: 'e_catalog', label: '5.5 E-Katalog Digital', icon: BookOpen, endpoint: '/sales/e-catalog' },
-    { id: 'market_analysis', label: '5.6 Analisa Market', icon: Calculator, endpoint: '/sales/market-analysis' },
-    { id: 'daily_activities', label: '6.2 SDA & Sampel (Win/Lose)', icon: Navigation, endpoint: '/sales/daily-activities' },
-    { id: 'commissions', label: '6.3 Komisi Sales (Auto-Sync)', icon: Award, endpoint: '/sales/commissions' },
-    { id: 'entertainments', label: '6.4 Entertain Sales', icon: FileText, endpoint: '/sales/entertainments' },
-    { id: 'forecasts', label: '6.5 Forecasting Customer', icon: Calendar, endpoint: '/sales/forecasts' },
-    { id: 'complaints', label: '6.6 E-Complaint & CA', icon: AlertCircle, endpoint: '/sales/complaints' },
+    { id: 'customers', label: 'Master Customer', icon: Users, endpoint: '/sales/customers' },
+    { id: 'quotations', label: 'Quotation & Approval', icon: FileSpreadsheet, endpoint: '/sales/quotations' },
+    { id: 'customer_pos', label: 'PO Customer & IO', icon: FileCheck2, endpoint: '/sales/customer-pos' },
+    { id: 'e_catalog', label: 'E-Katalog Digital', icon: BookOpen, endpoint: '/sales/e-catalog' },
+    { id: 'market_analysis', label: 'Analisa Market', icon: Calculator, endpoint: '/sales/market-analysis' },
+    { id: 'daily_activities', label: 'SDA & Sampel (Win/Lose)', icon: Navigation, endpoint: '/sales/daily-activities' },
+    { id: 'commissions', label: 'Komisi Sales (Auto-Sync)', icon: Award, endpoint: '/sales/commissions' },
+    { id: 'entertainments', label: 'Entertain Sales', icon: FileText, endpoint: '/sales/entertainments' },
+    { id: 'forecasts', label: 'Forecasting Customer', icon: Calendar, endpoint: '/sales/forecasts' },
+    { id: 'complaints', label: 'E-Complaint & CA', icon: AlertCircle, endpoint: '/sales/complaints' },
   ],
   delivery: [
-    { id: 'delivery_plans', label: '5.3.1 Delivery Plan', icon: Calendar, endpoint: '/logistics/delivery-plans' },
-    { id: 'delivery_requests', label: '5.3.2 Request DO (RDO)', icon: FileText, endpoint: '/logistics/delivery-requests' },
-    { id: 'delivery_orders', label: '5.3.3 Delivery Order / Surat Jalan', icon: Truck, endpoint: '/logistics/delivery-orders' },
-    { id: 'e_tracking', label: '5.4 E-Tracking Terpadu', icon: Barcode, endpoint: '/logistics/tracking-events' },
-    { id: 'rm_stocks', label: '3.2.1 RM Stock & Transfer', icon: Boxes, endpoint: '/warehouse/rm-stocks/monitoring' },
+    { id: 'delivery_plans', label: 'Delivery Plan', icon: Calendar, endpoint: '/logistics/delivery-plans' },
+    { id: 'delivery_requests', label: 'Request DO (RDO)', icon: FileText, endpoint: '/logistics/delivery-requests' },
+    { id: 'delivery_orders', label: 'Delivery Order / Surat Jalan', icon: Truck, endpoint: '/logistics/delivery-orders' },
+    { id: 'e_tracking', label: 'E-Tracking Terpadu', icon: Barcode, endpoint: '/logistics/tracking-events' },
+    { id: 'rm_stocks', label: 'RM Stock & Transfer', icon: Boxes, endpoint: '/warehouse/rm-stocks/monitoring' },
   ],
   warehouse_ppic: [
     { id: 'goods_receipts', label: 'Penerimaan Barang / Receiving LOG', icon: Truck, endpoint: '/warehouse/goods-receipts' },
     { id: 'waste_logs', label: 'Pencatatan Limbah / Waste', icon: Trash2, endpoint: '/warehouse/waste-logs' },
     { id: 'work_orders', label: 'SPK Produksi / Work Orders', icon: FileSpreadsheet, endpoint: '/production/work-orders' },
-    { id: 'items', label: 'Master Item & Stok (/mdm/items)', icon: Boxes, endpoint: '/mdm/items' },
+    { id: 'items', label: 'Master Item & Stok', icon: Boxes, endpoint: '/mdm/items' },
   ],
   produksi_qc: [
-    { id: 'plans', label: '4.1.1/4.1.2 Planning & SPK', icon: FileSpreadsheet, endpoint: '/production/plans' },
-    { id: 'outputs', label: '4.1.3 Output Produksi', icon: FileText, endpoint: '/production/outputs' },
-    { id: 'stocks', label: '4.5.3 Stok & HOLD QC', icon: ShieldAlert, endpoint: '/production/stocks', badge: 'HOLD', badgeColor: 'bg-rose-500 text-white' },
-    { id: 'iqc', label: '4.3.1 Incoming QC (IQC)', icon: ShieldCheck, endpoint: '/qc/inspections?qc_type=IQC' },
-    { id: 'pqc', label: '4.4.1 In-Process QC (PQC)', icon: CheckCircle2, endpoint: '/qc/inspections?qc_type=PQC' },
-    { id: 'reworks', label: '4.5.2 Rework / Repair', icon: History, endpoint: '/production/reworks' },
-    { id: 'oqc', label: '4.5.1 Outgoing QC / COA', icon: Award, endpoint: '/qc/inspections?qc_type=OQC' },
-    { id: 'product_developments', label: '4.2 Pengembangan Produk', icon: FlaskConical, endpoint: '/production/product-developments' },
-    { id: 'wastes', label: '3.5/3.6 RM & Product Wastes', icon: Trash2, endpoint: '/production/wastes' },
+    { id: 'plans', label: 'Planning & SPK', icon: FileSpreadsheet, endpoint: '/production/plans' },
+    { id: 'outputs', label: 'Output Produksi', icon: FileText, endpoint: '/production/outputs' },
+    { id: 'stocks', label: 'Stok & HOLD QC', icon: ShieldAlert, endpoint: '/production/stocks', badge: 'HOLD', badgeColor: 'bg-rose-500 text-white' },
+    { id: 'iqc', label: 'Incoming QC (IQC)', icon: ShieldCheck, endpoint: '/qc/inspections?qc_type=IQC' },
+    { id: 'pqc', label: 'In-Process QC (PQC)', icon: CheckCircle2, endpoint: '/qc/inspections?qc_type=PQC' },
+    { id: 'reworks', label: 'Rework / Repair', icon: History, endpoint: '/production/reworks' },
+    { id: 'oqc', label: 'Outgoing QC / COA', icon: Award, endpoint: '/qc/inspections?qc_type=OQC' },
+    { id: 'product_developments', label: 'Pengembangan Produk', icon: FlaskConical, endpoint: '/production/product-developments' },
+    { id: 'wastes', label: 'RM & Product Wastes', icon: Trash2, endpoint: '/production/wastes' },
   ],
   purchasing: [
     { id: 'purchase_requests', label: 'Purchase Request / PR', icon: FileText, endpoint: '/procurement/purchase-requests' },
     { id: 'purchase_orders', label: 'Purchase Order / PO', icon: Truck, endpoint: '/procurement/purchase-orders' },
-    { id: 'exim_docs', label: 'Dokumen Exim (/procurement/exim-docs)', icon: ShieldCheck, endpoint: '/procurement/exim-docs' },
-    { id: 'suppliers', label: 'Master Supplier (/mdm/suppliers)', icon: Building2, endpoint: '/mdm/suppliers' },
+    { id: 'exim_docs', label: 'Dokumen Exim', icon: ShieldCheck, endpoint: '/procurement/exim-docs' },
+    { id: 'suppliers', label: 'Master Supplier', icon: Building2, endpoint: '/mdm/suppliers' },
   ],
   finance: [
-    { id: 'invoices', label: '6.1.1 Sales Invoice (13 Rumus)', icon: Calculator, endpoint: '/finance/invoices' },
-    { id: 'payments', label: '6.1.2 Pelunasan & Rekonsiliasi AR', icon: FileSpreadsheet, endpoint: '/finance/payments' },
+    { id: 'invoices', label: 'Sales Invoice (13 Rumus)', icon: Calculator, endpoint: '/finance/invoices' },
+    { id: 'payments', label: 'Pelunasan & Rekonsiliasi AR', icon: FileSpreadsheet, endpoint: '/finance/payments' },
     { id: 'ap', label: 'Account Payable (AP / Hutang)', icon: Building2, endpoint: '/finance/supplier-invoices' },
-    { id: 'customer_pos', label: '5.2 PO Customer & Incoming Order', icon: FileCheck2, endpoint: '/finance/customer-pos' },
-    { id: 'commissions', label: '6.3 Komisi Sales', icon: Award, endpoint: '/finance/commissions' },
-    { id: 'entertainments', label: '6.4 Entertain Sales', icon: FileText, endpoint: '/finance/entertainments' },
+    { id: 'customer_pos', label: 'PO Customer & Incoming Order', icon: FileCheck2, endpoint: '/finance/customer-pos' },
+    { id: 'commissions', label: 'Komisi Sales', icon: Award, endpoint: '/finance/commissions' },
+    { id: 'entertainments', label: 'Entertain Sales', icon: FileText, endpoint: '/finance/entertainments' },
     { id: 'visit_approvals', label: 'Approval Visit Luar Kota', icon: Navigation, endpoint: '/hrd/out-of-town-visits' },
-    { id: 'complaints_rma', label: '6.6 E-Complaint & RMA / CN / DN', icon: AlertCircle, endpoint: '/finance/complaints' },
+    { id: 'complaints_rma', label: 'E-Complaint & RMA / CN / DN', icon: AlertCircle, endpoint: '/finance/complaints' },
   ],
   rnd: [
-    { id: 'rnd_trials', label: 'R&D Trial Formula (/rnd/trials)', icon: FlaskConical, endpoint: '/rnd/trials' },
+    { id: 'rnd_trials', label: 'R&D Trial Formula', icon: FlaskConical, endpoint: '/rnd/trials' },
     { id: 'convert_bom', label: 'Konversi Formula ke Master BOM', icon: FileCheck2, endpoint: '/rnd/trials/{id}/convert-to-bom' },
-    { id: 'e_catalog', label: 'Publikasi E-Katalog (/marketing/catalog)', icon: BookOpen, endpoint: '/marketing/catalog' },
-    { id: 'sample_requests', label: 'Permintaan Sampel (/public/request-sample)', icon: Send, endpoint: '/public/request-sample' },
+    { id: 'e_catalog', label: 'Publikasi E-Katalog', icon: BookOpen, endpoint: '/marketing/catalog' },
+    { id: 'sample_requests', label: 'Permintaan Sampel', icon: Send, endpoint: '/public/request-sample' },
   ],
   hrd: [
-    { id: 'user_management', label: 'User Management (RBAC & Role)', icon: ShieldCheck, endpoint: '/user-management' },
-    { id: 'employees', label: 'Database Karyawan / Profil', icon: Users, endpoint: '/hrd/employees' },
-    { id: 'cuti', label: 'Pengajuan Cuti (RM-HRD-303)', icon: Calendar, endpoint: '/hrd/leave-requests' },
+    { id: 'user_management', label: 'User Management', icon: ShieldCheck, endpoint: '/user-management' },
+    { id: 'employees', label: 'Database Karyawan', icon: Users, endpoint: '/hrd/employees' },
+    { id: 'cuti', label: 'Pengajuan Cuti', icon: Calendar, endpoint: '/hrd/leave-requests' },
     { id: 'sakit_izin', label: 'Sakit / Izin Lainnya', icon: FileText, endpoint: '/hrd/leave-requests' },
-    { id: 'exit_permits', label: 'Keluar Kantor (RM-HRD-013)', icon: Navigation, endpoint: '/hrd/exit-permits' },
+    { id: 'exit_permits', label: 'Izin Meninggalkan Tempat Kerja', icon: Navigation, endpoint: '/hrd/exit-permits' },
     { id: 'vehicles', label: 'Kendaraan Kantor', icon: Truck, endpoint: '/hrd/vehicle-bookings' },
     { id: 'out_of_town_visits', label: 'Visit Luar Kota', icon: Send, endpoint: '/hrd/out-of-town-visits' },
   ],
@@ -151,21 +144,21 @@ const CONTENT = {
     moduleNames: {
       home: 'Menu Utama (Beranda)',
       homeSub: 'Launcher 8 Divisi',
-      sales: '1. Sales',
+      sales: 'Sales',
       salesSub: 'Quotation, IO, SDA, Customer',
-      delivery: '2. Delivery',
+      delivery: 'Delivery',
       deliverySub: 'Surat Jalan, E-Tracking, Armada',
-      warehouse_ppic: '3. Warehouse & PPIC',
+      warehouse_ppic: 'Warehouse & PPIC',
       warehouse_ppicSub: 'LOG, Limbah, SPK, Master Item',
-      produksi_qc: '4. Produksi & QC',
+      produksi_qc: 'Produksi & QC',
       produksi_qcSub: 'Output, Inspeksi QC, Release Hold',
-      purchasing: '5. Pembelian (Purchasing)',
+      purchasing: 'Pembelian (Purchasing)',
       purchasingSub: 'PR, PO, Exim Docs, Supplier',
-      finance: '6. Finance',
+      finance: 'Finance',
       financeSub: 'Cost Control, Invoice 13 Rumus, AR',
-      rnd: '7. RND',
+      rnd: 'RND',
       rndSub: 'Trial Formula, BOM, E-Katalog, Sampel',
-      hrd: '8. HRD',
+      hrd: 'HRD',
       hrdSub: 'Data Karyawan, Cuti/Izin, Presensi',
     },
   },
@@ -185,21 +178,21 @@ const CONTENT = {
     moduleNames: {
       home: 'Main Menu (Home)',
       homeSub: '8 Divisions Launcher',
-      sales: '1. Sales',
+      sales: 'Sales',
       salesSub: 'Quotation, IO, SDA, Customer',
-      delivery: '2. Delivery',
+      delivery: 'Delivery',
       deliverySub: 'Delivery Order, Tracking, Fleet',
-      warehouse_ppic: '3. Warehouse & PPIC',
+      warehouse_ppic: 'Warehouse & PPIC',
       warehouse_ppicSub: 'LOG, Waste, SPK, Master Items',
-      produksi_qc: '4. Production & QC',
+      produksi_qc: 'Production & QC',
       produksi_qcSub: 'Output, Inspections, Hold Release',
-      purchasing: '5. Purchasing',
+      purchasing: 'Purchasing',
       purchasingSub: 'PR, PO, Exim Docs, Suppliers',
-      finance: '6. Finance',
+      finance: 'Finance',
       financeSub: 'Cost Control, 13 Invoicing, AR',
-      rnd: '7. RND',
+      rnd: 'RND',
       rndSub: 'Trial Formula, BOM, Catalog, Samples',
-      hrd: '8. HRD',
+      hrd: 'HRD',
       hrdSub: 'Employees, Leaves, Attendance',
     },
   },
@@ -208,8 +201,6 @@ const CONTENT = {
 export const Sidebar: React.FC = () => {
   const activeModule = useAppStore((state) => state.activeModule);
   const activeSubFeature = useAppStore((state) => state.activeSubFeature);
-  const authUser = useAuthStore((state) => state.user);
-  const authLogout = useAuthStore((state) => state.logout);
   const qcRecords = useAppStore((state) => state.qcRecords);
   const quotations = useAppStore((state) => state.quotations);
   const isSidebarCollapsed = useAppStore((state) => state.isSidebarCollapsed);
@@ -218,17 +209,8 @@ export const Sidebar: React.FC = () => {
   const t = CONTENT[language] || CONTENT.id;
   const { canAccessModule, canAccessAdminUsers, canAccessTool, isSuperAdmin, isExecutive, userDivision } = useRBAC();
 
-  const [expandedModules, setExpandedModules] = React.useState<Record<string, boolean>>({
-    sales: true,
-    delivery: true,
-    warehouse_ppic: true,
-    produksi_qc: true,
-    purchasing: true,
-    finance: true,
-    rnd: true,
-    hrd: true,
-    users: true,
-  });
+  // Semua dropdown divisi tertutup secara default saat aplikasi pertama dibuka
+  const [expandedModules, setExpandedModules] = React.useState<Record<string, boolean>>({});
 
   const toggleExpand = (modId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -247,8 +229,6 @@ export const Sidebar: React.FC = () => {
 
   const activeQcHoldCount = qcRecords.filter((r) => r.status === 'HOLD').length;
   const pendingCostControlCount = quotations.filter((q) => q.status === 'PENDING_COST_CONTROL').length;
-
-  const isUserAdmin = canManageUsers(authUser as any);
 
   // 8 Divisi Utama
   const modules = [
@@ -360,9 +340,8 @@ export const Sidebar: React.FC = () => {
 
       {/* 1. DESKTOP SIDEBAR */}
       <aside
-        className={`compact-chrome hidden lg:flex flex-col justify-between shrink-0 h-full border-r border-slate-200 bg-white transition-all duration-200 ease-in-out select-none z-20 shadow-xs ${
-          isSidebarCollapsed ? 'w-[68px]' : 'w-64'
-        }`}
+        className={`compact-chrome hidden lg:flex flex-col justify-between shrink-0 h-full border-r border-slate-200 bg-white transition-all duration-200 ease-in-out select-none z-20 shadow-xs ${isSidebarCollapsed ? 'w-[68px]' : 'w-64'
+          }`}
       >
         {/* Top Header & Collapse/Expand Toggle */}
         <div className="shrink-0 px-3 py-2.5 border-b border-slate-100 flex items-center justify-between">
@@ -415,7 +394,7 @@ export const Sidebar: React.FC = () => {
                   const Icon = m.icon;
                   const isActive = activeModule === m.id;
                   const children = MODULE_CHILDREN[m.id];
-                  const isExpanded = !isSidebarCollapsed && (expandedModules[m.id] ?? true);
+                  const isExpanded = !isSidebarCollapsed && Boolean(expandedModules[m.id]);
 
                   return (
                     <div key={m.id} className="space-y-1">
@@ -423,27 +402,24 @@ export const Sidebar: React.FC = () => {
                         id={`nav-module-${m.id}`}
                         onClick={() => handleSelectModule(m.id)}
                         title={`${m.label} (${m.shortcut})`}
-                        className={`text-left rounded-xl flex items-center transition-all cursor-pointer relative group ${
-                          isSidebarCollapsed
+                        className={`text-left rounded-xl flex items-center transition-all cursor-pointer relative group ${isSidebarCollapsed
                             ? 'w-10 h-10 mx-auto justify-center p-0'
                             : 'w-full px-2.5 py-2 justify-between'
-                        } ${
-                          isActive
+                          } ${isActive
                             ? isSidebarCollapsed
                               ? ''
                               : 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20'
                             : 'text-slate-700 hover:bg-slate-100 font-medium'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
-                              isActive
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${isActive
                                 ? isSidebarCollapsed
                                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                                   : 'bg-white/20 text-white'
                                 : 'bg-slate-100 text-slate-600 group-hover:text-blue-600'
-                            }`}
+                              }`}
                           >
                             <Icon className="w-4 h-4" />
                           </div>
@@ -460,9 +436,8 @@ export const Sidebar: React.FC = () => {
                                 )}
                               </div>
                               <div
-                                className={`text-xs truncate leading-tight mt-0.5 ${
-                                  isActive ? 'text-white/80' : 'text-slate-400'
-                                }`}
+                                className={`text-xs truncate leading-tight mt-0.5 ${isActive ? 'text-white/80' : 'text-slate-400'
+                                  }`}
                               >
                                 {m.sublabel}
                               </div>
@@ -504,8 +479,8 @@ export const Sidebar: React.FC = () => {
                               const ChildIcon = child.icon;
                               const childLabel =
                                 m.id === 'hrd' &&
-                                child.id === 'employees' &&
-                                !(isSuperAdmin || isExecutive || userDivision === 'HRD')
+                                  child.id === 'employees' &&
+                                  !(isSuperAdmin || isExecutive || userDivision === 'HRD')
                                   ? 'Profil & Sisa Cuti Saya'
                                   : child.label;
                               return (
@@ -513,105 +488,35 @@ export const Sidebar: React.FC = () => {
                                   key={child.id}
                                   type="button"
                                   onClick={() => handleSelectChild(m.id, child.id)}
-                                  className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-all cursor-pointer ${
-                                    isChildActive
+                                  className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-all cursor-pointer ${isChildActive
                                       ? 'bg-blue-100 text-blue-900 font-extrabold shadow-2xs'
                                       : 'text-slate-600 hover:text-blue-700 hover:bg-slate-100 font-medium'
-                                  }`}
+                                    }`}
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
                                     <ChildIcon
-                                      className={`w-3.5 h-3.5 shrink-0 ${
-                                        isChildActive ? 'text-blue-700' : 'text-slate-400'
-                                      }`}
+                                      className={`w-3.5 h-3.5 shrink-0 ${isChildActive ? 'text-blue-700' : 'text-slate-400'
+                                        }`}
                                     />
                                     <span className="truncate">{childLabel}</span>
                                   </div>
-                                {child.badge && (
-                                  <span
-                                    className={`text-xs px-1 py-0.2 rounded-full font-bold uppercase shrink-0 ${
-                                      child.badgeColor || 'bg-slate-200 text-slate-700'
-                                    }`}
-                                  >
-                                    {child.badge}
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
+                                  {child.badge && (
+                                    <span
+                                      className={`text-xs px-1 py-0.2 rounded-full font-bold uppercase shrink-0 ${child.badgeColor || 'bg-slate-200 text-slate-700'
+                                        }`}
+                                    >
+                                      {child.badge}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
                         </div>
                       )}
                     </div>
                   );
                 })}
               </nav>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom Section: Active User Context & Logout */}
-        <div className="shrink-0 p-2.5 border-t border-slate-200 bg-slate-50/70 space-y-1.5">
-          {!isSidebarCollapsed ? (
-            <>
-              <div
-                title={`${authUser?.name} (${authUser?.role} - L${authUser?.tier})`}
-                className="w-full text-left rounded-xl flex items-center gap-2.5 p-2"
-              >
-                <div className="relative">
-                  {authUser?.avatar ? (
-                    <img src={authUser.avatar} alt="User Avatar" className="w-8 h-8 rounded-lg object-cover ring-2 ring-white shadow-sm" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold ring-2 ring-white shadow-sm">
-                      {authUser?.name?.charAt(0)?.toUpperCase()}
-                    </div>
-                  )}
-                  <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white bg-emerald-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-slate-900 truncate">{authUser?.name}</div>
-                  <div className="text-xs text-slate-500 font-medium truncate">{authUser?.department}</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200/60">
-                <button
-                  onClick={() => authLogout()}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  {t.signOut}
-                </button>
-                <button
-                  onClick={() => appStore.setKeyboardShortcutsOpen(true)}
-                  className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
-                  title="Keyboard Shortcuts"
-                >
-                  <Keyboard className="w-4 h-4" />
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center gap-1.5">
-              <div
-                title={`${authUser?.name} (${authUser?.role} - L${authUser?.tier})`}
-                className="w-8 h-8 rounded-lg overflow-hidden border border-slate-300 shrink-0"
-              >
-                {authUser?.avatar ? (
-                  <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-blue-600 text-white flex items-center justify-center font-bold">
-                    {authUser?.name?.charAt(0)?.toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <button
-                id="sidebar-collapsed-logout-btn"
-                onClick={() => authLogout()}
-                title="Keluar dari Portal ERP"
-                className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
             </div>
           )}
         </div>
@@ -649,21 +554,19 @@ export const Sidebar: React.FC = () => {
                     const Icon = m.icon;
                     const isActive = activeModule === m.id;
                     const children = MODULE_CHILDREN[m.id];
-                    const isExpanded = expandedModules[m.id] ?? true;
+                    const isExpanded = Boolean(expandedModules[m.id]);
 
                     return (
                       <div key={m.id} className="space-y-1">
                         <button
                           onClick={() => handleSelectModule(m.id)}
-                          className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between transition-colors text-xs ${
-                            isActive ? 'bg-blue-600 text-white font-bold shadow-sm' : 'text-slate-700 hover:bg-slate-100 font-medium'
-                          }`}
+                          className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between transition-colors text-xs ${isActive ? 'bg-blue-600 text-white font-bold shadow-sm' : 'text-slate-700 hover:bg-slate-100 font-medium'
+                            }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                              }`}
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                                }`}
                             >
                               <Icon className="w-4 h-4" />
                             </div>
@@ -703,9 +606,8 @@ export const Sidebar: React.FC = () => {
                                   key={child.id}
                                   type="button"
                                   onClick={() => handleSelectChild(m.id, child.id)}
-                                  className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-colors ${
-                                    isChildActive ? 'bg-blue-100 text-blue-900 font-extrabold' : 'text-slate-600 hover:bg-slate-100'
-                                  }`}
+                                  className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs transition-colors ${isChildActive ? 'bg-blue-100 text-blue-900 font-extrabold' : 'text-slate-600 hover:bg-slate-100'
+                                    }`}
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
                                     <ChildIcon className={`w-3.5 h-3.5 shrink-0 ${isChildActive ? 'text-blue-700' : 'text-slate-400'}`} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus,
   Search,
@@ -37,6 +37,15 @@ import {
 } from '../../services/financeService';
 import { formatIDR } from '../../utils/invoiceCalculator';
 import { ConfirmActionModal } from '../core1_hrd/ConfirmActionModal';
+import {
+  EXCEL_CELL,
+  ExcelColumn,
+  ExcelSpreadsheetTable,
+  ExcelViewToggle,
+  ExcelWorksheetShell,
+  TableViewStyle,
+  exportExcelCsv,
+} from '../../components/shared/ExcelDataKit';
 
 interface Props {
   canMutate: boolean;
@@ -68,7 +77,6 @@ interface InvoiceDraft {
 }
 
 const todayStr = () => new Date().toISOString().split('T')[0];
-const plus30Str = () => new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
 
 const emptyDraft = (): InvoiceDraft => ({
   customerId: '',
@@ -103,6 +111,7 @@ const INVOICE_TYPE_LABELS: Record<string, string> = {
 export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
   const queryClient = useQueryClient();
 
+  const [tableStyle, setTableStyle] = useState<TableViewStyle>('preview');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -110,7 +119,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
   const [overdueOnly, setOverdueOnly] = useState(false);
 
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingRecord, setEditingRecord] = useState<SalesInvoiceRecord | null>(null);
   const [draft, setDraft] = useState<InvoiceDraft>(emptyDraft);
   const [calcPreview, setCalcPreview] = useState<FinanceCalculateResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -128,6 +137,8 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
 
   const [voidTarget, setVoidTarget] = useState<SalesInvoiceRecord | null>(null);
 
+  const editingId = editingRecord?.id ?? null;
+
   const { data: invoicesRes, isLoading } = useQuery({
     queryKey: ['financeInvoices', page, search, statusFilter, customerFilter, overdueOnly],
     queryFn: () =>
@@ -143,6 +154,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
 
   const invoices = invoicesRes?.data || [];
   const totalPages = invoicesRes?.meta?.totalPages || invoicesRes?.meta?.total_pages || 1;
+  const totalItems = invoicesRes?.meta?.total ?? invoicesRes?.meta?.totalItems;
 
   const { data: formulas = [] } = useQuery({
     queryKey: ['financeFormulas'],
@@ -239,7 +251,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
       updateFinanceInvoiceApi(id, payload),
     onSuccess: () => {
       toast.success('Sales Invoice berhasil diperbarui');
-      setEditingId(null);
+      setEditingRecord(null);
       setDraft(emptyDraft());
       setCalcPreview(null);
       invalidateAll();
@@ -269,7 +281,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
   });
 
   const startAdd = () => {
-    setEditingId(null);
+    setEditingRecord(null);
     setDraft(emptyDraft());
     setCalcPreview(null);
     setIsAdding(true);
@@ -277,7 +289,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
 
   const startEdit = (inv: SalesInvoiceRecord) => {
     setIsAdding(false);
-    setEditingId(inv.id);
+    setEditingRecord(inv);
     setDraft({
       customerId: inv.customerId,
       customerPoId: inv.customerPoId || '',
@@ -304,7 +316,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
 
   const cancelEditor = () => {
     setIsAdding(false);
-    setEditingId(null);
+    setEditingRecord(null);
     setDraft(emptyDraft());
     setCalcPreview(null);
   };
@@ -347,309 +359,609 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
   const getStatusBadge = (status: string) => {
     const s = (status || '').toUpperCase();
     if (s === 'PAID') {
-      return <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold">PAID</span>;
+      return <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">PAID</span>;
     }
     if (s === 'PARTIALLY_PAID') {
-      return <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">PARTIAL</span>;
+      return <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">PARTIAL</span>;
     }
     if (s === 'CANCELLED' || s === 'VOID') {
-      return <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 text-[11px] font-bold">VOID</span>;
+      return <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 text-xs font-bold">VOID</span>;
     }
-    return <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[11px] font-bold">UNPAID</span>;
+    return <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">UNPAID</span>;
   };
 
-  const renderInlineEditorSubPanel = (colSpan: number) => (
-    <tr className="bg-blue-50/70 border-b border-blue-200">
-      <td colSpan={colSpan} className="p-3">
-        <div className="bg-white rounded-xl border border-blue-200 p-3 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-blue-800">
-              <Calculator className="w-4 h-4" />
-              <span>Komponen Kalkulasi 13 Rumus & Pajak (Auto-Preview Real-Time)</span>
-            </div>
+  const totals = useMemo(
+    () =>
+      invoices.reduce(
+        (acc, inv) => {
+          acc.tot += Number(inv.totalOrderAmount || 0);
+          acc.freight += Number(inv.freightCost || 0);
+          acc.discount += Number(inv.discountAmount || 0);
+          acc.dp += Number(inv.downPaymentDeduction || 0);
+          acc.ret += Number(inv.retentionDeduction || 0);
+          acc.dpp += Number(inv.dpp || 0);
+          acc.ppn += Number(inv.ppnAmount || 0);
+          acc.pph += Number(inv.pphAmount || 0);
+          acc.grand += Number(inv.grandTotal || 0);
+          acc.paid += Number(inv.paidAmount || 0);
+          acc.out += Number(inv.outstandingAmount || 0);
+          return acc;
+        },
+        { tot: 0, freight: 0, discount: 0, dp: 0, ret: 0, dpp: 0, ppn: 0, pph: 0, grand: 0, paid: 0, out: 0 }
+      ),
+    [invoices]
+  );
+
+  const excelColumns: ExcelColumn<SalesInvoiceRecord>[] = [
+    {
+      key: 'invoiceNumber',
+      header: 'No. Invoice',
+      mono: true,
+      getValue: (inv) => inv.invoiceNumber,
+    },
+    {
+      key: 'invoiceDate',
+      header: 'Tgl Invoice',
+      getValue: (inv) => inv.invoiceDate || '-',
+    },
+    {
+      key: 'dueDate',
+      header: 'Jatuh Tempo',
+      getValue: (inv) => inv.dueDate || '-',
+    },
+    {
+      key: 'customerName',
+      header: 'Customer',
+      minWidth: 'min-w-[180px]',
+      getValue: (inv) => inv.customerName || '-',
+    },
+    {
+      key: 'customerPoNumber',
+      header: 'No. PO',
+      mono: true,
+      getValue: (inv) => inv.customerPoNumber || '-',
+    },
+    {
+      key: 'invoiceType',
+      header: 'Tipe Invoice',
+      getValue: (inv) => INVOICE_TYPE_LABELS[inv.invoiceType] || inv.invoiceType || '-',
+    },
+    {
+      key: 'formulaId',
+      header: 'Rumus',
+      align: 'center',
+      mono: true,
+      getValue: (inv) => `#${inv.formulaId}`,
+    },
+    {
+      key: 'paymentTerm',
+      header: 'Term',
+      getValue: (inv) => inv.paymentTerm || '-',
+    },
+    {
+      key: 'taxFactureNumber',
+      header: 'No. Faktur Pajak',
+      mono: true,
+      getValue: (inv) => inv.taxFactureNumber || '-',
+    },
+    {
+      key: 'taxPeriod',
+      header: 'Masa Pajak',
+      mono: true,
+      getValue: (inv) => inv.taxPeriod || '-',
+    },
+    {
+      key: 'totalOrderAmount',
+      header: 'TOT Barang',
+      align: 'right',
+      mono: true,
+      getValue: (inv) => Number(inv.totalOrderAmount || 0),
+      render: (inv) => formatIDR(inv.totalOrderAmount),
+      footer: formatIDR(totals.tot),
+    },
+    {
+      key: 'freightCost',
+      header: 'Freight',
+      align: 'right',
+      mono: true,
+      getValue: (inv) => Number(inv.freightCost || 0),
+      render: (inv) => formatIDR(inv.freightCost),
+      footer: formatIDR(totals.freight),
+    },
+    {
+      key: 'discountAmount',
+      header: 'Diskon',
+      align: 'right',
+      mono: true,
+      getValue: (inv) => Number(inv.discountAmount || 0),
+      render: (inv) => formatIDR(inv.discountAmount),
+      footer: formatIDR(totals.discount),
+    },
+    {
+      key: 'downPaymentDeduction',
+      header: 'Pot. UM / DP',
+      align: 'right',
+      mono: true,
+      getValue: (inv) => Number(inv.downPaymentDeduction || 0),
+      render: (inv) => formatIDR(inv.downPaymentDeduction),
+      footer: formatIDR(totals.dp),
+    },
+    {
+      key: 'retentionDeduction',
+      header: 'Retensi',
+      align: 'right',
+      mono: true,
+      getValue: (inv) => Number(inv.retentionDeduction || 0),
+      render: (inv) => formatIDR(inv.retentionDeduction),
+      footer: formatIDR(totals.ret),
+    },
+    {
+      key: 'dpp',
+      header: 'DPP',
+      align: 'right',
+      mono: true,
+      getValue: (inv) => Number(inv.dpp || 0),
+      render: (inv) => formatIDR(inv.dpp),
+      footer: formatIDR(totals.dpp),
+    },
+    {
+      key: 'ppnAmount',
+      header: 'PPN',
+      align: 'right',
+      mono: true,
+      getValue: (inv) => Number(inv.ppnAmount || 0),
+      render: (inv) => <span className="text-blue-700">{formatIDR(inv.ppnAmount)}</span>,
+      footer: formatIDR(totals.ppn),
+    },
+    {
+      key: 'pphAmount',
+      header: 'PPh',
+      align: 'right',
+      mono: true,
+      getValue: (inv) => Number(inv.pphAmount || 0),
+      render: (inv) => <span className="text-rose-700">{formatIDR(inv.pphAmount)}</span>,
+      footer: formatIDR(totals.pph),
+    },
+    {
+      key: 'grandTotal',
+      header: 'Grand Total',
+      align: 'right',
+      mono: true,
+      getValue: (inv) => Number(inv.grandTotal || 0),
+      render: (inv) => <span className="font-bold text-slate-900">{formatIDR(inv.grandTotal)}</span>,
+      footer: <span className="text-slate-900">{formatIDR(totals.grand)}</span>,
+    },
+    {
+      key: 'paidAmount',
+      header: 'Terbayar',
+      align: 'right',
+      mono: true,
+      getValue: (inv) => Number(inv.paidAmount || 0),
+      render: (inv) => <span className="text-emerald-700">{formatIDR(inv.paidAmount)}</span>,
+      footer: <span className="text-emerald-700">{formatIDR(totals.paid)}</span>,
+    },
+    {
+      key: 'outstandingAmount',
+      header: 'Sisa (Outstanding)',
+      align: 'right',
+      mono: true,
+      getValue: (inv) => Number(inv.outstandingAmount || 0),
+      render: (inv) => <span className="font-bold text-amber-700">{formatIDR(inv.outstandingAmount)}</span>,
+      footer: <span className="text-amber-700">{formatIDR(totals.out)}</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      getValue: (inv) => inv.status,
+      render: (inv) => getStatusBadge(inv.status),
+    },
+    {
+      key: 'actions',
+      header: 'Aksi',
+      align: 'right',
+      getValue: () => '',
+      render: (inv) => {
+        const isPaid = inv.status === 'PAID';
+        const isVoid = inv.status === 'CANCELLED' || inv.status === 'VOID';
+        const hasPayment = inv.paidAmount > 0;
+        return (
+          <div className="inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            {canMutate && !isPaid && !isVoid && (
+              <button
+                type="button"
+                onClick={() => startEdit(inv)}
+                title="Edit Invoice"
+                className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 text-blue-600 cursor-pointer"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                printFinanceInvoice(inv.id).catch((e) =>
+                  toast.error(e?.message || 'Gagal mencetak invoice')
+                )
+              }
+              title="Cetak Invoice"
+              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+            </button>
+            {canMutate && !hasPayment && !isVoid && (
+              <button
+                type="button"
+                onClick={() => setVoidTarget(inv)}
+                title="Void / Batal"
+                className="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
+  const handleExportCsv = () => {
+    exportExcelCsv(
+      'sales-invoices-ar',
+      excelColumns.filter((c) => c.key !== 'actions'),
+      invoices
+    );
+  };
+
+  if (canMutate && isEditorOpen) {
+    const isNew = isAdding && !editingRecord;
+    return (
+      <ExcelWorksheetShell
+        onBack={cancelEditor}
+        docTitle={isNew ? 'AUTO-INV' : editingRecord?.invoiceNumber || 'EDIT-INV'}
+        badge={
+          <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+            {isNew ? 'INVOICE BARU' : 'EDIT INVOICE'}
+          </span>
+        }
+        formCode="FORM SALES INVOICE (ACCOUNT RECEIVABLE — 13 RUMUS)"
+        sheetTitle={isNew ? 'Terbitkan Sales Invoice Baru' : `Edit Sales Invoice ${editingRecord?.invoiceNumber}`}
+        modeHint="Auto-Preview Real-Time 13 Rumus & Pajak"
+        actions={
+          <>
             <button
               type="button"
               onClick={() => runCalculation(draft)}
               disabled={isCalculating}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-bold cursor-pointer"
             >
-              {isCalculating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Calculator className="w-3 h-3" />}
+              {isCalculating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
               <span>Hitung Ulang</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 text-xs">
-            <label className="space-y-1">
-              <span className="text-[11px] font-semibold text-slate-600">Total Order (TOT)</span>
-              <input
-                type="number"
-                value={draft.totalOrderAmount}
-                onChange={(e) => setDraft({ ...draft, totalOrderAmount: Number(e.target.value) })}
-                className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-[11px] font-semibold text-slate-600">Freight</span>
-              <input
-                type="number"
-                value={draft.freightCost}
-                onChange={(e) => setDraft({ ...draft, freightCost: Number(e.target.value) })}
-                className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-[11px] font-semibold text-slate-600">Diskon</span>
-              <input
-                type="number"
-                value={draft.discountAmount}
-                onChange={(e) => setDraft({ ...draft, discountAmount: Number(e.target.value) })}
-                className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-[11px] font-semibold text-slate-600">Potongan UM / DP</span>
-              <input
-                type="number"
-                value={draft.downPaymentDeduction}
-                onChange={(e) => setDraft({ ...draft, downPaymentDeduction: Number(e.target.value) })}
-                className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-[11px] font-semibold text-slate-600">Retensi</span>
-              <input
-                type="number"
-                value={draft.retentionDeduction}
-                onChange={(e) => setDraft({ ...draft, retentionDeduction: Number(e.target.value) })}
-                className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-[11px] font-semibold text-slate-600">PPN (%)</span>
-              <input
-                type="number"
-                step="0.5"
-                value={draft.ppnRate}
-                onChange={(e) => setDraft({ ...draft, ppnRate: Number(e.target.value) })}
-                className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-[11px] font-semibold text-slate-600">PPh (%)</span>
-              <input
-                type="number"
-                step="0.5"
-                value={draft.pphRate}
-                onChange={(e) => setDraft({ ...draft, pphRate: Number(e.target.value) })}
-                className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
-              />
-            </label>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 items-center pt-2 border-t border-slate-100">
-            <div className="md:col-span-1 flex flex-wrap gap-1.5">
-              <select
-                value={draft.billingStage}
-                onChange={(e) => setDraft({ ...draft, billingStage: e.target.value })}
-                className="flex-1 min-w-[120px] px-2 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
-              >
-                {termsDict.billingStages.map((bs) => (
-                  <option key={bs.code} value={bs.code}>
-                    {bs.label}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                placeholder="Termin #"
-                value={draft.terminNumber}
-                onChange={(e) => setDraft({ ...draft, terminNumber: e.target.value })}
-                className="w-20 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
-              />
-              <input
-                type="number"
-                placeholder="Termin %"
-                value={draft.terminPercentage}
-                onChange={(e) => setDraft({ ...draft, terminPercentage: e.target.value })}
-                className="w-20 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
-              />
-              <input
-                type="text"
-                placeholder="Catatan invoice (opsional)..."
-                value={draft.notes}
-                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
-              />
-            </div>
-            <div className="md:col-span-2 flex flex-wrap items-center justify-end gap-4 text-xs bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
-              <div>
-                <span className="text-slate-500">DPP:</span>{' '}
-                <strong className="font-mono text-slate-800">{formatIDR(calcPreview?.dpp ?? 0)}</strong>
-              </div>
-              <div>
-                <span className="text-slate-500">PPN:</span>{' '}
-                <strong className="font-mono text-blue-700">{formatIDR(calcPreview?.ppnAmount ?? 0)}</strong>
-              </div>
-              <div>
-                <span className="text-slate-500">PPh:</span>{' '}
-                <strong className="font-mono text-rose-700">{formatIDR(calcPreview?.pphAmount ?? 0)}</strong>
-              </div>
-              <div className="text-sm">
-                <span className="text-slate-600 font-semibold">Grand Total:</span>{' '}
-                <strong className="font-mono text-emerald-700">{formatIDR(calcPreview?.grandTotal ?? 0)}</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-      </td>
-    </tr>
-  );
-
-  const renderInlineEditorRow = (isNew: boolean, rowId?: string, invNumber?: string) => (
-    <>
-      <tr className="bg-blue-50 border-b border-blue-200 align-top">
-        <td className="px-2.5 py-2.5 text-xs font-mono font-bold text-blue-800">
-          {isNew ? 'AUTO-INV' : invNumber}
-        </td>
-        <td className="px-2.5 py-2.5 space-y-1">
-          <input
-            type="date"
-            value={draft.invoiceDate}
-            onChange={(e) => setDraft({ ...draft, invoiceDate: e.target.value })}
-            className="w-full px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-          />
-          <input
-            type="date"
-            value={draft.dueDate}
-            onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })}
-            className="w-full px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-          />
-        </td>
-        <td className="px-2.5 py-2.5 space-y-1 min-w-[180px]">
-          <select
-            value={draft.customerId}
-            onChange={(e) => {
-              const cust = customers.find((c) => c.id === e.target.value);
-              setDraft({
-                ...draft,
-                customerId: e.target.value,
-                paymentTerm: cust?.paymentTerm || draft.paymentTerm,
-              });
-            }}
-            className="w-full px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-          >
-            <option value="">-- Pilih Customer --</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={draft.customerPoId}
-            onChange={(e) => setDraft({ ...draft, customerPoId: e.target.value })}
-            className="w-full px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-          >
-            <option value="">-- Tanpa Link PO --</option>
-            {customerPos
-              .filter((po) => !draft.customerId || po.customerId === draft.customerId)
-              .map((po) => (
-                <option key={po.id} value={po.id}>
-                  {po.poNumber}
-                </option>
-              ))}
-          </select>
-        </td>
-        <td className="px-2.5 py-2.5 space-y-1 min-w-[180px]">
-          <select
-            value={draft.invoiceType}
-            onChange={(e) => setDraft({ ...draft, invoiceType: e.target.value as InvoiceType })}
-            className="w-full px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-          >
-            <option value="FINAL_PAYMENT_100">Pelunasan 100%</option>
-            <option value="DOWN_PAYMENT">Down Payment</option>
-            <option value="FINAL_PAYMENT_UNDER_100">Pelunasan &lt; 100%</option>
-            <option value="RETENTION">Retensi</option>
-          </select>
-          <select
-            value={draft.formulaId}
-            onChange={(e) => setDraft({ ...draft, formulaId: Number(e.target.value) })}
-            className="w-full px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-          >
-            {formulas.map((f) => (
-              <option key={f.id} value={f.id}>
-                #{f.id} {f.name?.replace(/^Rumus #\d+\s*[—-]\s*/i, '') || ''}
-              </option>
-            ))}
-          </select>
-        </td>
-        <td className="px-2.5 py-2.5 space-y-1">
-          <input
-            type="text"
-            placeholder="No. Faktur Pajak"
-            value={draft.taxFactureNumber}
-            onChange={(e) => setDraft({ ...draft, taxFactureNumber: e.target.value })}
-            className="w-full px-2 py-1 rounded-md border border-slate-300 text-xs bg-white"
-          />
-          <div className="flex gap-1">
-            <select
-              value={draft.paymentTerm}
-              onChange={(e) => setDraft({ ...draft, paymentTerm: e.target.value })}
-              className="w-1/2 px-1.5 py-1 rounded-md border border-slate-300 text-[11px] bg-white"
-            >
-              {termsDict.paymentTerms.map((pt) => (
-                <option key={pt.code} value={pt.code}>
-                  {pt.code}
-                </option>
-              ))}
-            </select>
-            <input
-              type="month"
-              value={draft.taxPeriod}
-              onChange={(e) => setDraft({ ...draft, taxPeriod: e.target.value })}
-              className="w-1/2 px-1 py-1 rounded-md border border-slate-300 text-[11px] bg-white"
-            />
-          </div>
-        </td>
-        <td className="px-2.5 py-2.5 text-right font-mono text-xs font-bold text-emerald-700">
-          {formatIDR(calcPreview?.grandTotal ?? 0)}
-        </td>
-        <td className="px-2.5 py-2.5 text-right font-mono text-xs text-slate-400">-</td>
-        <td className="px-2.5 py-2.5 text-right font-mono text-xs text-slate-400">-</td>
-        <td className="px-2.5 py-2.5 text-center">
-          <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
-            {rowId ? 'EDIT' : 'BARU'}
-          </span>
-        </td>
-        <td className="px-2.5 py-2.5">
-          <div className="flex items-center justify-end gap-1">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer disabled:opacity-50"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>Simpan</span>
             </button>
             <button
               type="button"
               onClick={cancelEditor}
-              className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-sm font-bold cursor-pointer"
             >
-              <X className="w-3.5 h-3.5" />
-              <span>Batal</span>
+              <X className="w-4 h-4" /> Batal
             </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold cursor-pointer disabled:opacity-50"
+            >
+              {createMutation.isPending || updateMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span>Simpan Invoice</span>
+            </button>
+          </>
+        }
+      >
+        {/* Section 1: Header Dokumen & Customer */}
+        <div className="space-y-2">
+          <div className="text-xs font-extrabold uppercase tracking-wider text-slate-600">
+            1. Informasi Dokumen, Customer &amp; Perpajakan
           </div>
-        </td>
-      </tr>
-      {renderInlineEditorSubPanel(10)}
-    </>
-  );
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <tbody>
+                <tr>
+                  <td className={`${EXCEL_CELL.label} w-48`}>Customer *</td>
+                  <td className={EXCEL_CELL.value}>
+                    <select
+                      value={draft.customerId}
+                      onChange={(e) => {
+                        const cust = customers.find((c) => c.id === e.target.value);
+                        setDraft({
+                          ...draft,
+                          customerId: e.target.value,
+                          paymentTerm: cust?.paymentTerm || draft.paymentTerm,
+                        });
+                      }}
+                      className={EXCEL_CELL.input}
+                    >
+                      <option value="">-- Pilih Customer --</option>
+                      {customers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className={`${EXCEL_CELL.label} w-48`}>Link PO Customer</td>
+                  <td className={EXCEL_CELL.value}>
+                    <select
+                      value={draft.customerPoId}
+                      onChange={(e) => setDraft({ ...draft, customerPoId: e.target.value })}
+                      className={EXCEL_CELL.input}
+                    >
+                      <option value="">-- Tanpa Link PO --</option>
+                      {customerPos
+                        .filter((po) => !draft.customerId || po.customerId === draft.customerId)
+                        .map((po) => (
+                          <option key={po.id} value={po.id}>
+                            {po.poNumber}
+                          </option>
+                        ))}
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td className={EXCEL_CELL.label}>Tanggal Invoice *</td>
+                  <td className={EXCEL_CELL.value}>
+                    <input
+                      type="date"
+                      value={draft.invoiceDate}
+                      onChange={(e) => setDraft({ ...draft, invoiceDate: e.target.value })}
+                      className={EXCEL_CELL.input}
+                    />
+                  </td>
+                  <td className={EXCEL_CELL.label}>Jatuh Tempo</td>
+                  <td className={EXCEL_CELL.value}>
+                    <input
+                      type="date"
+                      value={draft.dueDate}
+                      onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })}
+                      className={EXCEL_CELL.input}
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td className={EXCEL_CELL.label}>Tipe Invoice</td>
+                  <td className={EXCEL_CELL.value}>
+                    <select
+                      value={draft.invoiceType}
+                      onChange={(e) => setDraft({ ...draft, invoiceType: e.target.value as InvoiceType })}
+                      className={EXCEL_CELL.input}
+                    >
+                      <option value="FINAL_PAYMENT_100">Pelunasan 100%</option>
+                      <option value="DOWN_PAYMENT">Down Payment</option>
+                      <option value="FINAL_PAYMENT_UNDER_100">Pelunasan &lt; 100%</option>
+                      <option value="RETENTION">Retensi</option>
+                    </select>
+                  </td>
+                  <td className={EXCEL_CELL.label}>Rumus Invoice (#1–13)</td>
+                  <td className={EXCEL_CELL.value}>
+                    <select
+                      value={draft.formulaId}
+                      onChange={(e) => setDraft({ ...draft, formulaId: Number(e.target.value) })}
+                      className={EXCEL_CELL.input}
+                    >
+                      {formulas.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          #{f.id} {f.name?.replace(/^Rumus #\d+\s*[—-]\s*/i, '') || ''}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td className={EXCEL_CELL.label}>Payment Term</td>
+                  <td className={EXCEL_CELL.value}>
+                    <select
+                      value={draft.paymentTerm}
+                      onChange={(e) => setDraft({ ...draft, paymentTerm: e.target.value })}
+                      className={EXCEL_CELL.input}
+                    >
+                      {termsDict.paymentTerms.map((pt) => (
+                        <option key={pt.code} value={pt.code}>
+                          {pt.code}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className={EXCEL_CELL.label}>Tahap / Termin</td>
+                  <td className={EXCEL_CELL.value}>
+                    <div className="flex">
+                      <select
+                        value={draft.billingStage}
+                        onChange={(e) => setDraft({ ...draft, billingStage: e.target.value })}
+                        className={`${EXCEL_CELL.input} border-r border-slate-300`}
+                      >
+                        {termsDict.billingStages.map((bs) => (
+                          <option key={bs.code} value={bs.code}>
+                            {bs.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        placeholder="Termin #"
+                        value={draft.terminNumber}
+                        onChange={(e) => setDraft({ ...draft, terminNumber: e.target.value })}
+                        className={`${EXCEL_CELL.input} w-24 font-mono text-right border-r border-slate-300`}
+                      />
+                      <input
+                        type="number"
+                        placeholder="%"
+                        value={draft.terminPercentage}
+                        onChange={(e) => setDraft({ ...draft, terminPercentage: e.target.value })}
+                        className={`${EXCEL_CELL.input} w-20 font-mono text-right`}
+                      />
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td className={EXCEL_CELL.label}>No. Faktur Pajak</td>
+                  <td className={EXCEL_CELL.value}>
+                    <input
+                      type="text"
+                      placeholder="010.xxx-xx.xxxxxxxx"
+                      value={draft.taxFactureNumber}
+                      onChange={(e) => setDraft({ ...draft, taxFactureNumber: e.target.value })}
+                      className={`${EXCEL_CELL.input} font-mono`}
+                    />
+                  </td>
+                  <td className={EXCEL_CELL.label}>Masa Pajak</td>
+                  <td className={EXCEL_CELL.value}>
+                    <input
+                      type="month"
+                      value={draft.taxPeriod}
+                      onChange={(e) => setDraft({ ...draft, taxPeriod: e.target.value })}
+                      className={EXCEL_CELL.input}
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Section 2: Komponen Kalkulasi 13 Rumus & Pajak */}
+        <div className="space-y-2">
+          <div className="text-xs font-extrabold uppercase tracking-wider text-slate-600">
+            2. Komponen Kalkulasi 13 Rumus &amp; Pajak (Auto-Preview Real-Time)
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <tbody>
+                <tr>
+                  <td className={`${EXCEL_CELL.label} w-48`}>Total Order (TOT)</td>
+                  <td className={EXCEL_CELL.value}>
+                    <input
+                      type="number"
+                      value={draft.totalOrderAmount}
+                      onChange={(e) => setDraft({ ...draft, totalOrderAmount: Number(e.target.value) })}
+                      className={`${EXCEL_CELL.input} font-mono text-right`}
+                    />
+                  </td>
+                  <td className={`${EXCEL_CELL.label} w-48`}>Freight / Ongkir</td>
+                  <td className={EXCEL_CELL.value}>
+                    <input
+                      type="number"
+                      value={draft.freightCost}
+                      onChange={(e) => setDraft({ ...draft, freightCost: Number(e.target.value) })}
+                      className={`${EXCEL_CELL.input} font-mono text-right`}
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td className={EXCEL_CELL.label}>Diskon</td>
+                  <td className={EXCEL_CELL.value}>
+                    <input
+                      type="number"
+                      value={draft.discountAmount}
+                      onChange={(e) => setDraft({ ...draft, discountAmount: Number(e.target.value) })}
+                      className={`${EXCEL_CELL.input} font-mono text-right`}
+                    />
+                  </td>
+                  <td className={EXCEL_CELL.label}>Potongan UM / DP</td>
+                  <td className={EXCEL_CELL.value}>
+                    <input
+                      type="number"
+                      value={draft.downPaymentDeduction}
+                      onChange={(e) => setDraft({ ...draft, downPaymentDeduction: Number(e.target.value) })}
+                      className={`${EXCEL_CELL.input} font-mono text-right`}
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td className={EXCEL_CELL.label}>Potongan Retensi</td>
+                  <td className={EXCEL_CELL.value}>
+                    <input
+                      type="number"
+                      value={draft.retentionDeduction}
+                      onChange={(e) => setDraft({ ...draft, retentionDeduction: Number(e.target.value) })}
+                      className={`${EXCEL_CELL.input} font-mono text-right`}
+                    />
+                  </td>
+                  <td className={EXCEL_CELL.label}>PPN (%) &amp; PPh (%)</td>
+                  <td className={EXCEL_CELL.value}>
+                    <div className="flex">
+                      <input
+                        type="number"
+                        step="0.5"
+                        placeholder="PPN %"
+                        value={draft.ppnRate}
+                        onChange={(e) => setDraft({ ...draft, ppnRate: Number(e.target.value) })}
+                        className={`${EXCEL_CELL.input} font-mono text-right border-r border-slate-300`}
+                      />
+                      <input
+                        type="number"
+                        step="0.5"
+                        placeholder="PPh %"
+                        value={draft.pphRate}
+                        onChange={(e) => setDraft({ ...draft, pphRate: Number(e.target.value) })}
+                        className={`${EXCEL_CELL.input} font-mono text-right`}
+                      />
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td className={EXCEL_CELL.label}>Catatan Invoice</td>
+                  <td className={EXCEL_CELL.value} colSpan={3}>
+                    <input
+                      type="text"
+                      placeholder="Catatan invoice (opsional)..."
+                      value={draft.notes}
+                      onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+                      className={EXCEL_CELL.input}
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Live Formula Output Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3">
+              <div className="text-xs font-bold uppercase text-slate-500">DPP</div>
+              <div className="font-mono text-base font-black text-slate-900 mt-0.5">
+                {formatIDR(calcPreview?.dpp ?? 0)}
+              </div>
+            </div>
+            <div className="rounded-xl border border-blue-200 bg-blue-50/70 px-4 py-3">
+              <div className="text-xs font-bold uppercase text-blue-600">PPN ({draft.ppnRate}%)</div>
+              <div className="font-mono text-base font-black text-blue-800 mt-0.5">
+                {formatIDR(calcPreview?.ppnAmount ?? 0)}
+              </div>
+            </div>
+            <div className="rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-3">
+              <div className="text-xs font-bold uppercase text-rose-600">PPh ({draft.pphRate}%)</div>
+              <div className="font-mono text-base font-black text-rose-800 mt-0.5">
+                {formatIDR(calcPreview?.pphAmount ?? 0)}
+              </div>
+            </div>
+            <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
+              <div className="text-xs font-bold uppercase text-emerald-700">Grand Total</div>
+              <div className="font-mono text-lg font-black text-emerald-700 mt-0.5">
+                {formatIDR(calcPreview?.grandTotal ?? 0)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </ExcelWorksheetShell>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* Toolbar: Search, Filters & Inline Add Trigger */}
+      {/* Toolbar: Search, Filters & View Toggle */}
       <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
           <div className="relative flex-1 min-w-[200px] max-w-xs">
@@ -662,7 +974,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
             />
           </div>
           <select
@@ -671,7 +983,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
+            className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-sm bg-white"
           >
             <option value="ALL">Semua Status</option>
             <option value="UNPAID">UNPAID</option>
@@ -685,7 +997,7 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
               setCustomerFilter(e.target.value);
               setPage(1);
             }}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white max-w-[180px]"
+            className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-sm bg-white max-w-[200px]"
           >
             <option value="ALL">Semua Customer</option>
             {customers.map((c) => (
@@ -708,382 +1020,402 @@ export const SalesInvoicesTab: React.FC<Props> = ({ canMutate }) => {
           </label>
         </div>
 
-        {canMutate && (
-          <button
-            type="button"
-            onClick={startAdd}
-            disabled={isAdding}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Tambah Invoice</span>
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <ExcelViewToggle
+            value={tableStyle}
+            onChange={setTableStyle}
+            onExport={handleExportCsv}
+            exportDisabled={invoices.length === 0}
+          />
+          {canMutate && (
+            <button
+              type="button"
+              onClick={startAdd}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Tambah Invoice</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Main Inline Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
-                <th className="px-3 py-2.5">No. Invoice</th>
-                <th className="px-3 py-2.5">Tgl / Jatuh Tempo</th>
-                <th className="px-3 py-2.5">Customer &amp; No. PO</th>
-                <th className="px-3 py-2.5">Tipe &amp; Rumus (#1–13)</th>
-                <th className="px-3 py-2.5">Faktur Pajak</th>
-                <th className="px-3 py-2.5 text-right">Grand Total</th>
-                <th className="px-3 py-2.5 text-right">Terbayar</th>
-                <th className="px-3 py-2.5 text-right">Sisa (Outstanding)</th>
-                <th className="px-3 py-2.5 text-center">Status</th>
-                <th className="px-3 py-2.5 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {isAdding && renderInlineEditorRow(true)}
-
-              {isLoading ? (
-                <tr>
-                  <td colSpan={10} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Memuat daftar Sales Invoice...
-                  </td>
+      {tableStyle === 'excel' ? (
+        <ExcelSpreadsheetTable
+          title="Daftar Sales Invoice (Account Receivable) — Tabel Excel"
+          subtitle="Seluruh 22 kolom finansial & pajak terpisah rapi • Total IDR pada footer"
+          columns={excelColumns}
+          rows={invoices}
+          rowKey={(inv) => inv.id}
+          isLoading={isLoading}
+          emptyText="Belum ada data Sales Invoice."
+          footerLabel="TOTAL"
+          pagination={{
+            page,
+            totalPages,
+            totalItems,
+            unitLabel: 'invoice',
+            onPrev: () => setPage((p) => Math.max(1, p - 1)),
+            onNext: () => setPage((p) => p + 1),
+          }}
+        />
+      ) : (
+        <div className="bg-white rounded-xl border border-slate-300 overflow-hidden shadow-2xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-100 border-b border-slate-300 text-xs font-bold text-slate-700 uppercase">
+                  <th className="px-3.5 py-2.5 border-r border-slate-200">No. Invoice</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200">Tgl / Jatuh Tempo</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200">Customer &amp; No. PO</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200">Tipe &amp; Rumus (#1–13)</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200">Faktur Pajak</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200 text-right">Grand Total</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200 text-right">Terbayar</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200 text-right">Sisa (Outstanding)</th>
+                  <th className="px-3.5 py-2.5 border-r border-slate-200 text-center">Status</th>
+                  <th className="px-3.5 py-2.5 text-right">Aksi</th>
                 </tr>
-              ) : invoices.length === 0 && !isAdding ? (
-                <tr>
-                  <td colSpan={10} className="py-10 text-center text-slate-400">
-                    Belum ada data Sales Invoice.
-                  </td>
-                </tr>
-              ) : (
-                invoices.map((inv) => {
-                  const isEditingThis = editingId === inv.id;
-                  if (isEditingThis) {
-                    return <React.Fragment key={inv.id}>{renderInlineEditorRow(false, inv.id, inv.invoiceNumber)}</React.Fragment>;
-                  }
+              </thead>
+              <tbody className="divide-y divide-slate-200 text-sm">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={10} className="py-10 text-center text-slate-400">
+                      <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Memuat daftar Sales Invoice...
+                    </td>
+                  </tr>
+                ) : invoices.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="py-10 text-center text-slate-400">
+                      Belum ada data Sales Invoice.
+                    </td>
+                  </tr>
+                ) : (
+                  invoices.map((inv) => {
+                    const isExpanded = expandedId === inv.id;
+                    const isPaid = inv.status === 'PAID';
+                    const isVoid = inv.status === 'CANCELLED' || inv.status === 'VOID';
+                    const hasPayment = inv.paidAmount > 0;
 
-                  const isExpanded = expandedId === inv.id;
-                  const isPaid = inv.status === 'PAID';
-                  const isVoid = inv.status === 'CANCELLED' || inv.status === 'VOID';
-                  const hasPayment = inv.paidAmount > 0;
-
-                  return (
-                    <React.Fragment key={inv.id}>
-                      <tr className={`hover:bg-slate-50/80 transition-colors ${isVoid ? 'opacity-60' : ''}`}>
-                        <td className="px-3 py-2.5 font-mono font-bold text-slate-800 whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedId(isExpanded ? null : inv.id)}
-                            className="inline-flex items-center gap-1 hover:text-blue-700 cursor-pointer"
-                            title="Lihat rincian rumus & riwayat pelunasan"
-                          >
-                            {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                            <span>{inv.invoiceNumber}</span>
-                          </button>
-                        </td>
-                        <td className="px-3 py-2.5 whitespace-nowrap">
-                          <div className="font-medium text-slate-800">{inv.invoiceDate}</div>
-                          <div className="text-[11px] text-slate-400">JT: {inv.dueDate || '-'}</div>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <div className="font-semibold text-slate-800">{inv.customerName}</div>
-                          <div className="text-[11px] text-slate-400">
-                            PO: {inv.customerPoNumber || '-'}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <div className="text-slate-700 font-medium">
-                            {INVOICE_TYPE_LABELS[inv.invoiceType] || inv.invoiceType}
-                          </div>
-                          <div className="text-[11px] text-blue-600 font-semibold">
-                            Rumus #{inv.formulaId}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5 whitespace-nowrap">
-                          <div className="font-mono text-slate-700">{inv.taxFactureNumber || '-'}</div>
-                          <div className="text-[11px] text-slate-400">{inv.taxPeriod || inv.paymentTerm || '-'}</div>
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
-                          {formatIDR(inv.grandTotal)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono text-emerald-700 whitespace-nowrap">
-                          {formatIDR(inv.paidAmount)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono font-bold text-amber-700 whitespace-nowrap">
-                          {formatIDR(inv.outstandingAmount)}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">{getStatusBadge(inv.status)}</td>
-                        <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1">
-                            {canMutate && !isPaid && !isVoid && (
-                              <button
-                                type="button"
-                                onClick={() => startEdit(inv)}
-                                title="Edit Inline"
-                                className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 text-blue-600 cursor-pointer"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                    return (
+                      <React.Fragment key={inv.id}>
+                        <tr className={`hover:bg-slate-50/80 transition-colors ${isVoid ? 'opacity-60' : ''}`}>
+                          <td className="px-3.5 py-2.5 border-r border-slate-200 font-mono font-bold text-slate-800 whitespace-nowrap">
                             <button
                               type="button"
-                              onClick={() =>
-                                printFinanceInvoice(inv.id).catch((e) =>
-                                  toast.error(e?.message || 'Gagal mencetak invoice')
-                                )
-                              }
-                              title="Cetak Invoice"
-                              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer"
+                              onClick={() => setExpandedId(isExpanded ? null : inv.id)}
+                              className="inline-flex items-center gap-1 hover:text-blue-700 cursor-pointer"
+                              title="Lihat rincian rumus & riwayat pelunasan"
                             >
-                              <Printer className="w-3.5 h-3.5" />
+                              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                              <span>{inv.invoiceNumber}</span>
                             </button>
-                            {canMutate && !hasPayment && !isVoid && (
+                          </td>
+                          <td className="px-3.5 py-2.5 border-r border-slate-200 whitespace-nowrap">
+                            <div className="font-medium text-slate-800">{inv.invoiceDate}</div>
+                            <div className="text-xs text-slate-400">JT: {inv.dueDate || '-'}</div>
+                          </td>
+                          <td className="px-3.5 py-2.5 border-r border-slate-200">
+                            <div className="font-semibold text-slate-800">{inv.customerName}</div>
+                            <div className="text-xs text-slate-500">
+                              PO: {inv.customerPoNumber || '-'}
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-2.5 border-r border-slate-200">
+                            <div className="text-slate-700 font-medium">
+                              {INVOICE_TYPE_LABELS[inv.invoiceType] || inv.invoiceType}
+                            </div>
+                            <div className="text-xs text-blue-600 font-semibold">
+                              Rumus #{inv.formulaId}
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-2.5 border-r border-slate-200 whitespace-nowrap">
+                            <div className="font-mono text-slate-700">{inv.taxFactureNumber || '-'}</div>
+                            <div className="text-xs text-slate-400">{inv.taxPeriod || inv.paymentTerm || '-'}</div>
+                          </td>
+                          <td className="px-3.5 py-2.5 border-r border-slate-200 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
+                            {formatIDR(inv.grandTotal)}
+                          </td>
+                          <td className="px-3.5 py-2.5 border-r border-slate-200 text-right font-mono text-emerald-700 whitespace-nowrap">
+                            {formatIDR(inv.paidAmount)}
+                          </td>
+                          <td className="px-3.5 py-2.5 border-r border-slate-200 text-right font-mono font-bold text-amber-700 whitespace-nowrap">
+                            {formatIDR(inv.outstandingAmount)}
+                          </td>
+                          <td className="px-3.5 py-2.5 border-r border-slate-200 text-center">{getStatusBadge(inv.status)}</td>
+                          <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                            <div className="inline-flex items-center gap-1">
+                              {canMutate && !isPaid && !isVoid && (
+                                <button
+                                  type="button"
+                                  onClick={() => startEdit(inv)}
+                                  title="Edit Invoice"
+                                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 text-blue-600 cursor-pointer"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                              )}
                               <button
                                 type="button"
-                                onClick={() => setVoidTarget(inv)}
-                                title="Void / Batal"
-                                className="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 cursor-pointer"
+                                onClick={() =>
+                                  printFinanceInvoice(inv.id).catch((e) =>
+                                    toast.error(e?.message || 'Gagal mencetak invoice')
+                                  )
+                                }
+                                title="Cetak Invoice"
+                                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Printer className="w-4 h-4" />
                               </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* Expandable Sub-Row: Formula Breakdown + AR Payment History + Inline Quick Payment */}
-                      {isExpanded && (
-                        <tr className="bg-slate-50/90 border-b border-slate-200">
-                          <td colSpan={10} className="p-4 space-y-3">
-                            {/* Formula breakdown strip */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 bg-white rounded-xl border border-slate-200 p-3 text-[11px]">
-                              <div>
-                                <div className="text-slate-400">TOT Barang</div>
-                                <div className="font-mono font-bold">{formatIDR(inv.totalOrderAmount)}</div>
-                              </div>
-                              <div>
-                                <div className="text-slate-400">Freight</div>
-                                <div className="font-mono font-bold">{formatIDR(inv.freightCost)}</div>
-                              </div>
-                              <div>
-                                <div className="text-slate-400">Diskon</div>
-                                <div className="font-mono font-bold">{formatIDR(inv.discountAmount)}</div>
-                              </div>
-                              <div>
-                                <div className="text-slate-400">Pot. UM / Retensi</div>
-                                <div className="font-mono font-bold">
-                                  {formatIDR(inv.downPaymentDeduction + inv.retentionDeduction)}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-slate-400">DPP</div>
-                                <div className="font-mono font-bold text-slate-800">{formatIDR(inv.dpp)}</div>
-                              </div>
-                              <div>
-                                <div className="text-slate-400">PPN ({inv.ppnRate}%)</div>
-                                <div className="font-mono font-bold text-blue-700">{formatIDR(inv.ppnAmount)}</div>
-                              </div>
-                              <div>
-                                <div className="text-slate-400">PPh ({inv.pphRate}%)</div>
-                                <div className="font-mono font-bold text-rose-700">{formatIDR(inv.pphAmount)}</div>
-                              </div>
-                              <div>
-                                <div className="text-slate-400">Grand Total</div>
-                                <div className="font-mono font-extrabold text-emerald-700">{formatIDR(inv.grandTotal)}</div>
-                              </div>
-                            </div>
-
-                            {/* AR Payments sub-table */}
-                            <div className="bg-white rounded-xl border border-slate-200 p-3 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-slate-700">
-                                  Riwayat Pelunasan AR ({expandedPayments.length})
-                                </span>
-                                {canMutate && !isPaid && !isVoid && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setInlinePayInvoiceId(inv.id);
-                                      setInlinePayDraft({
-                                        paymentDate: todayStr(),
-                                        paymentAmount: inv.outstandingAmount,
-                                        paymentMethod: 'BANK_TRANSFER',
-                                        bankAccount: '',
-                                        referenceNumber: '',
-                                        notes: '',
-                                      });
-                                    }}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold cursor-pointer"
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                    <span>Catat Pembayaran</span>
-                                  </button>
-                                )}
-                              </div>
-
-                              {inlinePayInvoiceId === inv.id && (
-                                <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200 grid grid-cols-2 sm:grid-cols-6 gap-2 items-end text-xs">
-                                  <label className="space-y-0.5">
-                                    <span className="text-[10px] font-semibold text-slate-600">Tgl Bayar</span>
-                                    <input
-                                      type="date"
-                                      value={inlinePayDraft.paymentDate}
-                                      onChange={(e) => setInlinePayDraft({ ...inlinePayDraft, paymentDate: e.target.value })}
-                                      className="w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs"
-                                    />
-                                  </label>
-                                  <label className="space-y-0.5">
-                                    <span className="text-[10px] font-semibold text-slate-600">Nominal</span>
-                                    <input
-                                      type="number"
-                                      value={inlinePayDraft.paymentAmount}
-                                      onChange={(e) =>
-                                        setInlinePayDraft({ ...inlinePayDraft, paymentAmount: Number(e.target.value) })
-                                      }
-                                      className="w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs font-mono"
-                                    />
-                                  </label>
-                                  <label className="space-y-0.5">
-                                    <span className="text-[10px] font-semibold text-slate-600">Metode</span>
-                                    <select
-                                      value={inlinePayDraft.paymentMethod}
-                                      onChange={(e) =>
-                                        setInlinePayDraft({
-                                          ...inlinePayDraft,
-                                          paymentMethod: e.target.value as ArPaymentPayload['paymentMethod'],
-                                        })
-                                      }
-                                      className="w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs"
-                                    >
-                                      <option value="BANK_TRANSFER">BANK TRANSFER</option>
-                                      <option value="CASH">CASH</option>
-                                      <option value="GIRO">GIRO</option>
-                                      <option value="CHEQUE">CHEQUE</option>
-                                      <option value="VIRTUAL_ACCOUNT">VIRTUAL ACCOUNT</option>
-                                    </select>
-                                  </label>
-                                  <label className="space-y-0.5">
-                                    <span className="text-[10px] font-semibold text-slate-600">Rekening</span>
-                                    <input
-                                      type="text"
-                                      placeholder="BCA / Mandiri..."
-                                      value={inlinePayDraft.bankAccount || ''}
-                                      onChange={(e) => setInlinePayDraft({ ...inlinePayDraft, bankAccount: e.target.value })}
-                                      className="w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs"
-                                    />
-                                  </label>
-                                  <label className="space-y-0.5">
-                                    <span className="text-[10px] font-semibold text-slate-600">No. Referensi</span>
-                                    <input
-                                      type="text"
-                                      placeholder="TRF-001"
-                                      value={inlinePayDraft.referenceNumber || ''}
-                                      onChange={(e) => setInlinePayDraft({ ...inlinePayDraft, referenceNumber: e.target.value })}
-                                      className="w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs"
-                                    />
-                                  </label>
-                                  <div className="flex gap-1 justify-end">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        inlinePayMutation.mutate({ invoiceId: inv.id, payload: inlinePayDraft })
-                                      }
-                                      disabled={inlinePayMutation.isPending}
-                                      className="px-2.5 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer"
-                                    >
-                                      Simpan
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setInlinePayInvoiceId(null)}
-                                      className="px-2 py-1.5 rounded border border-slate-300 bg-white text-slate-700 text-[11px] font-bold cursor-pointer"
-                                    >
-                                      Batal
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-
-                              {isLoadingPayments ? (
-                                <div className="text-xs text-slate-400 py-2">Memuat riwayat pembayaran...</div>
-                              ) : expandedPayments.length === 0 ? (
-                                <div className="text-xs text-slate-400 py-2">Belum ada mutasi pelunasan untuk invoice ini.</div>
-                              ) : (
-                                <table className="w-full text-xs">
-                                  <thead>
-                                    <tr className="text-[10px] text-slate-500 uppercase border-b border-slate-100">
-                                      <th className="py-1.5 text-left">No. Pembayaran</th>
-                                      <th className="py-1.5 text-left">Tanggal</th>
-                                      <th className="py-1.5 text-left">Metode &amp; Rekening</th>
-                                      <th className="py-1.5 text-left">Referensi</th>
-                                      <th className="py-1.5 text-right">Nominal</th>
-                                      <th className="py-1.5 text-center">Rekonsiliasi</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-100">
-                                    {expandedPayments.map((p) => (
-                                      <tr key={p.id}>
-                                        <td className="py-1.5 font-mono font-semibold">{p.paymentNumber}</td>
-                                        <td className="py-1.5">{p.paymentDate}</td>
-                                        <td className="py-1.5">
-                                          {p.paymentMethod} {p.bankAccount ? `(${p.bankAccount})` : ''}
-                                        </td>
-                                        <td className="py-1.5 font-mono">{p.referenceNumber || '-'}</td>
-                                        <td className="py-1.5 text-right font-mono font-bold text-emerald-700">
-                                          {formatIDR(p.paymentAmount)}
-                                        </td>
-                                        <td className="py-1.5 text-center">
-                                          {p.reconciliationStatus === 'RECONCILED' ? (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
-                                              <CheckCircle2 className="w-3 h-3" /> RECONCILED
-                                            </span>
-                                          ) : (
-                                            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
-                                              UNRECONCILED
-                                            </span>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                              {canMutate && !hasPayment && !isVoid && (
+                                <button
+                                  type="button"
+                                  onClick={() => setVoidTarget(inv)}
+                                  title="Void / Batal"
+                                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               )}
                             </div>
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
 
-        {/* Pagination */}
-        <div className="px-4 py-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span>
-            Halaman {page} dari {totalPages}
-          </span>
-          <div className="flex gap-1.5">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
-            >
-              Prev
-            </button>
-            <button
-              type="button"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
-            >
-              Next
-            </button>
+                        {/* Expandable Sub-Row: Formula Breakdown + AR Payment History + Inline Quick Payment */}
+                        {isExpanded && (
+                          <tr className="bg-slate-50/90 border-b border-slate-200">
+                            <td colSpan={10} className="p-4 space-y-3">
+                              {/* Formula breakdown strip */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 bg-white rounded-xl border border-slate-200 p-3 text-xs">
+                                <div>
+                                  <div className="text-slate-400">TOT Barang</div>
+                                  <div className="font-mono font-bold">{formatIDR(inv.totalOrderAmount)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-slate-400">Freight</div>
+                                  <div className="font-mono font-bold">{formatIDR(inv.freightCost)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-slate-400">Diskon</div>
+                                  <div className="font-mono font-bold">{formatIDR(inv.discountAmount)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-slate-400">Pot. UM / Retensi</div>
+                                  <div className="font-mono font-bold">
+                                    {formatIDR(inv.downPaymentDeduction + inv.retentionDeduction)}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-slate-400">DPP</div>
+                                  <div className="font-mono font-bold text-slate-800">{formatIDR(inv.dpp)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-slate-400">PPN ({inv.ppnRate}%)</div>
+                                  <div className="font-mono font-bold text-blue-700">{formatIDR(inv.ppnAmount)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-slate-400">PPh ({inv.pphRate}%)</div>
+                                  <div className="font-mono font-bold text-rose-700">{formatIDR(inv.pphAmount)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-slate-400">Grand Total</div>
+                                  <div className="font-mono font-extrabold text-emerald-700">{formatIDR(inv.grandTotal)}</div>
+                                </div>
+                              </div>
+
+                              {/* AR Payments sub-table */}
+                              <div className="bg-white rounded-xl border border-slate-200 p-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-slate-700">
+                                    Riwayat Pelunasan AR ({expandedPayments.length})
+                                  </span>
+                                  {canMutate && !isPaid && !isVoid && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setInlinePayInvoiceId(inv.id);
+                                        setInlinePayDraft({
+                                          paymentDate: todayStr(),
+                                          paymentAmount: inv.outstandingAmount,
+                                          paymentMethod: 'BANK_TRANSFER',
+                                          bankAccount: '',
+                                          referenceNumber: '',
+                                          notes: '',
+                                        });
+                                      }}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                      <span>Catat Pembayaran</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                {inlinePayInvoiceId === inv.id && (
+                                  <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200 grid grid-cols-2 sm:grid-cols-6 gap-2 items-end text-xs">
+                                    <label className="space-y-0.5">
+                                      <span className="text-[11px] font-semibold text-slate-600">Tgl Bayar</span>
+                                      <input
+                                        type="date"
+                                        value={inlinePayDraft.paymentDate}
+                                        onChange={(e) => setInlinePayDraft({ ...inlinePayDraft, paymentDate: e.target.value })}
+                                        className="w-full px-2 py-1.5 rounded border border-slate-300 bg-white text-xs"
+                                      />
+                                    </label>
+                                    <label className="space-y-0.5">
+                                      <span className="text-[11px] font-semibold text-slate-600">Nominal</span>
+                                      <input
+                                        type="number"
+                                        value={inlinePayDraft.paymentAmount}
+                                        onChange={(e) =>
+                                          setInlinePayDraft({ ...inlinePayDraft, paymentAmount: Number(e.target.value) })
+                                        }
+                                        className="w-full px-2 py-1.5 rounded border border-slate-300 bg-white text-xs font-mono"
+                                      />
+                                    </label>
+                                    <label className="space-y-0.5">
+                                      <span className="text-[11px] font-semibold text-slate-600">Metode</span>
+                                      <select
+                                        value={inlinePayDraft.paymentMethod}
+                                        onChange={(e) =>
+                                          setInlinePayDraft({
+                                            ...inlinePayDraft,
+                                            paymentMethod: e.target.value as ArPaymentPayload['paymentMethod'],
+                                          })
+                                        }
+                                        className="w-full px-2 py-1.5 rounded border border-slate-300 bg-white text-xs"
+                                      >
+                                        <option value="BANK_TRANSFER">BANK TRANSFER</option>
+                                        <option value="CASH">CASH</option>
+                                        <option value="GIRO">GIRO</option>
+                                        <option value="CHEQUE">CHEQUE</option>
+                                        <option value="VIRTUAL_ACCOUNT">VIRTUAL ACCOUNT</option>
+                                      </select>
+                                    </label>
+                                    <label className="space-y-0.5">
+                                      <span className="text-[11px] font-semibold text-slate-600">Rekening</span>
+                                      <input
+                                        type="text"
+                                        placeholder="BCA / Mandiri..."
+                                        value={inlinePayDraft.bankAccount || ''}
+                                        onChange={(e) => setInlinePayDraft({ ...inlinePayDraft, bankAccount: e.target.value })}
+                                        className="w-full px-2 py-1.5 rounded border border-slate-300 bg-white text-xs"
+                                      />
+                                    </label>
+                                    <label className="space-y-0.5">
+                                      <span className="text-[11px] font-semibold text-slate-600">No. Referensi</span>
+                                      <input
+                                        type="text"
+                                        placeholder="TRF-001"
+                                        value={inlinePayDraft.referenceNumber || ''}
+                                        onChange={(e) => setInlinePayDraft({ ...inlinePayDraft, referenceNumber: e.target.value })}
+                                        className="w-full px-2 py-1.5 rounded border border-slate-300 bg-white text-xs"
+                                      />
+                                    </label>
+                                    <div className="flex gap-1 justify-end">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          inlinePayMutation.mutate({ invoiceId: inv.id, payload: inlinePayDraft })
+                                        }
+                                        disabled={inlinePayMutation.isPending}
+                                        className="px-2.5 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer"
+                                      >
+                                        Simpan
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setInlinePayInvoiceId(null)}
+                                        className="px-2 py-1.5 rounded border border-slate-300 bg-white text-slate-700 text-xs font-bold cursor-pointer"
+                                      >
+                                        Batal
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {isLoadingPayments ? (
+                                  <div className="text-xs text-slate-400 py-2">Memuat riwayat pembayaran...</div>
+                                ) : expandedPayments.length === 0 ? (
+                                  <div className="text-xs text-slate-400 py-2">Belum ada mutasi pelunasan untuk invoice ini.</div>
+                                ) : (
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="text-[11px] text-slate-500 uppercase border-b border-slate-200">
+                                        <th className="py-1.5 text-left">No. Pembayaran</th>
+                                        <th className="py-1.5 text-left">Tanggal</th>
+                                        <th className="py-1.5 text-left">Metode &amp; Rekening</th>
+                                        <th className="py-1.5 text-left">Referensi</th>
+                                        <th className="py-1.5 text-right">Nominal</th>
+                                        <th className="py-1.5 text-center">Rekonsiliasi</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                      {expandedPayments.map((p) => (
+                                        <tr key={p.id}>
+                                          <td className="py-1.5 font-mono font-semibold">{p.paymentNumber}</td>
+                                          <td className="py-1.5">{p.paymentDate}</td>
+                                          <td className="py-1.5">
+                                            {p.paymentMethod} {p.bankAccount ? `(${p.bankAccount})` : ''}
+                                          </td>
+                                          <td className="py-1.5 font-mono">{p.referenceNumber || '-'}</td>
+                                          <td className="py-1.5 text-right font-mono font-bold text-emerald-700">
+                                            {formatIDR(p.paymentAmount)}
+                                          </td>
+                                          <td className="py-1.5 text-center">
+                                            {p.reconciliationStatus === 'RECONCILED' ? (
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold">
+                                                <CheckCircle2 className="w-3 h-3" /> RECONCILED
+                                              </span>
+                                            ) : (
+                                              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[11px] font-bold">
+                                                UNRECONCILED
+                                              </span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="px-4 py-2.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-600">
+            <span>
+              Halaman <strong>{page}</strong> dari <strong>{totalPages}</strong>
+            </span>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1 rounded-lg border border-slate-300 bg-white disabled:opacity-40 hover:bg-slate-100 font-semibold cursor-pointer"
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="px-3 py-1 rounded-lg border border-slate-300 bg-white disabled:opacity-40 hover:bg-slate-100 font-semibold cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Soft Delete / Void Confirmation */}
       <ConfirmActionModal

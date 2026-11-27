@@ -57,6 +57,13 @@ import {
 import { useRBAC } from '../../hooks/useRBAC';
 import { EmployeeFormModal, getDerivedRole as getDerivedRole8 } from './EmployeeFormModal';
 import { EmployeeDetailModal } from './EmployeeDetailModal';
+import {
+  ExcelColumn,
+  ExcelSpreadsheetTable,
+  ExcelViewToggle,
+  TableViewStyle,
+  exportExcelCsv,
+} from '../../components/shared/ExcelDataKit';
 
 const CONTENT = {
   id: {
@@ -333,6 +340,7 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
   const [pageSize, setPageSize] = useState(10);
 
   // Filters & Search
+  const [tableStyle, setTableStyle] = useState<TableViewStyle>('preview');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('ALL');
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('ALL');
@@ -821,6 +829,356 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
 
   const currentTab = activeSubFeature === 'new_user' ? 'create' : 'list';
 
+  const getRawEmp = (u: UserProfile) =>
+    apiUsers.find((x) => String(x.id) === String(u.id)) || {};
+
+  const renderInlineAccessEditor = (user: UserProfile) => (
+    <div className="bg-white rounded-xl border border-violet-200 p-3.5 space-y-3 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+        <div className="font-bold text-violet-800 flex items-center gap-1.5">
+          <Shield className="w-4 h-4" />
+          <span>Atur Akses &amp; Role — {user.name}</span>
+        </div>
+        <label className="inline-flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={inlineAccessForm.isActive}
+            onChange={(e) =>
+              setInlineAccessForm({ ...inlineAccessForm, isActive: e.target.checked })
+            }
+            className="accent-emerald-600"
+          />
+          <span>Akun Login Aktif</span>
+        </label>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <label className="space-y-1">
+          <span className="font-semibold text-slate-600">Level RBAC</span>
+          <select
+            value={inlineAccessForm.userLevel}
+            onChange={(e) =>
+              setInlineAccessForm({ ...inlineAccessForm, userLevel: e.target.value })
+            }
+            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+          >
+            {userLevels.map((lvl) => (
+              <option key={lvl.value} value={lvl.value}>
+                {lvl.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="space-y-1">
+          <span className="font-semibold text-slate-600">Departemen Utama</span>
+          <select
+            value={inlineAccessForm.department}
+            onChange={(e) => {
+              const nextDept = e.target.value;
+              const oldDept = inlineAccessForm.department;
+              const nextAccess = Array.from(
+                new Set([
+                  ...inlineAccessForm.departmentAccess.filter((d) => d !== oldDept),
+                  nextDept,
+                ])
+              );
+              setInlineAccessForm({
+                ...inlineAccessForm,
+                department: nextDept,
+                departmentAccess: nextAccess,
+              });
+            }}
+            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+          >
+            {departments.map((d) => (
+              <option key={d.value} value={d.value}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="space-y-1">
+          <span className="font-semibold text-slate-600">Role</span>
+          <select
+            value={inlineAccessForm.roleName}
+            onChange={(e) =>
+              setInlineAccessForm({ ...inlineAccessForm, roleName: e.target.value })
+            }
+            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+          >
+            <option value="">-- Default Role --</option>
+            {availableRoles.map((r) => (
+              <option key={r.id} value={r.name}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="space-y-1.5">
+        <span className="font-semibold text-slate-600 block">
+          Akses Lintas Departemen (department_access):
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {OFFICIAL_DIVISIONS.map((divCode) => {
+            const checked = inlineAccessForm.departmentAccess.includes(divCode);
+            return (
+              <label
+                key={divCode}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold cursor-pointer ${
+                  checked
+                    ? 'bg-violet-50 border-violet-300 text-violet-800'
+                    : 'bg-white border-slate-200 text-slate-600'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => {
+                    const next = checked
+                      ? inlineAccessForm.departmentAccess.filter((d) => d !== divCode)
+                      : [...inlineAccessForm.departmentAccess, divCode];
+                    setInlineAccessForm({ ...inlineAccessForm, departmentAccess: next });
+                  }}
+                  className="accent-violet-600"
+                />
+                <span>{divCode}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button
+          type="button"
+          onClick={() => setInlineAccessUserId(null)}
+          className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold cursor-pointer"
+        >
+          Batal
+        </button>
+        <button
+          type="button"
+          disabled={inlineAccessSaving}
+          onClick={() => handleSaveInlineAccess(user.id, user.name)}
+          className="px-3.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-bold cursor-pointer disabled:opacity-50"
+        >
+          {inlineAccessSaving ? 'Menyimpan...' : 'Simpan Akses & Role'}
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderEmployeeActions = (user: UserProfile) => (
+    <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => {
+          const fullData = apiUsers.find((u) => String(u.id) === String(user.id)) || user;
+          setViewUserDetail(fullData);
+        }}
+        className="p-1.5 rounded-lg border border-sky-200 text-sky-700 hover:bg-sky-50 transition-colors cursor-pointer"
+        title="Lihat Detail Lengkap & Dokumen"
+      >
+        <Eye className="w-4 h-4" />
+      </button>
+
+      {isAuthorized && (
+        <button
+          onClick={() => handleSuspend(user.id, user.status, user.name)}
+          className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+            user.status === 'ACTIVE'
+              ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
+              : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+          }`}
+          title={user.status === 'ACTIVE' ? t.actionSuspend : t.actionActivate}
+        >
+          {user.status === 'ACTIVE' ? (
+            <UserX className="w-4 h-4" />
+          ) : (
+            <UserCheck className="w-4 h-4" />
+          )}
+        </button>
+      )}
+
+      {isAuthorized && (
+        <button
+          onClick={() => handleEdit(user)}
+          className="p-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
+          title="Edit Data Pegawai"
+        >
+          <Pencil className="w-4 h-4" />
+        </button>
+      )}
+
+      {isAuthorized && (
+        <button
+          onClick={() => handleDelete(user.id, user.name)}
+          className="p-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+          title="Hapus Pegawai"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+
+      {isAuthorized && (
+        <button
+          type="button"
+          onClick={() => openInlineAccess(user)}
+          className={`px-2 py-1.5 rounded-lg border text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer ${
+            inlineAccessUserId === String(user.id)
+              ? 'bg-violet-600 text-white border-violet-600'
+              : 'border-violet-200 text-violet-700 hover:bg-violet-50'
+          }`}
+          title="Atur Akses & Role Inline"
+        >
+          <Shield className="w-3.5 h-3.5" />
+          <span className="hidden xl:inline">Akses</span>
+        </button>
+      )}
+
+      {isAuthorized && (
+        <button
+          onClick={() => {
+            const tempPass = prompt(`Masukkan password sementara untuk ${user.name}:`);
+            if (tempPass) {
+              updateEmployeeApi(user.id, { password: tempPass } as any)
+                .then(() =>
+                  toast.success(`Password sementara untuk ${user.name} berhasil diatur.`)
+                )
+                .catch((err) => toast.error(`Gagal mengatur password: ${err.message}`));
+            }
+          }}
+          className="p-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+          title={t.actionReset}
+        >
+          <Key className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+
+  const employeeExcelDataColumns: ExcelColumn<UserProfile>[] = [
+    {
+      key: 'nik',
+      header: 'NIK',
+      mono: true,
+      getValue: (u) => u.nik || '-',
+    },
+    {
+      key: 'name',
+      header: 'Nama Lengkap',
+      minWidth: 'min-w-[180px]',
+      getValue: (u) => u.name || '-',
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      getValue: (u) => u.email || '-',
+    },
+    {
+      key: 'phone',
+      header: 'No. Telepon',
+      mono: true,
+      getValue: (u) => getRawEmp(u).phoneNumber || '-',
+    },
+    {
+      key: 'department',
+      header: 'Departemen',
+      getValue: (u) => findOptionLabel(departments, u.department) || u.department || '-',
+    },
+    {
+      key: 'plantLocation',
+      header: 'Lokasi',
+      getValue: (u) => u.plantLocation || '-',
+    },
+    {
+      key: 'employmentStatus',
+      header: 'Status Kerja',
+      align: 'center',
+      getValue: (u) => u.employmentStatus || '-',
+    },
+    {
+      key: 'joinDate',
+      header: 'Tgl Bergabung',
+      mono: true,
+      getValue: (u) => {
+        const raw = getRawEmp(u);
+        return raw.joinDate || raw.join_date || '-';
+      },
+    },
+    {
+      key: 'userLevel',
+      header: 'Level RBAC',
+      getValue: (u) =>
+        u.userLevel ? findOptionLabel(userLevels, u.userLevel) : `Level ${u.tier}`,
+      render: (u) => {
+        const tierMeta = getTierBadge(u.tier);
+        return u.userLevel ? (
+          <span
+            className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${getBadgeClass(
+              findOptionBadge(userLevels, u.userLevel)
+            )}`}
+          >
+            {findOptionLabel(userLevels, u.userLevel)}
+          </span>
+        ) : (
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${tierMeta.badgeClass}`}>
+            {tierMeta.pillText} • Level {u.tier}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'role',
+      header: 'Peran Fungsional',
+      getValue: (u) => ROLE_DEFINITIONS[u.role]?.label || u.role || '-',
+    },
+    {
+      key: 'departmentAccess',
+      header: 'Akses Divisi',
+      getValue: (u) => {
+        const raw = getRawEmp(u);
+        const arr = raw.departmentAccess || raw.allowedDivisions || [];
+        return Array.isArray(arr) && arr.length > 0 ? arr.join(', ') : u.department || '-';
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status Akun',
+      align: 'center',
+      getValue: (u) => (u.status === 'ACTIVE' ? t.statusActive : t.statusSuspended),
+      render: (u) => (
+        <span
+          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
+            u.status === 'ACTIVE'
+              ? 'bg-emerald-100 text-emerald-700'
+              : 'bg-rose-100 text-rose-700'
+          }`}
+        >
+          {u.status === 'ACTIVE' ? t.statusActive : t.statusSuspended}
+        </span>
+      ),
+    },
+  ];
+
+  const employeeExcelColumns: ExcelColumn<UserProfile>[] = [
+    ...employeeExcelDataColumns,
+    {
+      key: 'actions',
+      header: 'Aksi',
+      align: 'right',
+      getValue: () => '',
+      render: (u) => renderEmployeeActions(u),
+    },
+  ];
+
+  const inlineAccessTargetUser = inlineAccessUserId
+    ? filteredUsers.find((u) => String(u.id) === inlineAccessUserId) || null
+    : null;
+
   return (
     <div className="space-y-6">
       {/* Senior-Friendly Header with Option Buttons */}
@@ -990,10 +1348,10 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
       {/* ─── OPTION 1 / LIST: DAFTAR AKUN PEGAWAI ─── */}
       {(activeOption === 'list' || activeOption === 'all') && (
         <div className="space-y-4">
-          {/* SEARCH & FILTERS BAR - Ringkas & Satu Baris */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:flex-1">
-              <div className="relative w-full flex-1">
+          {/* SEARCH & FILTERS BAR - Responsif & Anti-Terpotong */}
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[260px]">
+              <div className="relative flex-1 min-w-[180px]">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
@@ -1007,9 +1365,9 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
               <select
                 value={selectedDeptFilter}
                 onChange={(e) => setSelectedDeptFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl px-3 py-2 focus:border-blue-600 focus:bg-white outline-none w-full sm:w-auto min-w-[200px] transition-all cursor-pointer"
+                className="bg-slate-50 border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl px-3 py-2 focus:border-blue-600 focus:bg-white outline-none w-full sm:w-auto min-w-[170px] transition-all cursor-pointer"
               >
-                <option value="ALL">Semua Divisi / Departemen</option>
+                <option value="ALL">Semua Divisi</option>
                 {departments.map((d: any) => (
                   <option key={d.value} value={d.value}>{d.label}</option>
                 ))}
@@ -1027,33 +1385,78 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
               </select>
             </div>
 
-            {isAuthorized && (
-              <button
-                onClick={() => {
-                  setEditingUserId(null);
-                  setIsFormOpen(true);
-                }}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer shrink-0 self-stretch sm:self-auto justify-center"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Tambah Karyawan</span>
-              </button>
-            )}
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <ExcelViewToggle
+                value={tableStyle}
+                onChange={setTableStyle}
+                onExport={() =>
+                  exportExcelCsv(
+                    'database-karyawan-st-morita',
+                    employeeExcelDataColumns,
+                    filteredUsers
+                  )
+                }
+                exportDisabled={filteredUsers.length === 0}
+              />
+
+              {isAuthorized && (
+                <button
+                  onClick={() => {
+                    setEditingUserId(null);
+                    setIsFormOpen(true);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer shrink-0 justify-center"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Tambah Karyawan</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* REGISTERED EMPLOYEES TABLE */}
-          <div className="rounded-xl bg-white border border-slate-200 shadow-xs overflow-hidden flex flex-col">
+          {tableStyle === 'excel' ? (
+            <div className="space-y-3">
+              {isAuthorized && inlineAccessTargetUser && (
+                <div className="p-3 rounded-xl bg-violet-50 border border-violet-200">
+                  {renderInlineAccessEditor(inlineAccessTargetUser)}
+                </div>
+              )}
+              <ExcelSpreadsheetTable
+                title="Database Karyawan & Akun Pegawai — Tampilan Excel"
+                subtitle="Klik baris untuk melihat detail lengkap & dokumen • Geser horizontal untuk melihat seluruh kolom"
+                columns={employeeExcelColumns}
+                rows={filteredUsers}
+                rowKey={(u) => u.id}
+                isLoading={isLoadingEmployees}
+                emptyText={t.emptyTable}
+                onRowClick={(user) => {
+                  const fullData = apiUsers.find((u) => String(u.id) === String(user.id)) || user;
+                  setViewUserDetail(fullData);
+                }}
+                pagination={{
+                  page: currentPage,
+                  totalPages,
+                  totalItems: totalCount,
+                  unitLabel: 'pegawai',
+                  onPrev: () => setCurrentPage((p) => Math.max(1, p - 1)),
+                  onNext: () => setCurrentPage((p) => Math.min(totalPages, p + 1)),
+                }}
+              />
+            </div>
+          ) : (
+          /* REGISTERED EMPLOYEES TABLE */
+          <div className="rounded-xl bg-white border border-slate-300 shadow-xs overflow-hidden flex flex-col">
             <div className="overflow-auto max-h-[65vh]">
-              <table className="w-full text-left text-xs sm:text-sm relative border-collapse">
-                <thead className="sticky top-0 z-10 bg-slate-100/90 backdrop-blur-xs shadow-xs border-b border-slate-200">
-                  <tr className="text-slate-600 font-bold text-xs uppercase tracking-wider">
-                    <th className="py-2.5 px-4">{t.colEmp}</th>
-                    <th className="py-2.5 px-4">{t.colDept}</th>
-                    <th className="py-2.5 px-4">{t.colRole}</th>
-                    <th className="py-2.5 px-4 text-right">{t.colAction}</th>
+              <table className="w-full text-left text-sm relative border-collapse">
+                <thead className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur-xs shadow-xs border-b border-slate-300">
+                  <tr className="text-slate-700 font-bold text-xs uppercase tracking-wider">
+                    <th className="py-3 px-4 border-r border-slate-200">{t.colEmp}</th>
+                    <th className="py-3 px-4 border-r border-slate-200">{t.colDept}</th>
+                    <th className="py-3 px-4 border-r border-slate-200">{t.colRole}</th>
+                    <th className="py-3 px-4 text-right">{t.colAction}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-200 text-sm">
                   {filteredUsers.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-8 text-center text-slate-400">
@@ -1078,7 +1481,7 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
                           title="Klik baris untuk melihat detail lengkap & dokumen karyawan"
                         >
                           {/* Name, NIK, Photo */}
-                          <td className="py-2.5 px-4">
+                          <td className="py-3.5 px-4 border-r border-slate-200">
                             <div className="flex items-center gap-3">
                               <img
                                 src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
@@ -1086,7 +1489,7 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
                                 className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
                               />
                               <div>
-                                <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-2">
+                                <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
                                   <span>{user.name}</span>
                                   {isCurrent && (
                                     <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-blue-100 text-blue-900 font-bold uppercase">
@@ -1104,18 +1507,18 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
                           </td>
 
                           {/* Department & Location */}
-                          <td className="py-2.5 px-4">
-                            <div className="font-semibold text-slate-800 text-xs sm:text-sm">
+                          <td className="py-3.5 px-4 border-r border-slate-200">
+                            <div className="font-semibold text-slate-800 text-sm">
                               {findOptionLabel(departments, user.department) || user.department}
                             </div>
-                            <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                            <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                               <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                               <span>{user.plantLocation}</span>
                             </div>
                           </td>
 
                           {/* Role & Tier Badge */}
-                          <td className="py-2.5 px-4">
+                          <td className="py-3.5 px-4 border-r border-slate-200">
                             <div className="flex flex-col gap-0.5 items-start">
                               {user.userLevel ? (
                                 <span
@@ -1138,91 +1541,8 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
                           </td>
 
                           {/* Actions */}
-                          <td className="py-2.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1.5">
-                              {/* View Detail */}
-                              <button
-                                onClick={() => {
-                                  const fullData = apiUsers.find(u => String(u.id) === String(user.id)) || user;
-                                  setViewUserDetail(fullData);
-                                }}
-                                className="p-1.5 rounded-lg border border-sky-200 text-sky-700 hover:bg-sky-50 transition-colors cursor-pointer"
-                                title="Lihat Detail Lengkap & Dokumen"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-
-                              {/* Toggle Active / Suspended */}
-                              {isAuthorized && (
-                                <button
-                                  onClick={() => handleSuspend(user.id, user.status, user.name)}
-                                  className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${user.status === 'ACTIVE'
-                                      ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
-                                      : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                                    }`}
-                                  title={user.status === 'ACTIVE' ? t.actionSuspend : t.actionActivate}
-                                >
-                                  {user.status === 'ACTIVE' ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                                </button>
-                              )}
-
-                              {/* Edit User */}
-                              {isAuthorized && (
-                                <button 
-                                   onClick={() => handleEdit(user)} 
-                                   className="p-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer" 
-                                   title="Edit Data Pegawai"
-                                >
-                                   <Pencil className="w-4 h-4" />
-                                </button>
-                              )}
-                              
-                              {/* Delete User */}
-                              {isAuthorized && (
-                                <button 
-                                   onClick={() => handleDelete(user.id, user.name)} 
-                                   className="p-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer" 
-                                   title="Hapus Pegawai"
-                                >
-                                   <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
-
-                              {/* Atur Akses & Role Inline (PATCH /hrd/employees/{id}/access) */}
-                              {isAuthorized && (
-                                <button
-                                  type="button"
-                                  onClick={() => openInlineAccess(user)}
-                                  className={`px-2 py-1.5 rounded-lg border text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer ${
-                                    inlineAccessUserId === String(user.id)
-                                      ? 'bg-violet-600 text-white border-violet-600'
-                                      : 'border-violet-200 text-violet-700 hover:bg-violet-50'
-                                  }`}
-                                  title="Atur Akses & Role Inline"
-                                >
-                                  <Shield className="w-3.5 h-3.5" />
-                                  <span className="hidden xl:inline">Akses</span>
-                                </button>
-                              )}
-
-                              {/* Reset Password */}
-                              {isAuthorized && (
-                                <button
-                                  onClick={() => {
-                                    const tempPass = prompt(`Masukkan password sementara untuk ${user.name}:`);
-                                    if (tempPass) {
-                                      updateEmployeeApi(user.id, { password: tempPass } as any)
-                                        .then(() => toast.success(`Password sementara untuk ${user.name} berhasil diatur.`))
-                                        .catch((err) => toast.error(`Gagal mengatur password: ${err.message}`));
-                                    }
-                                  }}
-                                  className="p-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                                  title={t.actionReset}
-                                >
-                                  <Key className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
+                          <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                            {renderEmployeeActions(user)}
                           </td>
                         </tr>
 
@@ -1230,143 +1550,7 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
                         {isAuthorized && inlineAccessUserId === String(user.id) && (
                           <tr className="bg-violet-50/70 border-b border-violet-200">
                             <td colSpan={4} className="p-3.5">
-                              <div className="bg-white rounded-xl border border-violet-200 p-3.5 space-y-3 text-xs">
-                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                                  <div className="font-bold text-violet-800 flex items-center gap-1.5">
-                                    <Shield className="w-4 h-4" />
-                                    <span>Atur Akses &amp; Role — {user.name}</span>
-                                  </div>
-                                  <label className="inline-flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={inlineAccessForm.isActive}
-                                      onChange={(e) =>
-                                        setInlineAccessForm({ ...inlineAccessForm, isActive: e.target.checked })
-                                      }
-                                      className="accent-emerald-600"
-                                    />
-                                    <span>Akun Login Aktif</span>
-                                  </label>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                                  <label className="space-y-1">
-                                    <span className="font-semibold text-slate-600">Level RBAC</span>
-                                    <select
-                                      value={inlineAccessForm.userLevel}
-                                      onChange={(e) =>
-                                        setInlineAccessForm({ ...inlineAccessForm, userLevel: e.target.value })
-                                      }
-                                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
-                                    >
-                                      {userLevels.map((lvl) => (
-                                        <option key={lvl.value} value={lvl.value}>
-                                          {lvl.label}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </label>
-
-                                  <label className="space-y-1">
-                                    <span className="font-semibold text-slate-600">Departemen Utama</span>
-                                    <select
-                                      value={inlineAccessForm.department}
-                                      onChange={(e) => {
-                                        const nextDept = e.target.value;
-                                        const oldDept = inlineAccessForm.department;
-                                        const nextAccess = Array.from(
-                                          new Set([
-                                            ...inlineAccessForm.departmentAccess.filter((d) => d !== oldDept),
-                                            nextDept,
-                                          ])
-                                        );
-                                        setInlineAccessForm({
-                                          ...inlineAccessForm,
-                                          department: nextDept,
-                                          departmentAccess: nextAccess,
-                                        });
-                                      }}
-                                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
-                                    >
-                                      {departments.map((d) => (
-                                        <option key={d.value} value={d.value}>
-                                          {d.label}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </label>
-
-                                  <label className="space-y-1">
-                                    <span className="font-semibold text-slate-600">Role</span>
-                                    <select
-                                      value={inlineAccessForm.roleName}
-                                      onChange={(e) =>
-                                        setInlineAccessForm({ ...inlineAccessForm, roleName: e.target.value })
-                                      }
-                                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
-                                    >
-                                      <option value="">-- Default Role --</option>
-                                      {availableRoles.map((r) => (
-                                        <option key={r.id} value={r.name}>
-                                          {r.name}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </label>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                  <span className="font-semibold text-slate-600 block">
-                                    Akses Lintas Departemen (department_access):
-                                  </span>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {OFFICIAL_DIVISIONS.map((divCode) => {
-                                      const checked = inlineAccessForm.departmentAccess.includes(divCode);
-                                      return (
-                                        <label
-                                          key={divCode}
-                                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold cursor-pointer ${
-                                            checked
-                                              ? 'bg-violet-50 border-violet-300 text-violet-800'
-                                              : 'bg-white border-slate-200 text-slate-600'
-                                          }`}
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => {
-                                              const next = checked
-                                                ? inlineAccessForm.departmentAccess.filter((d) => d !== divCode)
-                                                : [...inlineAccessForm.departmentAccess, divCode];
-                                              setInlineAccessForm({ ...inlineAccessForm, departmentAccess: next });
-                                            }}
-                                            className="accent-violet-600"
-                                          />
-                                          <span>{divCode}</span>
-                                        </label>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-
-                                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                                  <button
-                                    type="button"
-                                    onClick={() => setInlineAccessUserId(null)}
-                                    className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold cursor-pointer"
-                                  >
-                                    Batal
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={inlineAccessSaving}
-                                    onClick={() => handleSaveInlineAccess(user.id, user.name)}
-                                    className="px-3.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-bold cursor-pointer disabled:opacity-50"
-                                  >
-                                    {inlineAccessSaving ? 'Menyimpan...' : 'Simpan Akses & Role'}
-                                  </button>
-                                </div>
-                              </div>
+                              {renderInlineAccessEditor(user)}
                             </td>
                           </tr>
                         )}
@@ -1415,6 +1599,7 @@ export const UserManagementModule: React.FC<{ hideHeader?: boolean }> = ({ hideH
           </div>
         </div>
       </div>
+          )}
     </div>
   )}
 

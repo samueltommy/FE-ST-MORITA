@@ -22,29 +22,29 @@ export const WarehousePpicDivisionModule: React.FC = () => {
   const options: PageOptionItem[] = [
     {
       id: 'goods_receipts',
-      label: '1. Penerimaan Barang (LOG)',
-      subtitle: '/warehouse/goods-receipts • Receiving dock',
+      label: 'Penerimaan Barang (LOG)',
+      subtitle: 'Receiving dock & inspeksi awal',
       icon: Truck,
       badge: `${goodsReceipts.length} LOG`,
     },
     {
       id: 'waste_logs',
-      label: '2. Pencatatan Limbah (Waste)',
-      subtitle: '/warehouse/waste-logs • Log limbah & scrap',
+      label: 'Pencatatan Limbah (Waste)',
+      subtitle: 'Log limbah & scrap',
       icon: Trash2,
       badge: `${wasteRecords.length} Tiket`,
     },
     {
       id: 'work_orders',
-      label: '3. SPK Produksi (Work Orders)',
-      subtitle: '/production/work-orders • Perintah kerja PPIC',
+      label: 'SPK Produksi (Work Orders)',
+      subtitle: 'Perintah kerja PPIC',
       icon: FileSpreadsheet,
       badge: `${workOrders.length} SPK`,
     },
     {
       id: 'items',
-      label: '4. Master Item & Stok',
-      subtitle: '/mdm/items • Katalog SKU & stok gudang',
+      label: 'Master Item & Stok',
+      subtitle: 'Katalog SKU & stok gudang',
       icon: Boxes,
       badge: `${items.length} SKU`,
     },
@@ -54,7 +54,7 @@ export const WarehousePpicDivisionModule: React.FC = () => {
     const hubItems: ModuleFeatureHubItem[] = [
       {
         id: 'goods_receipts',
-        label: 'Penerimaan Barang / Receiving LOG (/warehouse/goods-receipts)',
+        label: 'Penerimaan Barang / Receiving LOG',
         subtitle: `Penerimaan fisik dock gudang, no container, dan auto-trigger IQC (${goodsReceipts.length} LOG)`,
         icon: Truck,
         iconColor: 'text-sky-600',
@@ -64,7 +64,7 @@ export const WarehousePpicDivisionModule: React.FC = () => {
       },
       {
         id: 'waste_logs',
-        label: 'Pencatatan Limbah / Waste (/warehouse/waste-logs)',
+        label: 'Pencatatan Limbah / Waste',
         subtitle: `Pencatatan limbah bahan baku & finished goods, scrap allowance (${wasteRecords.length} Catatan)`,
         icon: Trash2,
         iconColor: 'text-rose-600',
@@ -74,7 +74,7 @@ export const WarehousePpicDivisionModule: React.FC = () => {
       },
       {
         id: 'work_orders',
-        label: 'SPK Produksi / Work Orders (/production/work-orders)',
+        label: 'SPK Produksi / Work Orders',
         subtitle: `Penjadwalan SPK mesin slitting/coating & target roll (${workOrders.length} SPK)`,
         icon: FileSpreadsheet,
         iconColor: 'text-blue-600',
@@ -84,7 +84,7 @@ export const WarehousePpicDivisionModule: React.FC = () => {
       },
       {
         id: 'items',
-        label: 'Master Item & Stok (/mdm/items)',
+        label: 'Master Item & Stok',
         subtitle: `Katalog SKU produk pita perekat, lokasi rak gudang & label Zebra (${items.length} SKU)`,
         icon: Boxes,
         iconColor: 'text-emerald-600',
@@ -98,7 +98,7 @@ export const WarehousePpicDivisionModule: React.FC = () => {
       <ModuleFeatureHub
         moduleCode="WAREHOUSE_PPIC"
         moduleName="DIVISI WAREHOUSE & PPIC"
-        moduleDescription="Penerimaan Barang / Receiving LOG (/warehouse/goods-receipts), Pencatatan Limbah / Waste (/warehouse/waste-logs), SPK Produksi / Work Orders (/production/work-orders), dan Master Item & Stok (/mdm/items)."
+        moduleDescription="Penerimaan Barang / Receiving LOG, Pencatatan Limbah / Waste, SPK Produksi / Work Orders, dan Master Item & Stok."
         headerBgColor="bg-sky-700"
         items={hubItems}
         onBackToHome={() => appStore.setActiveModule('home')}
@@ -128,7 +128,7 @@ export const WarehousePpicDivisionModule: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-lg font-black text-slate-900">Penerimaan Barang / Receiving LOG</h3>
-              <p className="text-xs text-slate-500 font-mono">Endpoint: GET /api/v1/warehouse/goods-receipts</p>
+              <p className="text-xs text-slate-500">Daftar penerimaan fisik barang di dock gudang & status inspeksi IQC</p>
             </div>
             <span className="px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold">
               {goodsReceipts.length} Transaksi
@@ -154,9 +154,8 @@ export const WarehousePpicDivisionModule: React.FC = () => {
                     <td className="py-3 px-4">{g.supplierName}</td>
                     <td className="py-3 px-4">{g.itemName} ({g.qtyDelivered} {g.unit})</td>
                     <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${
-                        g.iqcStatus === 'PASS' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${g.iqcStatus === 'PASS' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
                         {g.iqcStatus}
                       </span>
                     </td>
@@ -174,7 +173,7 @@ export const WarehousePpicDivisionModule: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-lg font-black text-slate-900">Pencatatan Limbah & Scrap (Waste Logs)</h3>
-              <p className="text-xs text-slate-500 font-mono">Endpoint: GET /api/v1/warehouse/waste-logs</p>
+              <p className="text-xs text-slate-500">Catatan limbah bahan baku, finished goods & tindakan korektif</p>
             </div>
             <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-bold">
               {wasteRecords.length} Catatan
@@ -205,7 +204,7 @@ export const WarehousePpicDivisionModule: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-lg font-black text-slate-900">SPK Produksi / Work Orders</h3>
-              <p className="text-xs text-slate-500 font-mono">Endpoint: GET /api/v1/production/work-orders</p>
+              <p className="text-xs text-slate-500">Daftar surat perintah kerja produksi, spesifikasi & lini mesin</p>
             </div>
             <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold">
               {workOrders.length} SPK
@@ -249,7 +248,7 @@ export const WarehousePpicDivisionModule: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-lg font-black text-slate-900">Master Item & Stok Barang</h3>
-              <p className="text-xs text-slate-500 font-mono">Endpoint: GET /api/v1/mdm/items</p>
+              <p className="text-xs text-slate-500">Katalog SKU produk, lokasi rak gudang & ketersediaan stok</p>
             </div>
             <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
               {items.length} SKU

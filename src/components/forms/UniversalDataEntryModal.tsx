@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -6,320 +6,297 @@ import {
   Users,
   Boxes,
   Truck,
-  ShieldAlert,
+  ShieldCheck,
   FileSpreadsheet,
-  Receipt,
+  Calculator,
+  FlaskConical,
+  ShoppingCart,
   ArrowRight,
 } from 'lucide-react';
-import { HrdFormsModal } from './HrdFormsModal';
-import { MasterDataFormsModal } from './MasterDataFormsModal';
-import { ProcurementFormsModal } from './ProcurementFormsModal';
-import { ProductionQcFormsModal } from './ProductionQcFormsModal';
-import { SalesFormsModal } from './SalesFormsModal';
-import { FinanceFormsModal } from './FinanceFormsModal';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore, appStore } from '../../store/useAppStore';
 import { useRBAC } from '../../hooks/useRBAC';
-
-const CONTENT = {
-  id: {
-    modalTitle: 'Pusat Input Data Enterprise (Data Entry Center)',
-    modalDesc: 'Pilih formulir entri data transaksi yang ingin Anda masukkan untuk masing-masing bidang operasional',
-    footerTxt: 'Setiap entri data otomatis divalidasi dan dicatat ke dalam audit trail SHA-256',
-    btnClose: 'Tutup',
-    hrdTitle: 'HRD & Administrasi Lapangan',
-    hrdDesc: 'Formulir Pengajuan Cuti/Izin, Pemesanan Truk Operasional, Check-in GPS Sales, & Pendaftaran Karyawan',
-    hrdItems: { leave: 'Pengajuan Cuti / Izin', vehicle: 'Peminjaman Armada Truk', visit: 'Check-in Sales GPS', employee: 'Registrasi Pegawai' },
-    mdmTitle: 'Master Data (MDM) & Limbah',
-    mdmDesc: 'Registrasi Pelanggan (NPWP & Kode Pajak 01-09), Supplier/Vendor, Item Pita Perekat, & Tiket Limbah',
-    mdmItems: { customer: 'Pelanggan & Kode Pajak', supplier: 'Master Vendor/Supplier', item: 'Item & Satuan Produk', waste: 'Pelaporan Tiket Limbah' },
-    scmTitle: 'Pengadaan & Rantai Pasok (SCM)',
-    scmDesc: 'Purchase Request PPIC, Penerbitan PO Vendor, Penerimaan Fisik Gudang (LOG + Auto IQC), & EXIM Bea Cukai',
-    scmItems: { pr: 'Purchase Request (PR)', po: 'Purchase Order (PO)', log: 'Penerimaan LOG & IQC', exim: 'Dokumen Pabean BC' },
-    prodTitle: 'Lantai Produksi & Kontrol Mutu',
-    prodDesc: 'Penerbitan SPK (validasi blokir lot hold), Input Pengujian Lab IQC/PQC, & Otorisasi Release Hold',
-    prodItems: { spk: 'Penerbitan SPK (Work Order)', qc_test: 'Input Pengujian QC Lab', hold_override: 'Otorisasi Release Hold' },
-    salesTitle: 'Penjualan & Distribusi Lapangan',
-    salesDesc: 'Kalkulator Margin Penawaran (Lockout <18%), Penerbitan Surat Jalan DO/RDO, & Update E-Tracking',
-    salesItems: { quotation: 'Kalkulator Margin Quotation', do: 'Surat Jalan DO & RDO', tracking: 'Update Checkpoint Barcode' },
-    finTitle: 'Keuangan, Faktur & E-Complaint',
-    finDesc: 'Pencatatan E-Complaint Pelanggan, Disposisi RMA & Debit Note, Faktur Hutang AP, & Penerimaan Piutang AR',
-    finItems: { complaint: 'Tiket E-Complaint Pelanggan', rma: 'Disposisi RMA & Debit Note', ap: 'Voucher Faktur Hutang (AP)', ar: 'Penerimaan Piutang (AR)' }
-  },
-  en: {
-    modalTitle: 'Enterprise Data Entry Center',
-    modalDesc: 'Select the transaction data entry form you want to input for each operational area',
-    footerTxt: 'Each data entry is automatically validated and recorded in the SHA-256 audit trail',
-    btnClose: 'Close',
-    hrdTitle: 'HRD & Field Administration',
-    hrdDesc: 'Leave/Permit Request Form, Operational Truck Booking, Sales GPS Check-in, & Employee Registration',
-    hrdItems: { leave: 'Leave / Permit Request', vehicle: 'Fleet Truck Borrowing', visit: 'Sales GPS Check-in', employee: 'Employee Registration' },
-    mdmTitle: 'Master Data (MDM) & Waste',
-    mdmDesc: 'Customer Registration (NPWP & Tax Code 01-09), Supplier/Vendor, Adhesive Tape Item, & Waste Ticket',
-    mdmItems: { customer: 'Customer & Tax Code', supplier: 'Vendor/Supplier Master', item: 'Item & Product Unit', waste: 'Waste Ticket Reporting' },
-    scmTitle: 'Procurement & Supply Chain (SCM)',
-    scmDesc: 'PPIC Purchase Request, Vendor PO Issuance, Physical Warehouse Receipt (LOG + Auto IQC), & Customs EXIM',
-    scmItems: { pr: 'Purchase Request (PR)', po: 'Purchase Order (PO)', log: 'LOG Receipt & IQC', exim: 'Customs Documents' },
-    prodTitle: 'Production Floor & Quality Control',
-    prodDesc: 'SPK Issuance (hold lot block validation), IQC/PQC Lab Testing Input, & Release Hold Authorization',
-    prodItems: { spk: 'SPK Issuance (Work Order)', qc_test: 'QC Lab Test Input', hold_override: 'Release Hold Authorization' },
-    salesTitle: 'Sales & Field Distribution',
-    salesDesc: 'Quotation Margin Calculator (<18% Lockout), DO/RDO Delivery Order Issuance, & E-Tracking Update',
-    salesItems: { quotation: 'Quotation Margin Calculator', do: 'DO & RDO Delivery Order', tracking: 'Update Barcode Checkpoint' },
-    finTitle: 'Finance, Invoice & E-Complaint',
-    finDesc: 'Customer E-Complaint Recording, RMA & Debit Note Disposition, AP Payable Invoice, & AR Receivable Receipt',
-    finItems: { complaint: 'Customer E-Complaint Ticket', rma: 'RMA & Debit Note Disposition', ap: 'AP Payable Invoice Voucher', ar: 'AR Receivable Receipt' }
-  }
-};
+import type { ActiveModule } from '../../types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type FormCategory = 'hrd' | 'master' | 'procurement' | 'production' | 'sales' | 'finance' | null;
+interface QuickEntryItem {
+  label: string;
+  subFeatureId: string;
+}
+
+interface QuickEntryCategory {
+  moduleId: ActiveModule;
+  title: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  badge: string;
+  items: QuickEntryItem[];
+}
 
 export const UniversalDataEntryModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const language = useAppStore((state) => state.language);
-  const t = CONTENT[language] || CONTENT.id;
+  const { canAccessModule, isSuperAdmin, isExecutive, userDivision } = useRBAC();
 
-  const [activeSubModal, setActiveSubModal] = useState<FormCategory>(null);
-  const [subModalTab, setSubModalTab] = useState<string | undefined>(undefined);
+  if (!isOpen) return null;
 
-  const { canAccessModule, isSuperAdmin, isExecutive, hasPermission } = useRBAC();
-  
-  const isHrdAdmin = isSuperAdmin || isExecutive || hasPermission('hrd:employee:read') || hasPermission('hrd:attendance:write');
+  const isHrdAdmin = isSuperAdmin || isExecutive || userDivision === 'HRD';
+  const isEn = language === 'en';
 
-  if (!isOpen && !activeSubModal) return null;
-
-  const openForm = (cat: FormCategory, tab?: string) => {
-    setSubModalTab(tab);
-    setActiveSubModal(cat);
-  };
-
-  const closeSubModal = () => {
-    setActiveSubModal(null);
-    setSubModalTab(undefined);
-    onClose();
-  };
-
-  const formCategories = [
+  const allCategories: QuickEntryCategory[] = [
     {
-      id: 'hrd',
-      title: t.hrdTitle,
-      desc: t.hrdDesc,
-      icon: Users,
-      color: 'bg-violet-50 text-violet-700 border-violet-200 hover:border-violet-400',
-      badge: 'HRD',
-      items: [
-        { label: t.hrdItems.leave, tab: 'leave' },
-        ...(isHrdAdmin ? [{ label: t.hrdItems.vehicle, tab: 'vehicle' }] : []),
-        ...(isHrdAdmin ? [{ label: t.hrdItems.visit, tab: 'visit' }] : []),
-        ...(isHrdAdmin || hasPermission('admin:users:manage') ? [{ label: t.hrdItems.employee, tab: 'employee' }] : []),
-      ],
-    },
-    {
-      id: 'master',
-      title: t.mdmTitle,
-      desc: t.mdmDesc,
-      icon: Boxes,
-      color: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-400',
-      badge: 'WAREHOUSE_PPIC',
-      items: [
-        { label: t.mdmItems.customer, tab: 'customer' },
-        { label: t.mdmItems.supplier, tab: 'supplier' },
-        { label: t.mdmItems.item, tab: 'item' },
-        { label: t.mdmItems.waste, tab: 'waste' },
-      ],
-    },
-    {
-      id: 'procurement',
-      title: t.scmTitle,
-      desc: t.scmDesc,
-      icon: Truck,
-      color: 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:border-indigo-400',
-      badge: 'PURCHASING',
-      items: [
-        { label: t.scmItems.pr, tab: 'pr' },
-        { label: t.scmItems.po, tab: 'po' },
-        { label: t.scmItems.log, tab: 'log' },
-        { label: t.scmItems.exim, tab: 'exim' },
-      ],
-    },
-    {
-      id: 'production',
-      title: t.prodTitle,
-      desc: t.prodDesc,
-      icon: ShieldAlert,
-      color: 'bg-rose-50 text-rose-700 border-rose-200 hover:border-rose-400',
-      badge: 'PRODUKSI_QC',
-      items: [
-        { label: t.prodItems.spk, tab: 'spk' },
-        { label: t.prodItems.qc_test, tab: 'qc_test' },
-        { label: t.prodItems.hold_override, tab: 'hold_override' },
-      ],
-    },
-    {
-      id: 'sales',
-      title: t.salesTitle,
-      desc: t.salesDesc,
+      moduleId: 'sales',
+      title: 'Sales & Marketing',
+      desc: isEn
+        ? 'Customers, Quotations, Customer PO/IO, SDA, Forecasts, & E-Complaints'
+        : 'Master Customer, Quotation, PO Customer/IO, SDA, Forecast, & E-Complaint',
       icon: FileSpreadsheet,
-      color: 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400',
+      color: 'bg-amber-50 text-amber-700 border-amber-200',
       badge: 'SALES',
       items: [
-        { label: t.salesItems.quotation, tab: 'quotation' },
-        { label: t.salesItems.do, tab: 'do' },
-        { label: t.salesItems.tracking, tab: 'tracking' },
+        { label: 'Master Customer', subFeatureId: 'customers' },
+        { label: 'Quotation & Approval', subFeatureId: 'quotations' },
+        { label: 'PO Customer & IO', subFeatureId: 'customer_pos' },
+        { label: 'SDA & Sampel (Win/Lose)', subFeatureId: 'daily_activities' },
+        { label: 'Entertain Sales', subFeatureId: 'entertainments' },
+        { label: 'Forecasting Customer', subFeatureId: 'forecasts' },
+        { label: 'E-Complaint & CA', subFeatureId: 'complaints' },
       ],
     },
     {
-      id: 'finance',
-      title: t.finTitle,
-      desc: t.finDesc,
-      icon: Receipt,
-      color: 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-400',
+      moduleId: 'delivery',
+      title: 'Delivery & RM Stock',
+      desc: isEn
+        ? 'Delivery Plan, Request DO (RDO), Surat Jalan DO, E-Tracking, & RM Stock Transfer'
+        : 'Delivery Plan, Request DO (RDO), Surat Jalan DO, E-Tracking, & Mutasi RM Stock',
+      icon: Truck,
+      color: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+      badge: 'DELIVERY',
+      items: [
+        { label: 'Delivery Plan', subFeatureId: 'delivery_plans' },
+        { label: 'Request DO (RDO)', subFeatureId: 'delivery_requests' },
+        { label: 'Delivery Order / Surat Jalan', subFeatureId: 'delivery_orders' },
+        { label: 'E-Tracking Terpadu', subFeatureId: 'e_tracking' },
+        { label: 'RM Stock & Transfer', subFeatureId: 'rm_stocks' },
+      ],
+    },
+    {
+      moduleId: 'warehouse_ppic',
+      title: 'Warehouse & PPIC',
+      desc: isEn
+        ? 'Goods Receipts (LOG), Waste Logs, Work Orders (SPK), & Master Items'
+        : 'Penerimaan Barang (LOG), Limbah / Waste, SPK Produksi, & Master Item',
+      icon: Boxes,
+      color: 'bg-sky-50 text-sky-700 border-sky-200',
+      badge: 'WAREHOUSE_PPIC',
+      items: [
+        { label: 'Penerimaan Barang (Receiving LOG)', subFeatureId: 'goods_receipts' },
+        { label: 'Pencatatan Limbah / Waste', subFeatureId: 'waste_logs' },
+        { label: 'SPK Produksi / Work Orders', subFeatureId: 'work_orders' },
+        { label: 'Master Item & Stok', subFeatureId: 'items' },
+      ],
+    },
+    {
+      moduleId: 'produksi_qc',
+      title: isEn ? 'Production & QA/QC' : 'Produksi & QA/QC',
+      desc: isEn
+        ? 'PPIC Planning & SPK, Output, HOLD Stock, IQC/PQC/OQC, Rework, R&D Dev, & Wastes'
+        : 'Planning & SPK, Output Produksi, Stok HOLD, IQC/PQC/OQC, Rework, & Limbah CAPA',
+      icon: ShieldCheck,
+      color: 'bg-rose-50 text-rose-700 border-rose-200',
+      badge: 'PRODUKSI_QC',
+      items: [
+        { label: 'Planning & SPK', subFeatureId: 'plans' },
+        { label: 'Output Produksi', subFeatureId: 'outputs' },
+        { label: 'Incoming QC (IQC)', subFeatureId: 'iqc' },
+        { label: 'In-Process QC (PQC)', subFeatureId: 'pqc' },
+        { label: 'Rework / Repair', subFeatureId: 'reworks' },
+        { label: 'Outgoing QC / COA', subFeatureId: 'oqc' },
+        { label: 'Pengembangan Produk', subFeatureId: 'product_developments' },
+        { label: 'RM & Product Wastes', subFeatureId: 'wastes' },
+      ],
+    },
+    {
+      moduleId: 'purchasing',
+      title: isEn ? 'Purchasing & Exim' : 'Pembelian (Purchasing)',
+      desc: isEn
+        ? 'Purchase Requests (PR), Purchase Orders (PO), Exim Customs Docs, & Suppliers'
+        : 'Purchase Request (PR), Purchase Order (PO), Dokumen Exim, & Master Supplier',
+      icon: ShoppingCart,
+      color: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      badge: 'PURCHASING',
+      items: [
+        { label: 'Purchase Request (PR)', subFeatureId: 'purchase_requests' },
+        { label: 'Purchase Order (PO)', subFeatureId: 'purchase_orders' },
+        { label: 'Dokumen Exim / Bea Cukai', subFeatureId: 'exim_docs' },
+        { label: 'Master Supplier', subFeatureId: 'suppliers' },
+      ],
+    },
+    {
+      moduleId: 'finance',
+      title: 'Finance & Accounting',
+      desc: isEn
+        ? 'Sales Invoice, AR Payments, AP Supplier Invoices, PO/IO, Commissions, & RMA/CN/DN'
+        : 'Sales Invoice (13 Rumus), Pelunasan AR, AP Hutang, Komisi, Entertain, & RMA',
+      icon: Calculator,
+      color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       badge: 'FINANCE',
       items: [
-        { label: t.finItems.complaint, tab: 'complaint' },
-        { label: t.finItems.rma, tab: 'rma' },
-        { label: t.finItems.ap, tab: 'ap' },
-        { label: t.finItems.ar, tab: 'ar' },
+        { label: 'Sales Invoice (13 Rumus)', subFeatureId: 'invoices' },
+        { label: 'Pelunasan & Rekonsiliasi AR', subFeatureId: 'payments' },
+        { label: 'Account Payable (AP / Hutang)', subFeatureId: 'ap' },
+        { label: 'PO Customer & IO', subFeatureId: 'customer_pos' },
+        { label: 'Komisi Sales', subFeatureId: 'commissions' },
+        { label: 'Entertain Sales', subFeatureId: 'entertainments' },
+        { label: 'E-Complaint & RMA / CN / DN', subFeatureId: 'complaints_rma' },
+      ],
+    },
+    {
+      moduleId: 'rnd',
+      title: 'R&D / Product Development',
+      desc: isEn
+        ? 'R&D Trial Formula, BOM Conversion, E-Catalog Publication, & Sample Requests'
+        : 'Trial Formula R&D, Konversi Master BOM, Publikasi E-Katalog, & Permintaan Sampel',
+      icon: FlaskConical,
+      color: 'bg-teal-50 text-teal-700 border-teal-200',
+      badge: 'RND',
+      items: [
+        { label: 'R&D Trial Formula', subFeatureId: 'rnd_trials' },
+        { label: 'Konversi Formula ke Master BOM', subFeatureId: 'convert_bom' },
+        { label: 'Publikasi E-Katalog', subFeatureId: 'e_catalog' },
+        { label: 'Permintaan Sampel', subFeatureId: 'sample_requests' },
+      ],
+    },
+    {
+      moduleId: 'hrd',
+      title: 'HRD & Personalia',
+      desc: isEn
+        ? 'Employee Database, Leave Requests, Sick/Permits, Exit Permits, Vehicles, & Visits'
+        : 'Database Karyawan, Cuti, Sakit/Izin, Keluar Kantor, Kendaraan, & Visit Luar Kota',
+      icon: Users,
+      color: 'bg-purple-50 text-purple-700 border-purple-200',
+      badge: 'HRD',
+      items: [
+        ...(isHrdAdmin ? [{ label: 'Database Karyawan', subFeatureId: 'employees' }] : []),
+        { label: 'Pengajuan Cuti', subFeatureId: 'cuti' },
+        { label: 'Sakit / Izin Lainnya', subFeatureId: 'sakit_izin' },
+        { label: 'Izin Meninggalkan Tempat Kerja', subFeatureId: 'exit_permits' },
+        { label: 'Kendaraan Kantor', subFeatureId: 'vehicles' },
+        { label: 'Visit Luar Kota', subFeatureId: 'out_of_town_visits' },
       ],
     },
   ];
+  const categories = allCategories.filter((cat) => canAccessModule(cat.moduleId));
+
+  const handleNavigate = (moduleId: ActiveModule, subFeatureId: string) => {
+    appStore.navigateToFeature(moduleId, subFeatureId);
+    onClose();
+  };
 
   const modalContent = (
-    <>
-      {isOpen && !activeSubModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="p-5 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
-              <div>
-                <h2 className="text-lg font-black text-slate-900 flex items-center gap-2.5">
-                  <PlusCircle className="w-6 h-6 text-blue-600" />
-                  <span>{t.modalTitle}</span>
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  {t.modalDesc}
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[88vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div className="shrink-0 px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+          <div>
+            <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2.5">
+              <PlusCircle className="w-5 h-5 text-blue-600 shrink-0" />
+              <span>
+                {isEn
+                  ? 'Enterprise Data Entry Center (8 Divisions)'
+                  : 'Pusat Input Data Baru (8 Divisi Operasional)'}
+              </span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {isEn
+                ? 'Jump directly to the live module page to create new records with real-time backend validation'
+                : 'Pilih modul tujuan untuk langsung masuk ke halaman input data riil yang terhubung ke backend'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-            {/* Grid of 6 Core Modules Input Options */}
-            <div className="flex-1 min-h-0 p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {formCategories.filter((cat) => {
-                const moduleId = cat.id === 'master' ? 'master_data' : cat.id === 'production' ? 'qc' : cat.id;
-                return canAccessModule(moduleId);
-              }).map((cat) => {
-                const Icon = cat.icon;
-                return (
-                  <div
-                    key={cat.id}
-                    className="rounded-2xl border border-slate-200 bg-white hover:border-blue-400 hover:shadow-md transition-all p-4 flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className={`p-2.5 rounded-xl border ${cat.color}`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                      </div>
-                      <h3 className="text-sm font-bold text-slate-900 mb-1">{cat.title}</h3>
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-3">
-                        {cat.desc}
-                      </p>
+        {/* Dedicated Scroll Container wrapping the Grid (prevents top clipping & aligns all cards cleanly) */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 bg-slate-50/40">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 items-stretch">
+            {categories.map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <div
+                  key={cat.moduleId}
+                  className="rounded-2xl border border-slate-200 bg-white hover:border-blue-400 hover:shadow-md transition-all p-3.5 flex flex-col"
+                >
+                  {/* Card Header (fixed clean layout, top-aligned) */}
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className={`p-2 rounded-xl border shrink-0 ${cat.color}`}>
+                      <Icon className="w-4 h-4" />
                     </div>
-
-                    <div className="pt-3 border-t border-slate-100 space-y-1.5">
-                      {cat.items.map((sub) => (
-                        <button
-                          key={sub.tab}
-                          onClick={() => openForm(cat.id as FormCategory, sub.tab)}
-                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between transition-colors group cursor-pointer"
-                        >
-                          <span>{sub.label}</span>
-                          <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                        </button>
-                      ))}
-                    </div>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 truncate">
+                      {cat.badge}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
+                  <h3 className="text-sm font-bold text-slate-900 leading-snug">{cat.title}</h3>
+                  <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed mt-1 min-h-[2.25rem]">
+                    {cat.desc}
+                  </p>
 
-            {/* Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
-              <span>{t.footerTxt}</span>
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-200 text-slate-700 cursor-pointer"
-              >
-                {t.btnClose}
-              </button>
-            </div>
+                  {/* Items List — starts right below divider (no awkward empty gap) */}
+                  <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-0.5">
+                    {cat.items.map((sub) => (
+                      <button
+                        key={`${cat.moduleId}-${sub.subFeatureId}`}
+                        type="button"
+                        onClick={() => handleNavigate(cat.moduleId, sub.subFeatureId)}
+                        className="w-full text-left px-2 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between gap-2 transition-colors group cursor-pointer"
+                      >
+                        <span className="truncate">{sub.label}</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      )}
 
-      {/* Sub-form Modals */}
-      {activeSubModal === 'hrd' && (
-        <HrdFormsModal
-          isOpen={true}
-          onClose={closeSubModal}
-          defaultTab={subModalTab as any}
-        />
-      )}
-
-      {activeSubModal === 'master' && (
-        <MasterDataFormsModal
-          isOpen={true}
-          onClose={closeSubModal}
-          defaultTab={subModalTab as any}
-        />
-      )}
-
-      {activeSubModal === 'procurement' && (
-        <ProcurementFormsModal
-          isOpen={true}
-          onClose={closeSubModal}
-          defaultTab={subModalTab as any}
-        />
-      )}
-
-      {activeSubModal === 'production' && (
-        <ProductionQcFormsModal
-          isOpen={true}
-          onClose={closeSubModal}
-          defaultTab={subModalTab as any}
-        />
-      )}
-
-      {activeSubModal === 'sales' && (
-        <SalesFormsModal
-          isOpen={true}
-          onClose={closeSubModal}
-          defaultTab={subModalTab as any}
-        />
-      )}
-
-      {activeSubModal === 'finance' && (
-        <FinanceFormsModal
-          isOpen={true}
-          onClose={closeSubModal}
-          defaultTab={subModalTab as any}
-        />
-      )}
-    </>
+        {/* Footer */}
+        <div className="shrink-0 px-5 py-3.5 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
+          <span>
+            {isEn
+              ? 'All menus are synced 1:1 with the live 8-division ERP routes and RBAC permissions.'
+              : 'Seluruh pintasan tersinkron 1:1 dengan halaman aktif 8 divisi dan hak akses RBAC Anda.'}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 hover:bg-slate-200 text-slate-700 cursor-pointer"
+          >
+            {isEn ? 'Close' : 'Tutup'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 
   if (typeof document !== 'undefined') {
     return createPortal(modalContent, document.body);
   }
-  
+
   return null;
 };

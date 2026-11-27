@@ -29,6 +29,13 @@ import {
 import { useRBAC } from '../../hooks/useRBAC';
 import { VehicleBookingFormModal } from './VehicleBookingFormModal';
 import { ConfirmActionModal } from './ConfirmActionModal';
+import {
+  ExcelColumn,
+  ExcelSpreadsheetTable,
+  ExcelViewToggle,
+  TableViewStyle,
+  exportExcelCsv,
+} from '../../components/shared/ExcelDataKit';
 
 export const VehiclesAndBookingsTab: React.FC = () => {
   const queryClient = useQueryClient();
@@ -40,6 +47,7 @@ export const VehiclesAndBookingsTab: React.FC = () => {
   const canManageVehicles = isSuperAdmin || isExecutive || isAdminBidang || userDivision === 'HRD';
 
   const [subTab, setSubTab] = useState<'bookings' | 'vehicles'>('bookings');
+  const [tableStyle, setTableStyle] = useState<TableViewStyle>('preview');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
@@ -136,10 +144,267 @@ export const VehiclesAndBookingsTab: React.FC = () => {
     },
   });
 
+  const renderBookingActions = (row: VehicleBookingRecord) => {
+    const kabagPending = !row.kabagStatus || row.kabagStatus === 'PENDING';
+    const hrdPending =
+      row.kabagStatus === 'APPROVED' && (!row.hrdStatus || row.hrdStatus === 'PENDING');
+    const finPending =
+      row.hrdStatus === 'APPROVED' && (!row.financeStatus || row.financeStatus === 'PENDING');
+    const canReturn = row.status === 'APPROVED' && !row.returnAt;
+    const isPendingEditable = (row.status || '').startsWith('PENDING');
+    const hasWorkflow =
+      (canApproveKabag && kabagPending) ||
+      (canApproveHrd && hrdPending) ||
+      (canApproveFinance && finPending) ||
+      canReturn;
+
+    return (
+      <div
+        className="inline-flex items-center justify-end gap-1 whitespace-nowrap"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => {
+            setSelectedBooking(row);
+            setEditMode(false);
+            setReturnMode(false);
+            setBookingModalOpen(true);
+          }}
+          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer"
+          title="Lihat Formulir"
+        >
+          <Eye className="w-3.5 h-3.5" />
+        </button>
+
+        {isPendingEditable && (
+          <button
+            onClick={() => {
+              setSelectedBooking(row);
+              setEditMode(true);
+              setReturnMode(false);
+              setBookingModalOpen(true);
+            }}
+            className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer"
+            title="Edit"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        <button
+          onClick={() =>
+            printHrdReport(`/hrd/vehicle-bookings/${row.id}/print`).catch((e) =>
+              toast.error(e.message)
+            )
+          }
+          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer"
+          title="Cetak Formulir"
+        >
+          <Printer className="w-3.5 h-3.5" />
+        </button>
+
+        {isPendingEditable && (
+          <button
+            onClick={() => setConfirmState({ type: 'delete', row })}
+            className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 text-rose-600 cursor-pointer"
+            title="Batalkan / Hapus"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {hasWorkflow && <span className="w-px h-4 bg-slate-200 mx-0.5" />}
+
+        {canApproveKabag && kabagPending && (
+          <>
+            <button
+              onClick={() => setConfirmState({ type: 'kabag_approve', row })}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold whitespace-nowrap cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" /> Acc Kabag
+            </button>
+            <button
+              onClick={() => setConfirmState({ type: 'kabag_reject', row })}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold whitespace-nowrap cursor-pointer"
+            >
+              <XCircle className="w-3.5 h-3.5" /> Tolak
+            </button>
+          </>
+        )}
+
+        {canApproveHrd && hrdPending && (
+          <>
+            <button
+              onClick={() => setConfirmState({ type: 'hrd_approve', row })}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold whitespace-nowrap cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" /> Acc HRD
+            </button>
+            <button
+              onClick={() => setConfirmState({ type: 'hrd_reject', row })}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold whitespace-nowrap cursor-pointer"
+            >
+              <XCircle className="w-3.5 h-3.5" /> Tolak
+            </button>
+          </>
+        )}
+
+        {canApproveFinance && finPending && (
+          <>
+            <button
+              onClick={() => setConfirmState({ type: 'fin_approve', row })}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold whitespace-nowrap cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" /> Acc FA
+            </button>
+            <button
+              onClick={() => setConfirmState({ type: 'fin_reject', row })}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold whitespace-nowrap cursor-pointer"
+            >
+              <XCircle className="w-3.5 h-3.5" /> Tolak
+            </button>
+          </>
+        )}
+
+        {canReturn && (
+          <button
+            onClick={() => {
+              setSelectedBooking(row);
+              setEditMode(false);
+              setReturnMode(true);
+              setBookingModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold whitespace-nowrap cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Kembalikan
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const bookingExcelDataColumns: ExcelColumn<VehicleBookingRecord>[] = [
+    {
+      key: 'plateNumber',
+      header: 'No. Polisi',
+      mono: true,
+      getValue: (r) => r.plateNumber || '-',
+    },
+    {
+      key: 'vehicleName',
+      header: 'Kendaraan',
+      minWidth: 'min-w-[150px]',
+      getValue: (r) => r.vehicleName || '-',
+    },
+    {
+      key: 'borrowerName',
+      header: 'Pemohon',
+      minWidth: 'min-w-[150px]',
+      getValue: (r) => r.borrowerName || 'Karyawan',
+    },
+    {
+      key: 'purposeType',
+      header: 'Kategori',
+      getValue: (r) => (r.purposeType === 'DINAS_KANTOR' ? 'Dinas Kantor' : 'Pribadi'),
+    },
+    {
+      key: 'destination',
+      header: 'Tujuan / Keperluan',
+      minWidth: 'min-w-[180px]',
+      getValue: (r) => r.destination || '-',
+    },
+    {
+      key: 'departureAt',
+      header: 'Waktu Pergi',
+      mono: true,
+      getValue: (r) => (r.departureAt ? r.departureAt.slice(0, 16).replace('T', ' ') : '-'),
+    },
+    {
+      key: 'returnAt',
+      header: 'Waktu Kembali',
+      mono: true,
+      getValue: (r) => (r.returnAt ? r.returnAt.slice(0, 16).replace('T', ' ') : '-'),
+    },
+    {
+      key: 'initialKm',
+      header: 'KM Awal',
+      align: 'right',
+      mono: true,
+      getValue: (r) => r.initialKm ?? '',
+      render: (r) =>
+        r.initialKm !== undefined && r.initialKm !== null
+          ? r.initialKm.toLocaleString('id-ID')
+          : '-',
+    },
+    {
+      key: 'initialFuel',
+      header: 'Bensin Awal',
+      align: 'center',
+      getValue: (r) => r.initialFuel || '-',
+    },
+    {
+      key: 'finalKm',
+      header: 'KM Akhir',
+      align: 'right',
+      mono: true,
+      getValue: (r) => r.finalKm ?? '',
+      render: (r) =>
+        r.finalKm !== undefined && r.finalKm !== null
+          ? r.finalKm.toLocaleString('id-ID')
+          : '-',
+    },
+    {
+      key: 'finalFuel',
+      header: 'Bensin Akhir',
+      align: 'center',
+      getValue: (r) => r.finalFuel || '-',
+    },
+    {
+      key: 'kabagStatus',
+      header: 'Acc Kabag',
+      align: 'center',
+      getValue: (r) => r.kabagStatus || 'PENDING',
+    },
+    {
+      key: 'hrdStatus',
+      header: 'Acc HRD',
+      align: 'center',
+      getValue: (r) => r.hrdStatus || 'PENDING',
+    },
+    {
+      key: 'financeStatus',
+      header: 'Acc FA',
+      align: 'center',
+      getValue: (r) => r.financeStatus || 'PENDING',
+    },
+    {
+      key: 'status',
+      header: 'Status Akhir',
+      align: 'center',
+      getValue: (r) => r.status || '-',
+      render: (r) => (
+        <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 text-xs font-bold">
+          {r.status}
+        </span>
+      ),
+    },
+  ];
+
+  const bookingExcelColumns: ExcelColumn<VehicleBookingRecord>[] = [
+    ...bookingExcelDataColumns,
+    {
+      key: 'actions',
+      header: 'Aksi',
+      align: 'right',
+      getValue: () => '',
+      render: (r) => renderBookingActions(r),
+    },
+  ];
+
   return (
     <div className="space-y-4">
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setSubTab('bookings')}
             className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer ${
@@ -191,44 +456,72 @@ export const VehiclesAndBookingsTab: React.FC = () => {
 
       {subTab === 'bookings' && (
         <>
-          <div className="bg-white p-3 rounded-2xl border border-slate-200 flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[200px] max-w-sm">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari pemohon, nopol, tujuan..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-sm"
-              />
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5 flex-1">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Cari pemohon, nopol, tujuan..."
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-sm"
+                />
+              </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
+              >
+                <option value="ALL">Semua Status</option>
+                <option value="PENDING_KABAG">Menunggu Kabag</option>
+                <option value="PENDING_HRD">Menunggu HRD</option>
+                <option value="PENDING_FINANCE">Menunggu Finance</option>
+                <option value="APPROVED">Disetujui</option>
+                <option value="RETURNED">Sudah Dikembalikan</option>
+                <option value="REJECTED">Ditolak</option>
+              </select>
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
-            >
-              <option value="ALL">Semua Status</option>
-              <option value="PENDING_KABAG">Menunggu Kabag</option>
-              <option value="PENDING_HRD">Menunggu HRD</option>
-              <option value="PENDING_FINANCE">Menunggu Finance</option>
-              <option value="APPROVED">Disetujui</option>
-              <option value="RETURNED">Sudah Dikembalikan</option>
-              <option value="REJECTED">Ditolak</option>
-            </select>
+
+            <ExcelViewToggle
+              value={tableStyle}
+              onChange={setTableStyle}
+              onExport={() =>
+                exportExcelCsv('peminjaman-kendaraan-hrd', bookingExcelDataColumns, bookings)
+              }
+              exportDisabled={bookings.length === 0}
+            />
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          {tableStyle === 'excel' ? (
+            <ExcelSpreadsheetTable
+              title="Daftar Peminjaman Kendaraan Kantor — Tampilan Excel"
+              subtitle="Klik baris untuk melihat formulir • Geser horizontal untuk melihat seluruh kolom"
+              columns={bookingExcelColumns}
+              rows={bookings}
+              rowKey={(r) => r.id}
+              isLoading={loadingBookings}
+              emptyText="Belum ada pengajuan peminjaman kendaraan."
+              onRowClick={(row) => {
+                setSelectedBooking(row);
+                setEditMode(false);
+                setReturnMode(false);
+                setBookingModalOpen(true);
+              }}
+            />
+          ) : (
+          <div className="bg-white rounded-2xl border border-slate-300 overflow-x-auto shadow-xs">
+            <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
-                  <th className="py-3 px-4">Pemohon & Kendaraan</th>
-                  <th className="py-3 px-4">Tujuan & Keperluan</th>
-                  <th className="py-3 px-4">KM & Bensin</th>
-                  <th className="py-3 px-4 text-center">Approval 3 Tahap</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
+                <tr className="bg-slate-100 border-b border-slate-300 text-xs font-bold text-slate-700 uppercase">
+                  <th className="py-3 px-4 border-r border-slate-200">Pemohon & Kendaraan</th>
+                  <th className="py-3 px-4 border-r border-slate-200">Tujuan & Keperluan</th>
+                  <th className="py-3 px-4 border-r border-slate-200">KM & Bensin</th>
+                  <th className="py-3 px-4 text-center border-r border-slate-200">Approval 3 Tahap</th>
+                  <th className="py-3 px-4 text-right whitespace-nowrap">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
+              <tbody className="divide-y divide-slate-200 text-sm">
                 {loadingBookings ? (
                   <tr>
                     <td colSpan={5} className="py-8 text-center text-slate-400">
@@ -242,178 +535,53 @@ export const VehiclesAndBookingsTab: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  bookings.map((row) => {
-                    const kabagPending = !row.kabagStatus || row.kabagStatus === 'PENDING';
-                    const hrdPending =
-                      row.kabagStatus === 'APPROVED' &&
-                      (!row.hrdStatus || row.hrdStatus === 'PENDING');
-                    const finPending =
-                      row.hrdStatus === 'APPROVED' &&
-                      (!row.financeStatus || row.financeStatus === 'PENDING');
-                    const canReturn = row.status === 'APPROVED' && !row.returnAt;
-                    const isPendingEditable = (row.status || '').startsWith('PENDING');
-
-                    return (
-                      <tr key={row.id} className="hover:bg-slate-50/70">
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-slate-900">
-                            {row.borrowerName || 'Karyawan'}
+                  bookings.map((row) => (
+                    <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 border-r border-slate-200">
+                        <div className="font-bold text-slate-900">
+                          {row.borrowerName || 'Karyawan'}
+                        </div>
+                        <div className="text-xs text-slate-600 font-semibold mt-0.5">
+                          {row.vehicleName} • {row.plateNumber}
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          Pergi: {row.departureAt?.slice(0, 16).replace('T', ' ')}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 max-w-xs border-r border-slate-200">
+                        <span className="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-bold">
+                          {row.purposeType === 'DINAS_KANTOR' ? 'Dinas Kantor' : 'Pribadi'}
+                        </span>
+                        <p className="text-slate-700 mt-1 line-clamp-2">{row.destination}</p>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs border-r border-slate-200">
+                        <div>
+                          Awal: <b>{row.initialKm?.toLocaleString('id-ID')}</b> KM ({row.initialFuel})
+                        </div>
+                        {row.finalKm !== undefined && row.finalKm !== null && (
+                          <div className="text-emerald-700 mt-0.5">
+                            Akhir: <b>{row.finalKm.toLocaleString('id-ID')}</b> KM ({row.finalFuel})
                           </div>
-                          <div className="text-xs text-slate-600 font-semibold">
-                            {row.vehicleName} • {row.plateNumber}
-                          </div>
-                          <div className="text-[11px] text-slate-500">
-                            Pergi: {row.departureAt?.slice(0, 16).replace('T', ' ')}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 max-w-xs">
-                          <span className="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-bold">
-                            {row.purposeType === 'DINAS_KANTOR' ? 'Dinas Kantor' : 'Pribadi'}
-                          </span>
-                          <p className="text-slate-700 mt-1 line-clamp-2">{row.destination}</p>
-                        </td>
-                        <td className="py-3 px-4 text-xs">
-                          <div>
-                            Awal: <b>{row.initialKm?.toLocaleString('id-ID')}</b> KM ({row.initialFuel})
-                          </div>
-                          {row.finalKm !== undefined && row.finalKm !== null && (
-                            <div className="text-emerald-700 mt-0.5">
-                              Akhir: <b>{row.finalKm.toLocaleString('id-ID')}</b> KM ({row.finalFuel})
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-center text-[11px] space-y-1">
-                          <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-bold">
-                            {row.status}
-                          </span>
-                          <div className="text-slate-500">
-                            Kabag: <b>{row.kabagStatus || 'PENDING'}</b> • HRD:{' '}
-                            <b>{row.hrdStatus || 'PENDING'}</b> • FA:{' '}
-                            <b>{row.financeStatus || 'PENDING'}</b>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => {
-                                setSelectedBooking(row);
-                                setEditMode(false);
-                                setReturnMode(false);
-                                setBookingModalOpen(true);
-                              }}
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5" /> Form
-                            </button>
-
-                            {isPendingEditable && (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setSelectedBooking(row);
-                                    setEditMode(true);
-                                    setReturnMode(false);
-                                    setBookingModalOpen(true);
-                                  }}
-                                  className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 cursor-pointer"
-                                  title="Edit Peminjaman"
-                                >
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => setConfirmState({ type: 'delete', row })}
-                                  className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 cursor-pointer"
-                                  title="Batalkan / Hapus"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </>
-                            )}
-
-                            {canApproveKabag && kabagPending && (
-                              <>
-                                <button
-                                  onClick={() => setConfirmState({ type: 'kabag_approve', row })}
-                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5" /> Acc Kabag
-                                </button>
-                                <button
-                                  onClick={() => setConfirmState({ type: 'kabag_reject', row })}
-                                  className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                                >
-                                  <XCircle className="w-3.5 h-3.5" /> Tolak
-                                </button>
-                              </>
-                            )}
-
-                            {canApproveHrd && hrdPending && (
-                              <>
-                                <button
-                                  onClick={() => setConfirmState({ type: 'hrd_approve', row })}
-                                  className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5" /> Acc HRD
-                                </button>
-                                <button
-                                  onClick={() => setConfirmState({ type: 'hrd_reject', row })}
-                                  className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                                >
-                                  <XCircle className="w-3.5 h-3.5" /> Tolak
-                                </button>
-                              </>
-                            )}
-
-                            {canApproveFinance && finPending && (
-                              <>
-                                <button
-                                  onClick={() => setConfirmState({ type: 'fin_approve', row })}
-                                  className="px-2.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5" /> Acc FA
-                                </button>
-                                <button
-                                  onClick={() => setConfirmState({ type: 'fin_reject', row })}
-                                  className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                                >
-                                  <XCircle className="w-3.5 h-3.5" /> Tolak
-                                </button>
-                              </>
-                            )}
-
-                            {canReturn && (
-                              <button
-                                onClick={() => {
-                                  setSelectedBooking(row);
-                                  setEditMode(false);
-                                  setReturnMode(true);
-                                  setBookingModalOpen(true);
-                                }}
-                                className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                              >
-                                <RotateCcw className="w-3.5 h-3.5" /> Kembalikan
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() =>
-                                printHrdReport(`/hrd/vehicle-bookings/${row.id}/print`).catch(
-                                  (e) => toast.error(e.message)
-                                )
-                              }
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                            >
-                              <Printer className="w-3.5 h-3.5" /> Cetak
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-center text-xs space-y-1 border-r border-slate-200">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-bold">
+                          {row.status}
+                        </span>
+                        <div className="text-slate-500">
+                          Kabag: <b>{row.kabagStatus || 'PENDING'}</b> • HRD:{' '}
+                          <b>{row.hrdStatus || 'PENDING'}</b> • FA:{' '}
+                          <b>{row.financeStatus || 'PENDING'}</b>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">{renderBookingActions(row)}</td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
           </div>
+          )}
         </>
       )}
 

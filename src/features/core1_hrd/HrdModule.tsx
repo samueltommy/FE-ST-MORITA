@@ -172,50 +172,50 @@ export const HrdModule: React.FC = () => {
   const options: PageOptionItem[] = [
     ...(canManageUsersTab
       ? [
-          {
-            id: 'user_management',
-            label: 'User Management',
-            subtitle: '/user-management â€¢ Akun, Role & Akses Divisi',
-            icon: UserCog,
-          },
-        ]
+        {
+          id: 'user_management',
+          label: 'User Management',
+          subtitle: 'Akun, Role & Akses Divisi',
+          icon: UserCog,
+        },
+      ]
       : []),
     {
       id: 'employees',
       label: isHrdAdmin ? 'Database Karyawan' : 'Profil & Sisa Cuti Saya',
       subtitle: isHrdAdmin
-        ? '/hrd/employees • 17 grup profil & berkas'
-        : '/hrd/employees/me • Profil pribadi & sisa cuti aktif',
+        ? '17 grup profil & berkas karyawan'
+        : 'Profil pribadi & sisa cuti aktif',
       icon: Users,
     },
     {
       id: 'cuti',
-      label: 'Pengajuan Cuti (RM-HRD-303)',
-      subtitle: '/hrd/leave-requests â€¢ Cuti tahunan & khusus',
+      label: 'Pengajuan Cuti',
+      subtitle: 'Cuti tahunan & khusus',
       icon: Calendar,
     },
     {
       id: 'sakit_izin',
-      label: 'Sakit / Izin Lainnya',
-      subtitle: '/hrd/leave-requests â€¢ Surat dokter & izin',
+      label: 'Pengajuan Sakit / Izin Lainnya',
+      subtitle: 'Surat dokter & izin lainnya',
       icon: Stethoscope,
     },
     {
       id: 'exit_permits',
-      label: 'Keluar Kantor (RM-HRD-013)',
-      subtitle: '/hrd/exit-permits â€¢ Terlambat & saat jam kerja',
+      label: 'Izin Meninggalkan Tempat Kerja',
+      subtitle: 'Terlambat & saat jam kerja',
       icon: DoorOpen,
     },
     {
       id: 'vehicles',
-      label: 'Kendaraan Kantor',
-      subtitle: '/hrd/vehicle-bookings â€¢ Peminjaman & master armada',
+      label: 'Peminjaman Kendaraan Kantor',
+      subtitle: 'Peminjaman & master armada',
       icon: Car,
     },
     {
       id: 'out_of_town_visits',
-      label: 'Visit Luar Kota',
-      subtitle: '/hrd/out-of-town-visits â€¢ Dinas luar & estimasi biaya',
+      label: 'Pengajuan Visit Luar Kota',
+      subtitle: 'Dinas luar & estimasi biaya',
       icon: Plane,
     },
   ];
@@ -227,21 +227,21 @@ export const HrdModule: React.FC = () => {
     const hubItems: ModuleFeatureHubItem[] = [
       ...(canManageUsersTab
         ? [
-            {
-              id: 'user_management',
-              label: 'User Management (/user-management)',
-              subtitle: 'Kelola akun login Keycloak, role, dan hak akses divisi pengguna',
-              icon: UserCog,
-              iconColor: 'text-indigo-600',
-              badge: 'RBAC',
-              badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-              onClick: () => appStore.setActiveSubFeature('hrd', 'user_management'),
-            },
-          ]
+          {
+            id: 'user_management',
+            label: 'User Management',
+            subtitle: 'Kelola akun login Keycloak, role, dan hak akses divisi pengguna',
+            icon: UserCog,
+            iconColor: 'text-indigo-600',
+            badge: 'RBAC',
+            badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+            onClick: () => appStore.setActiveSubFeature('hrd', 'user_management'),
+          },
+        ]
         : []),
       {
         id: 'employees',
-        label: isHrdAdmin ? 'Database Karyawan (/hrd/employees)' : 'Profil & Sisa Cuti Saya (/hrd/employees/me)',
+        label: isHrdAdmin ? 'Database Karyawan' : 'Profil & Sisa Cuti Saya',
         subtitle: isHrdAdmin
           ? 'Direktori data induk karyawan, 17 grup profil lengkap & berkas KTP/KK/NPWP/Ijazah'
           : 'Lihat profil kepegawaian dan sisa kuota cuti tahunan Anda',
@@ -253,12 +253,10 @@ export const HrdModule: React.FC = () => {
       },
       {
         id: 'cuti',
-        label: 'Pengajuan Cuti â€” Form RM-HRD-303',
+        label: 'Pengajuan Cuti',
         subtitle: 'Permohonan cuti tahunan/pribadi & cuti khusus dengan kalkulasi sisa cuti & approval bertahap',
         icon: Calendar,
         iconColor: 'text-emerald-600',
-        badge: 'RM-HRD-303',
-        badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
         onClick: () => appStore.setActiveSubFeature('hrd', 'cuti'),
       },
       {
@@ -271,12 +269,10 @@ export const HrdModule: React.FC = () => {
       },
       {
         id: 'exit_permits',
-        label: 'Ijin Meninggalkan Tempat Kerja â€” RM-HRD-013',
+        label: 'Izin Meninggalkan Tempat Kerja',
         subtitle: 'Pengajuan terlambat atau keluar kantor saat jam kerja, jam aktual & konfirmasi kembali',
         icon: DoorOpen,
         iconColor: 'text-amber-600',
-        badge: 'RM-HRD-013',
-        badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
         onClick: () => appStore.setActiveSubFeature('hrd', 'exit_permits'),
       },
       {
@@ -300,8 +296,8 @@ export const HrdModule: React.FC = () => {
     return (
       <ModuleFeatureHub
         moduleCode="HRD"
-        moduleName="DIVISI 8 - HUMAN RESOURCES DEVELOPMENT (HRD)"
-        moduleDescription="User Management, Database Karyawan, Pengajuan Cuti (RM-HRD-303), Sakit/Izin, Keluar Kantor (RM-HRD-013), Kendaraan Kantor & Visit Luar Kota."
+        moduleName="HUMAN RESOURCES DEVELOPMENT (HRD)"
+        moduleDescription="User Management, Database Karyawan, Pengajuan Cuti, Sakit/Izin, Izin Meninggalkan Tempat Kerja, Kendaraan Kantor & Visit Luar Kota."
         headerBgColor="bg-violet-700"
         items={hubItems}
         onBackToHome={() => appStore.setActiveModule('home')}
@@ -316,28 +312,28 @@ export const HrdModule: React.FC = () => {
         ? 'user_management'
         : 'employees'
       : rawSub === 'employees'
-      ? 'employees'
-      : rawSub === 'cuti' || rawSub === 'leave_requests' || rawSub === 'requests'
-      ? 'cuti'
-      : rawSub === 'sakit_izin'
-      ? 'sakit_izin'
-      : rawSub === 'exit_permits'
-      ? 'exit_permits'
-      : rawSub === 'vehicles'
-      ? 'vehicles'
-      : rawSub === 'out_of_town_visits'
-      ? 'out_of_town_visits'
-      : isHrdAdmin
-      ? 'employees'
-      : 'cuti';
+        ? 'employees'
+        : rawSub === 'cuti' || rawSub === 'leave_requests' || rawSub === 'requests'
+          ? 'cuti'
+          : rawSub === 'sakit_izin'
+            ? 'sakit_izin'
+            : rawSub === 'exit_permits'
+              ? 'exit_permits'
+              : rawSub === 'vehicles'
+                ? 'vehicles'
+                : rawSub === 'out_of_town_visits'
+                  ? 'out_of_town_visits'
+                  : isHrdAdmin
+                    ? 'employees'
+                    : 'cuti';
 
   return (
     <div className="space-y-6">
       {/* Senior-Friendly Header with Option Buttons */}
       <ModulePageHeader
         moduleCode="HRD"
-        title={isHrdAdmin ? 'Divisi 8 - Human Resources Development' : 'Layanan Mandiri Karyawan (HRD)'}
-        description="User Management, Database Karyawan, Cuti (RM-HRD-303), Sakit/Izin, Keluar Kantor (RM-HRD-013), Kendaraan & Visit Luar Kota"
+        title={isHrdAdmin ? 'Human Resources Development (HRD)' : 'Layanan Mandiri Karyawan (HRD)'}
+        description="User Management, Database Karyawan, Cuti, Sakit/Izin, Izin Meninggalkan Tempat Kerja, Kendaraan & Visit Luar Kota"
         badgeColor="bg-violet-50 text-violet-800 border-violet-200"
         options={options}
         activeOption={currentTab}
@@ -451,7 +447,7 @@ export const HrdModule: React.FC = () => {
                     <div className="text-slate-500 dark:text-slate-400">Nama Pasangan</div>
                     <div className="font-bold text-slate-800 dark:text-slate-200">{viewUserDetail.spouse_name || viewUserDetail.spouseName || '-'}</div>
                   </div>
-                  
+
                   <div className="mt-3">
                     <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Data Anak:</div>
                     {(viewUserDetail.children && viewUserDetail.children.length > 0) ? (
@@ -505,7 +501,7 @@ export const HrdModule: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€â”€ Client Standard Bottom Action Toolbar with prominent BACK Button â”€â”€â”€ */}
+      {/* Client Standard Bottom Action Toolbar with prominent BACK Button */}
       <ModuleViewFooter
         onBack={() => appStore.setActiveSubFeature('hrd', null)}
         backLabel="BACK (KEMBALI KE MENU HRD)"

@@ -134,18 +134,6 @@ export const ModuleFeatureHub: React.FC<ModuleFeatureHubProps> = ({
               </button>
             );
           })}
-
-          {/* Bottom "KEMBALI KE MENU UTAMA" Row */}
-          <button
-            type="button"
-            onClick={handleBackToHome}
-            className="w-full px-5 sm:px-7 py-4 flex items-center gap-3 text-left hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer text-slate-600 hover:text-slate-900 font-extrabold uppercase tracking-wide text-xs sm:text-sm"
-          >
-            <div className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center text-slate-600">
-              <ArrowLeft className="w-4 h-4" />
-            </div>
-            <span>Kembali ke Menu Utama</span>
-          </button>
         </div>
       </div>
     </div>

@@ -52,13 +52,15 @@ export const Navbar: React.FC = () => {
   const t = CONTENT[language];
   const { isExternal, canAccessModule } = useRBAC();
 
-  const hasAnyDataEntryAccess = 
-    canAccessModule('hrd') ||
-    canAccessModule('master_data') ||
-    canAccessModule('procurement') ||
-    canAccessModule('qc') ||
+  const hasAnyDataEntryAccess =
     canAccessModule('sales') ||
-    canAccessModule('finance');
+    canAccessModule('delivery') ||
+    canAccessModule('warehouse_ppic') ||
+    canAccessModule('produksi_qc') ||
+    canAccessModule('purchasing') ||
+    canAccessModule('finance') ||
+    canAccessModule('rnd') ||
+    canAccessModule('hrd');
 
   // Use authUser (real backend)
   const displayName = authUser?.name;
